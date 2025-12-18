@@ -89,6 +89,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - **Upload File** OR **Paste Text**
   - Supported formats: PDF, DOCX
   - Document parsing extracts text content
+  - **Warning displayed:** "⚠️ Note: We extract text from your document. Scanned images or handwritten essays are not supported. Please upload a text-based PDF or DOCX."
 - **Word Count Display**
   - Min: 50 words
   - Max: 50,000 words
@@ -323,25 +324,30 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 
 ### Credit Transaction Rules
 
-**Deduction Timing (No-Hold Model):**
-- Credits **deducted when grading completes successfully** (not at submission)
-- If grading fails, **no credit deduction occurs** (user never loses the credit)
-- Prevents charging for failed/incomplete grades
-- **Note:** User messaging should say "You were not charged" rather than "refunded" since no deduction happened
+**Credit Reservation Model:**
+- Credits are **reserved at submission** (moved from `balance` to `reserved` field)
+- At submission: `balance - 1.00, reserved + 1.00` (atomic operation)
+- On successful grading: `reserved - 1.00` (credit already deducted from balance, just clear reservation)
+- On failed grading: `balance + 1.00, reserved - 1.00` (refund reserved credit back to balance)
+- Prevents users from submitting multiple essays simultaneously without sufficient credits
+- Prevents credit loss if grading fails after submission
+- **Note:** User messaging should say "You were not charged" rather than "refunded" since the reservation is released back to balance
 
 **Atomic Operations:**
+- Credit reservation + essay submission happens in single transaction
+- Credit refund + grade failure happens in single transaction
 - Credit deduction + grade completion happens in single transaction
-- Either both succeed or both fail (no partial states)
+- Either all succeed or all fail (no partial states)
 
 **Credit Checks:**
-1. **At submission:** Check `balance >= 1.00`
+1. **At submission:** Check `balance >= 1.00` (available balance, not including reserved)
    - If false, block submission with error message
-2. **Before deduction:** Re-check balance during processing (race condition protection)
+2. **Before processing:** Re-check balance during processing (race condition protection)
    - If insufficient, fail gracefully and notify user
 
 **Refund Scenarios:**
-- **Grading fails (API error, timeout):** No deduction occurred, so no refund needed. User can retry.
-- **User reports error (admin verified):** Manual refund via admin dashboard (creates `refund` transaction type for audit purposes, even though no original deduction may have occurred)
+- **Grading fails (API error, timeout):** Reserved credit is refunded back to balance (`balance + 1.00, reserved - 1.00`). User can retry.
+- **User reports error (admin verified):** Manual refund via admin dashboard (creates `refund` transaction type for audit purposes)
 
 ### Grading Service Level Agreement (SLA)
 
@@ -371,15 +377,19 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - Different responses due to LLM temperature/variance
 
 **Outlier Detection:**
-- Calculate relative difference between scores
-- **Outlier threshold:** 10% relative difference
-- Formula: `|score1 - score2| / max(score1, score2) > 0.10`
-- **Exclude score if:** It differs >10% from **ALL** other scores
+- Use "furthest from mean" algorithm (replaces pairwise comparison)
+- Calculate mean of all scores
+- Calculate deviation of each score from mean: `|score - mean|`
+- Find maximum deviation
+- **Outlier threshold:** 10% of mean
+- **Exclude score if:** Maximum deviation > 10% of mean (exclude the furthest score)
+- **Rationale:** Pairwise comparison can incorrectly exclude the median score (e.g., `[60, 80, 100]` would exclude 80, the median)
 
 **Examples:**
-- Scores: [82, 85, 87] → All included (differences ≤10%)
-- Scores: [82, 85, 95] → Exclude 95 (differs >10% from both 82 and 85)
-- Scores: [50, 75, 100] → Include all (all differ >10%, genuine disagreement)
+- Scores: [82, 85, 87] → Mean: 84.67, Max deviation: 2.67 (3.2% of mean) → All included
+- Scores: [82, 85, 95] → Mean: 87.33, Max deviation: 7.67 (8.8% of mean) → All included (no outlier)
+- Scores: [60, 80, 100] → Mean: 80, Max deviation: 20 (25% of mean) → Exclude 100 (furthest from mean)
+- Scores: [50, 75, 100] → Mean: 75, Max deviation: 25 (33% of mean) → Exclude 100 (furthest from mean)
 
 **Grade Range Calculation:**
 - **Included scores:** Use min and max of non-outlier scores
@@ -563,6 +573,8 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 | Missing required field | "Please fill in all required fields: [Instructions]" | Highlight missing field |
 | File upload failed | "Failed to upload file. Please try again or paste text directly." | Allow retry or paste text |
 | Parsing failed | "Could not extract text from this file. Please check the format or paste text directly." | Fall back to paste text |
+| No text extracted (blank/scanned PDF) | "No text could be extracted. Please ensure your document contains selectable text, not images." | Show error, allow retry or paste text |
+| Rate limit exceeded | "Rate limit exceeded - Please wait 30 seconds between submissions" | Disable submit button temporarily |
 
 ### Grading Errors
 

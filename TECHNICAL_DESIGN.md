@@ -84,6 +84,7 @@ export const credits = pgTable('credits', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
   balance: numeric('balance', { precision: 10, scale: 2 }).default('1.00').notNull(),
+  reserved: numeric('reserved', { precision: 10, scale: 2 }).default('0.00').notNull(), // Credits reserved for pending grading
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -616,6 +617,16 @@ export async function POST(req: Request) {
       const { userId, credits: creditAmount } = session.metadata!;
 
       await db.transaction(async (tx) => {
+        // Idempotency check: Stripe retries webhooks, so check if we've already processed this payment
+        const existing = await tx.query.creditTransactions.findFirst({
+          where: eq(creditTransactions.stripePaymentIntentId, session.payment_intent as string),
+        });
+
+        if (existing) {
+          // Already processed, skip to prevent double-crediting
+          return;
+        }
+
         // 1. Update balance
         await tx
           .update(credits)
@@ -646,6 +657,10 @@ export async function POST(req: Request) {
   }
 }
 ```
+
+**Critical: Idempotency Check**
+
+Stripe **guarantees** webhook retries. Without the idempotency check above, users will be double-credited when Stripe retries the webhook (e.g., due to network issues or timeout). The check uses `stripePaymentIntentId` as a unique identifier - if a transaction with this ID already exists, we skip processing to prevent financial loss.
 
 ---
 
@@ -681,23 +696,58 @@ export function getGradingModel() {
 ### Usage in Railway Worker
 
 ```typescript
-import { generateText } from 'ai';
+import { generateObject } from 'ai';
+import { z } from 'zod';
 import { getGradingModel } from '@/libs/AI';
 
-const result = await generateText({
+// Define expected output structure with Zod schema
+const GradeSchema = z.object({
+  percentage: z.number().min(0).max(100),
+  feedback: z.object({
+    strengths: z.array(z.object({
+      title: z.string(),
+      description: z.string(),
+      evidence: z.string().optional(),
+    })),
+    improvements: z.array(z.object({
+      title: z.string(),
+      description: z.string(),
+      suggestion: z.string(),
+      detailedSuggestions: z.array(z.string()).optional(),
+    })),
+    languageTips: z.array(z.object({
+      category: z.string(),
+      feedback: z.string(),
+    })),
+    resources: z.array(z.object({
+      title: z.string(),
+      url: z.string().optional(),
+      description: z.string(),
+    })).optional(),
+  }),
+  categoryScores: z.object({
+    contentUnderstanding: z.number().min(0).max(100),
+    structureOrganization: z.number().min(0).max(100),
+    criticalAnalysis: z.number().min(0).max(100),
+    languageStyle: z.number().min(0).max(100),
+    citationsReferences: z.number().min(0).max(100).optional(),
+  }),
+});
+
+const result = await generateObject({
   model: getGradingModel(),
-  messages: [
-    {
-      role: 'system',
-      content: 'You are an expert essay grader...',
-    },
-    {
-      role: 'user',
-      content: `Grade this essay: ${essay.content}`,
-    },
-  ],
+  schema: GradeSchema,
+  prompt: `Grade this essay: ${essay.content}...`,
 });
 ```
+
+**Critical: Schema Validation**
+
+Without schema validation, malformed JSON responses from AI models cause production debugging nightmares. Using `generateObject` with Zod ensures:
+- Type-safe responses (TypeScript knows the exact structure)
+- Automatic validation (invalid responses throw errors immediately)
+- Clear error messages (Zod tells you exactly what's wrong)
+- No manual JSON parsing (eliminates parsing errors)
 
 ---
 
@@ -749,6 +799,18 @@ export async function parseDocument(file: File): Promise<string> {
 export function countWords(text: string): number {
   return text.trim().split(/\s+/).filter(word => word.length > 0).length;
 }
+
+// Usage: Validate extracted text
+export async function parseAndValidateDocument(file: File): Promise<string> {
+  const text = await parseDocument(file);
+  const wordCount = countWords(text);
+  
+  if (wordCount === 0) {
+    throw new Error('No text could be extracted. Please ensure your document contains selectable text, not images.');
+  }
+  
+  return text;
+}
 ```
 
 **Security Considerations:**
@@ -766,6 +828,7 @@ export function countWords(text: string): number {
 - Parsing failures → Show error: "Could not extract text from this file. Please check the format or paste text directly."
 - File too large → Show error: "File exceeds 10 MB limit. Please use a smaller file."
 - Invalid format → Show error: "Unsupported file type. Please use PDF or DOCX."
+- No text extracted (blank/scanned PDF) → Show error: "No text could be extracted. Please ensure your document contains selectable text, not images."
 
 ---
 
@@ -807,10 +870,13 @@ export function countWords(text: string): number {
 ```typescript
 // src/app/api/essays/submit/route.ts
 import { db } from '@/libs/DB';
-import { essays, grades } from '@/models/Schema';
-import { sql } from 'drizzle-orm';
+import { essays, grades, credits } from '@/models/Schema';
+import { sql, eq, and } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
+
+// Rate limiter (in-memory Map for v3, Redis for scale)
+const rateLimiter = new Map<string, number>();
 
 export async function POST(req: Request) {
   try {
@@ -818,6 +884,16 @@ export async function POST(req: Request) {
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Rate limiting: 1 submission per user per 30 seconds
+    const lastSubmission = rateLimiter.get(userId) || 0;
+    if (Date.now() - lastSubmission < 30000) {
+      return NextResponse.json(
+        { error: 'Please wait before submitting again' },
+        { status: 429 }
+      );
+    }
+    rateLimiter.set(userId, Date.now());
 
     const { essayId } = await req.json();
 
@@ -833,7 +909,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Essay not found' }, { status: 404 });
     }
 
-    // Check user has sufficient credits
+    // Check user has sufficient credits (available balance, not including reserved)
     const userCredits = await db.query.credits.findFirst({
       where: eq(credits.userId, userId),
     });
@@ -842,9 +918,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Insufficient credits' }, { status: 400 });
     }
 
-    // Create grade record and send NOTIFY in a transaction
+    // Create grade record, reserve credit, and send NOTIFY in a transaction
     const result = await db.transaction(async (tx) => {
-      // 1. Update essay status
+      // 1. Reserve credit: balance - 1.00, reserved + 1.00
+      await tx
+        .update(credits)
+        .set({
+          balance: sql`balance - 1.00`,
+          reserved: sql`reserved + 1.00`,
+          updatedAt: new Date(),
+        })
+        .where(eq(credits.userId, userId));
+
+      // 2. Update essay status
       await tx
         .update(essays)
         .set({
@@ -853,7 +939,7 @@ export async function POST(req: Request) {
         })
         .where(eq(essays.id, essayId));
 
-      // 2. Create grade record
+      // 3. Create grade record
       const [grade] = await tx
         .insert(grades)
         .values({
@@ -864,7 +950,7 @@ export async function POST(req: Request) {
         })
         .returning();
 
-      // 3. Send PostgreSQL NOTIFY to wake up worker
+      // 4. Send PostgreSQL NOTIFY to wake up worker
       await tx.execute(sql`NOTIFY new_grade, ${grade.id}`);
 
       return grade;
@@ -881,6 +967,8 @@ export async function POST(req: Request) {
   }
 }
 ```
+
+**Note:** Rate limiting uses an in-memory Map for v3 (simple, no Redis dependency). For production scale, migrate to Redis or a distributed rate limiting service.
 
 ### Railway Worker (Event-Driven with Backup Polling)
 
@@ -903,6 +991,28 @@ const db = drizzle(pool);
 
 async function startWorker() {
   console.log('🚀 Starting MarkM8 grading worker...');
+
+  // Startup sweep: Process any queued grades from before restart
+  // LISTEN/NOTIFY misses messages during deploys, so this prevents stuck grades
+  try {
+    const pending = await db.query.grades.findMany({
+      where: eq(grades.status, 'queued'),
+    });
+
+    if (pending.length > 0) {
+      console.log(`🔍 Found ${pending.length} queued grades, processing...`);
+      for (const grade of pending) {
+        try {
+          await processGrade(grade.id, db);
+        } catch (error) {
+          console.error(`❌ Failed to process queued grade ${grade.id}:`, error);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('❌ Startup sweep failed:', error);
+    // Continue anyway - LISTEN will handle new grades
+  }
 
   // Setup LISTEN for instant notifications
   const notificationClient = await pool.connect();
@@ -1034,6 +1144,32 @@ function isPermanentError(error: Error): boolean {
   return permanentPatterns.some(pattern => pattern.test(error.message));
 }
 
+/**
+ * Outlier Detection: Find score furthest from mean
+ * Replaces pairwise comparison which can incorrectly exclude median scores.
+ * 
+ * @param scores Array of percentage scores (0-100)
+ * @returns The outlier score to exclude, or null if no outlier found
+ */
+function findOutlier(scores: number[]): number | null {
+  if (scores.length < 3) {
+    return null; // Need at least 3 scores to detect outlier
+  }
+
+  const mean = scores.reduce((a, b) => a + b) / scores.length;
+  const deviations = scores.map(s => Math.abs(s - mean));
+  const maxDeviation = Math.max(...deviations);
+  const threshold = mean * 0.10; // 10% of mean
+
+  if (maxDeviation > threshold) {
+    // Return the score that has the maximum deviation
+    const maxDeviationIndex = deviations.indexOf(maxDeviation);
+    return scores[maxDeviationIndex];
+  }
+
+  return null; // No outlier
+}
+
 export async function processGrade(gradeId: string, db: NodePgDatabase) {
   console.log(`⚙️  Processing grade: ${gradeId}`);
 
@@ -1051,13 +1187,13 @@ export async function processGrade(gradeId: string, db: NodePgDatabase) {
       return;
     }
 
-    // Step 2: Check credits (race condition protection)
+    // Step 2: Check credits (race condition protection - check reserved credit exists)
     const userCredits = await db.query.credits.findFirst({
       where: eq(credits.userId, grade.userId),
     });
 
-    if (!userCredits || parseFloat(userCredits.balance) < 1.0) {
-      console.warn(`⚠️  Insufficient credits for grade: ${gradeId}`);
+    if (!userCredits || parseFloat(userCredits.reserved) < 1.0) {
+      console.warn(`⚠️  No reserved credit found for grade: ${gradeId}`);
       await db
         .update(grades)
         .set({
@@ -1083,18 +1219,26 @@ export async function processGrade(gradeId: string, db: NodePgDatabase) {
 
     const modelResults = await retryWithBackoff(async () => {
       const results = await Promise.all([
-        generateText({ model: getGradingModel(), messages: [{ role: 'user', content: prompt }] }),
-        generateText({ model: getGradingModel(), messages: [{ role: 'user', content: prompt }] }),
-        generateText({ model: getGradingModel(), messages: [{ role: 'user', content: prompt }] }),
+        generateObject({ model: getGradingModel(), schema: GradeSchema, prompt }),
+        generateObject({ model: getGradingModel(), schema: GradeSchema, prompt }),
+        generateObject({ model: getGradingModel(), schema: GradeSchema, prompt }),
       ]);
 
-      // Parse scores, apply outlier detection, calculate range
-      // ... (full implementation in actual code)
+      // Extract scores from validated results, apply outlier detection, calculate range
+      const scores = results.map(r => r.object.percentage);
+      const outlier = findOutlier(scores);
+      const includedScores = outlier !== null ? scores.filter(s => s !== outlier) : scores;
+      
+      // Calculate grade range from included scores
+      const minScore = Math.min(...includedScores);
+      const maxScore = Math.max(...includedScores);
+      // ... (full range calculation and feedback selection in actual code)
 
       return results;
     });
 
-    // Step 5: Save results + deduct credits (atomic)
+    // Step 5: Save results + clear reservation (atomic)
+    // Note: Credit already deducted from balance at submission, just clear reservation
     await db.transaction(async (tx) => {
       // Update grade
       await tx
@@ -1109,11 +1253,11 @@ export async function processGrade(gradeId: string, db: NodePgDatabase) {
         })
         .where(eq(grades.id, gradeId));
 
-      // Deduct credits
+      // Clear reservation (credit already deducted from balance at submission)
       await tx
         .update(credits)
         .set({
-          balance: sql`balance - 1.00`,
+          reserved: sql`reserved - 1.00`,
           updatedAt: new Date(),
         })
         .where(eq(credits.userId, grade.userId));
@@ -1132,15 +1276,28 @@ export async function processGrade(gradeId: string, db: NodePgDatabase) {
   } catch (error) {
     console.error(`❌ Grading failed for ${gradeId}:`, error);
 
-    // Mark as failed on error
-    await db
-      .update(grades)
-      .set({
-        status: 'failed',
-        errorMessage: error instanceof Error ? error.message : String(error),
-        completedAt: new Date(),
-      })
-      .where(eq(grades.id, gradeId));
+    // Mark as failed and refund reserved credit (atomic)
+    await db.transaction(async (tx) => {
+      // Update grade status
+      await tx
+        .update(grades)
+        .set({
+          status: 'failed',
+          errorMessage: error instanceof Error ? error.message : String(error),
+          completedAt: new Date(),
+        })
+        .where(eq(grades.id, gradeId));
+
+      // Refund reserved credit back to balance
+      await tx
+        .update(credits)
+        .set({
+          balance: sql`balance + 1.00`,
+          reserved: sql`reserved - 1.00`,
+          updatedAt: new Date(),
+        })
+        .where(eq(credits.userId, grade.userId));
+    });
   }
 }
 ```
@@ -1262,31 +1419,69 @@ export async function GET(
 ```typescript
 // src/hooks/useGradeStatus.ts
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 export function useGradeStatus(gradeId: string) {
   const [status, setStatus] = useState<string>('queued');
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef<number>(0);
 
   useEffect(() => {
-    const eventSource = new EventSource(`/api/grades/${gradeId}/stream`);
+    let eventSource: EventSource | null = null;
 
-    eventSource.onmessage = (event) => {
-      const data = JSON.parse(event.data);
-      setStatus(data.status);
+    const connect = () => {
+      eventSource = new EventSource(`/api/grades/${gradeId}/stream`);
+
+      // On connect/reconnect: Fetch current state immediately to sync with DB truth
+      eventSource.onopen = async () => {
+        reconnectAttemptsRef.current = 0; // Reset on successful connection
+        try {
+          const response = await fetch(`/api/grades/${gradeId}`);
+          const data = await response.json();
+          setStatus(data.status); // Sync with DB truth
+        } catch (error) {
+          console.error('Failed to fetch initial grade status:', error);
+        }
+      };
+
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setStatus(data.status);
+      };
+
+      // On error: Auto-reconnect with exponential backoff
+      eventSource.onerror = () => {
+        eventSource?.close();
+        
+        // Exponential backoff: 3s, 6s, 12s max
+        const delay = Math.min(3000 * Math.pow(2, reconnectAttemptsRef.current), 12000);
+        reconnectAttemptsRef.current += 1;
+
+        reconnectTimeoutRef.current = setTimeout(() => {
+          connect();
+        }, delay);
+      };
     };
 
-    eventSource.onerror = () => {
-      eventSource.close();
-    };
+    connect();
 
     return () => {
-      eventSource.close();
+      eventSource?.close();
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
     };
   }, [gradeId]);
 
   return { status };
 }
 ```
+
+**Reconnection Pattern:**
+
+- **On connect/reconnect:** Immediately fetch current state from `/api/grades/[id]` to sync with database truth (prevents stale status after page refresh or network interruption)
+- **On error:** Auto-reconnect with exponential backoff (3s, 6s, 12s max) to handle transient network issues
+- **Cleanup:** Properly close EventSource and clear timeouts on unmount
 
 ---
 

@@ -46,7 +46,7 @@
 ```typescript
 // Core tables
 users           // Synced from Clerk (id = clerkId)
-credits         // balance per user (starts at 1.00)
+credits         // balance + reserved per user (starts at 1.00 balance, 0.00 reserved)
 creditTransactions // Audit log (signup_bonus, purchase, grading, refund)
 essays          // userId, status (draft/submitted), assignmentBrief, rubric, content (all JSONB/nullable for drafts)
 grades          // userId, essayId, status (queued→processing→complete/failed) - 1-to-many (regrading support)
@@ -56,9 +56,10 @@ grades          // userId, essayId, status (queued→processing→complete/faile
 - All resources have `userId` (foreign key to users)
 - Essays can be 'draft' (autosave, partial data) or 'submitted' (validated, complete)
 - Grades support 1-to-many with essays (multiple grades per essay for regrading)
-- Credits deducted AFTER grading completes successfully (not at submission)
-- If grading fails, no deduction occurs (no-hold model, so no refund needed)
-- Atomic operations (credit deduction + grade completion)
+- Credits reserved at submission (balance - 1.00, reserved + 1.00)
+- On success: Clear reservation (reserved - 1.00, credit already deducted)
+- On failure: Refund reservation (balance + 1.00, reserved - 1.00)
+- Atomic operations (credit reservation + essay submission, credit refund + grade failure)
 
 ---
 
@@ -66,7 +67,8 @@ grades          // userId, essayId, status (queued→processing→complete/faile
 
 ```
 1. POST /api/essays/submit
-   → Validate, check credits >= 1.00
+   → Validate, check balance >= 1.00 (available credits)
+   → Reserve credit: balance - 1.00, reserved + 1.00 (atomic)
    → Update essay: status 'draft' → 'submitted', set submittedAt
    → Create grade record (status: 'queued')
    → Send PostgreSQL NOTIFY 'new_grade', gradeId
@@ -81,9 +83,11 @@ grades          // userId, essayId, status (queued→processing→complete/faile
    → Mark status: 'processing'
    → Run 3x Grok-4 in parallel (using Vercel AI SDK)
    → Custom retry logic (3 retries, exponential backoff: 5s, 15s, 45s)
-   → Outlier detection (exclude if >10% different)
+   → Outlier detection (furthest from mean, exclude if >10% of mean)
    → Calculate grade range + feedback
-   → Deduct credits + save grade (atomic transaction)
+   → On success: Clear reservation (reserved - 1.00, credit already deducted)
+   → On failure: Refund reservation (balance + 1.00, reserved - 1.00)
+   → Save grade (atomic transaction)
    → Mark status: 'complete' or 'failed'
 
 3. SSE stream (/api/grades/[id]/stream)
@@ -92,7 +96,9 @@ grades          // userId, essayId, status (queued→processing→complete/faile
    → Close on terminal state (complete/failed)
 
 4. Client (useGradeStatus hook)
-   → Real-time status updates
+   → Real-time status updates via SSE
+   → On connect/reconnect: Fetch current state immediately (sync with DB truth)
+   → Auto-reconnect with exponential backoff on error (3s, 6s, 12s max)
    → Show queued → processing → complete/failed
 
 5. Regrading (future feature)

@@ -203,6 +203,15 @@ LISTEN/NOTIFY is reliable, but we add backup polling (every 5 minutes) to handle
 
 The backup polling finds any grades stuck in 'queued' status for >10 minutes and reprocesses them.
 
+### Worker Startup Sweep
+
+**Critical:** The worker performs a startup sweep before setting up LISTEN to process any queued grades from before restart. This prevents grades from being stuck forever during deploys when LISTEN/NOTIFY messages are missed.
+
+**Implementation:**
+- On worker startup, query all grades with `status = 'queued'`
+- Process each queued grade before starting LISTEN
+- Ensures no grades are lost during worker restarts/deploys
+
 ### Scaling Considerations
 
 LISTEN/NOTIFY scales well for MarkM8's use case:
