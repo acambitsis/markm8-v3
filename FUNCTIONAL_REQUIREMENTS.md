@@ -43,15 +43,24 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
    - Credits record created with `balance: [configurable signup bonus amount]` (from admin settings)
    - CreditTransaction record: `type: 'signup_bonus', amount: [configurable signup bonus amount]` (only if amount > 0)
 5. Redirected to `/onboarding` (first-time users only)
-6. Onboarding page (optional):
+6. Onboarding page:
+   - **Default Grading Scale** (required dropdown/radio selection)
+     - Options:
+       - **Percentage (%)** - Grades shown as percentages (e.g., 85-92%)
+       - **Letter Grades** - A-F with +/- (e.g., A, A-, B+, B, B-, C+, C, C-, D+, D, D-, F)
+       - **UK System** - First, Upper Second (2:1), Lower Second (2:2), Third, Fail
+       - **GPA** - 0.0 to 4.0 scale (e.g., 3.5-3.8)
+       - **Pass/Fail** - Binary grading (Pass or Fail)
+     - Default selection: "Percentage (%)"
+     - Used to display grades in user's preferred format
    - **Institution** (optional free text field)
      - Max 200 characters
      - Example: "University of Oxford", "Harvard University", "Manchester High School"
    - **Course** (optional free text field)
      - Max 200 characters
      - Example: "English Literature", "Computer Science", "History"
-   - "Skip" button → redirects to `/dashboard` (fields remain null)
-   - "Continue" button → saves institution/course and redirects to `/dashboard`
+   - "Skip" button → redirects to `/dashboard` (saves default grading scale as "percentage", institution/course remain null)
+   - "Continue" button → saves default grading scale, institution/course and redirects to `/dashboard`
 7. On subsequent logins, redirect directly to `/dashboard` (skip onboarding)
 
 **Landing Page Requirements:**
@@ -128,7 +137,11 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Shows: "This will cost **1.00 credits**"
   - Fixed rate: 1 credit per essay (regardless of word count)
 - **Draft Autosave**
-  - Saves every 2 seconds
+  - Saves immediately after document upload/processing completes
+  - Saves after typing in any text field (Title, Instructions, Subject, Custom Rubric, Focus Areas, Essay Content) with 1-2 second debounce
+  - Saves after pasting text into any field with 1-2 second debounce
+  - Saves after editing text (including edits made after pasting or uploading) with 1-2 second debounce
+  - Saves when user navigates away from the tab/window (blur event)
   - One draft per user (overwrites previous draft)
   - Includes all 3 tabs (all fields can be partial/null)
   - Restores draft on return to `/submit`
@@ -171,9 +184,12 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 #### Status: Complete - Full Results
 
 **Grade Summary:**
-- **Grade Range:** "B to B+" or "82-87%"
-  - Displays letter grade range if spread ≤ 1 grade (e.g., B-B+)
-  - Otherwise shows percentage range
+- **Grade Range:** Displayed in user's preferred grading scale (from `defaultGradingScale` setting)
+  - **Percentage:** "82-87%"
+  - **Letter Grades:** "B to B+" (if spread ≤ 1 grade) or "B-C" (if spread > 1 grade)
+  - **UK System:** "Upper Second (2:1) to First" (converted from percentage)
+  - **GPA:** "3.2-3.5" (converted from percentage, 0.0-4.0 scale)
+  - **Pass/Fail:** "Pass" (if average ≥ 50%) or "Fail" (if average < 50%)
 - **Individual Model Scores** (collapsed by default):
   - Model 1 (Grok-4): 82% ✓ Included
   - Model 2 (Grok-4): 87% ✓ Included
@@ -287,7 +303,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - Columns:
   - **Date Submitted** (descending)
   - **Title** (from assignment brief)
-  - **Grade** (letter range or percentage range)
+  - **Grade** (displayed in user's preferred grading scale from settings)
   - **Status** (badge: queued/processing/complete/failed)
   - **Actions** (View, Delete)
 - Pagination: 20 per page
@@ -313,6 +329,10 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
    - Email (read-only)
    - Name (editable)
    - Profile picture
+   - Default Grading Scale (required dropdown/radio selection)
+     - Options: Percentage (%), Letter Grades (A-F), UK System, GPA (0-4.0), Pass/Fail
+     - Used to display all grades in user's preferred format
+     - Changes apply to future grade displays (existing grades remain in original format)
    - Institution (optional, editable free text field, max 200 characters)
    - Course (optional, editable free text field, max 200 characters)
 
@@ -459,16 +479,21 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 
 ### Protected Routes (Auth Required)
 
-**`/onboarding` - Optional Onboarding (First-Time Users Only)**
-- Shown only on first signup (check if user has institution/course set)
-- If user already has institution/course, redirect to `/dashboard`
+**`/onboarding` - Onboarding (First-Time Users Only)**
+- Shown only on first signup (check if user has `defaultGradingScale` set)
+- If user already has `defaultGradingScale`, redirect to `/dashboard`
 - Form fields:
+  - **Default Grading Scale** (required dropdown/radio selection)
+    - Options: Percentage (%), Letter Grades (A-F), UK System, GPA (0-4.0), Pass/Fail
+    - Default: "Percentage (%)"
+    - Used to display all grades in user's preferred format
   - **Institution** (optional free text, max 200 characters)
   - **Course** (optional free text, max 200 characters)
 - Actions:
-  - "Skip" button → redirects to `/dashboard` (fields remain null)
-  - "Continue" button → saves institution/course via API and redirects to `/dashboard`
+  - "Skip" button → redirects to `/dashboard` (saves default grading scale as "percentage", institution/course remain null)
+  - "Continue" button → saves default grading scale, institution/course via API and redirects to `/dashboard`
 - After submission, user never sees this page again (redirects to dashboard on subsequent visits)
+- User can change default grading scale later in `/settings`
 
 **`/dashboard` - Main Dashboard**
 - Credit balance widget (top-right)
@@ -485,7 +510,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 
 **`/submit` - Essay Submission Workflow**
 - 3-tab interface (detailed in User Journey #2)
-- Persistent draft (autosave every 2s)
+- Persistent draft (autosave on document upload, typing, pasting, editing, and tab blur)
 - Progress indicator (tab 1 of 3, 2 of 3, 3 of 3)
 - "Back" and "Next" buttons between tabs
 - "Submit" button on final tab validates and transitions to 'submitted'

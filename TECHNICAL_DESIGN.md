@@ -52,7 +52,7 @@ We use ONE `essays` table for both drafts and submitted essays (with a `status` 
 
 1. **Regrading support:** Essays need the rubric for regrading. Splitting into two tables would either lose data or create redundancy.
 2. **Simpler schema:** One source of truth for essay data.
-3. **Performance is fine:** Autosave writes (~60-120 per essay) are trivial for PostgreSQL. Partial index `WHERE status = 'draft'` keeps queries fast.
+3. **Performance is fine:** Autosave writes (triggered by document uploads, typing, pasting, editing, and tab blur) are trivial for PostgreSQL. Partial index `WHERE status = 'draft'` keeps queries fast.
 4. **Clear lifecycle:** Draft → Submitted is just a status change + validation, not data migration.
 5. **Natural queries:** `WHERE userId = X AND status = 'submitted'` is simpler than JOINs.
 
@@ -68,6 +68,7 @@ import { pgTable, uuid, text, timestamp, integer, jsonb, numeric, pgEnum, index,
 export const essayStatusEnum = pgEnum('essay_status', ['draft', 'submitted', 'archived']);
 export const gradeStatusEnum = pgEnum('grade_status', ['queued', 'processing', 'complete', 'failed']);
 export const transactionTypeEnum = pgEnum('transaction_type', ['signup_bonus', 'purchase', 'grading', 'refund']);
+export const gradingScaleEnum = pgEnum('grading_scale', ['percentage', 'letter', 'uk', 'gpa', 'pass_fail']);
 
 // Users (synced from Clerk)
 export const users = pgTable('users', {
@@ -78,6 +79,7 @@ export const users = pgTable('users', {
   imageUrl: text('image_url'),
   institution: text('institution'), // Optional: user's institution (free text)
   course: text('course'), // Optional: user's course (free text)
+  defaultGradingScale: gradingScaleEnum('default_grading_scale'), // User's preferred grading scale (percentage, letter, uk, gpa, pass_fail)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -454,12 +456,61 @@ Create `requireAuth()` helper that calls `await auth()` and throws if no `userId
 
 **PATCH /api/user/profile:**
 - Validate field lengths (institution, course: max 200 chars)
+- Validate `defaultGradingScale` is one of: 'percentage', 'letter', 'uk', 'gpa', 'pass_fail'
 - Update user record with conditional spreads for partial updates
 - Return success/error
 
 **GET /api/user/profile:**
 - Fetch user by `userId` from `requireAuth()`
 - Return selected columns only (exclude sensitive data)
+
+### Grade Format Conversion
+
+**Purpose:** Convert stored grade data (percentage/letter) to user's preferred grading scale for display.
+
+**Stored Data:**
+- Grades table stores both `percentageRange` (e.g., `{ lower: 85, upper: 92 }`) and `letterGradeRange` (e.g., `"A-B"`)
+- All conversions use percentage as the source of truth (most precise)
+
+**Conversion Functions (to implement in `src/libs/GradeFormat.ts`):**
+
+```typescript
+// Convert percentage to user's preferred format
+function formatGradeForUser(
+  percentageRange: { lower: number; upper: number },
+  userGradingScale: 'percentage' | 'letter' | 'uk' | 'gpa' | 'pass_fail'
+): string {
+  const average = (percentageRange.lower + percentageRange.upper) / 2;
+  
+  switch (userGradingScale) {
+    case 'percentage':
+      return `${percentageRange.lower}-${percentageRange.upper}%`;
+    
+    case 'letter':
+      // Use stored letterGradeRange if available, otherwise convert from percentage
+      // Conversion: A (90-100), B (80-89), C (70-79), D (60-69), F (<60)
+      // With +/-: A+ (97-100), A (93-96), A- (90-92), etc.
+      return convertPercentageToLetter(percentageRange);
+    
+    case 'uk':
+      // First (70-100), Upper Second/2:1 (60-69), Lower Second/2:2 (50-59), Third (40-49), Fail (<40)
+      return convertPercentageToUK(percentageRange);
+    
+    case 'gpa':
+      // Convert to 0.0-4.0 scale: 4.0 (90-100), 3.0 (80-89), 2.0 (70-79), 1.0 (60-69), 0.0 (<60)
+      // Linear interpolation for precise mapping
+      return convertPercentageToGPA(percentageRange);
+    
+    case 'pass_fail':
+      return average >= 50 ? 'Pass' : 'Fail';
+  }
+}
+```
+
+**Usage:**
+- Always fetch user's `defaultGradingScale` when displaying grades
+- Use conversion function to format grade for display
+- Store original percentage/letter in database (never modify stored data)
 
 ### Platform Settings (Admin Configuration)
 
@@ -1129,7 +1180,7 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] Unified OCR API endpoint (`/api/ocr/process`) for all document types
   - [ ] Word count (50k limit)
   - [ ] Cost estimator (real-time)
-  - [ ] Draft autosave (2s debounce)
+  - [ ] Draft autosave (on document upload, typing/pasting/editing with 1-2s debounce, tab blur)
   - [ ] Submit endpoint (create essay + grade, send NOTIFY)
 - [ ] Grading
   - [ ] Railway worker with LISTEN/NOTIFY (3x Grok-4, outlier detection, custom retry)
