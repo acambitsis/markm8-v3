@@ -72,6 +72,13 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - **Title** (required)
   - Max 200 characters
   - Example: "Renaissance Art History Essay"
+  - User can type the title manually OR use the auto-generate feature
+  - **Auto-generate Title** button (optional)
+    - Uses a fast, cheap LLM model to generate a concise title based on essay content and instructions
+    - Generated title: Maximum 6 words, concise and descriptive
+    - Available when essay content (Tab 3) or instructions (Tab 1) are provided
+    - Populates the Title field (user can edit after generation)
+    - Uses a separate API endpoint with a cost-effective model (not the grading models)
 - **Instructions** (required)
   - Max 10,000 characters
   - What the assignment asks for
@@ -607,6 +614,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 | Parsing failed | "Could not extract text from this file. Please check the format or paste text directly." | Fall back to paste text |
 | No text extracted (blank/scanned PDF) | "No text could be extracted. Please ensure your document contains selectable text, not images." | Show error, allow retry or paste text |
 | Rate limit exceeded | "Rate limit exceeded - Please wait 30 seconds between submissions" | Disable submit button temporarily |
+| Title generation failed | "Could not generate title. Please enter a title manually." | Allow manual entry, no blocking |
 
 ### Grading Errors
 

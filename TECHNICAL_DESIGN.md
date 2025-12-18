@@ -227,6 +227,9 @@ src/
 │       ├── webhooks/
 │       │   ├── clerk/               # User lifecycle webhook
 │       │   └── stripe/              # Payment events webhook
+│       ├── essays/
+│       │   ├── submit/              # Essay submission endpoint
+│       │   └── generate-title/     # Auto-generate title endpoint
 │       ├── grades/[id]/stream/      # SSE endpoint
 │       └── payments/
 │           └── create-checkout/    # Stripe checkout session creation
@@ -885,7 +888,107 @@ export const openrouter = createOpenAI({
 export function getGradingModel() {
   return openrouter('grok-4');
 }
+
+// Fast, cheap model for title generation (not used for grading)
+export function getTitleGenerationModel() {
+  // Use a fast, cost-effective model like gpt-3.5-turbo or claude-haiku
+  // OpenRouter supports multiple providers, choose based on cost/speed
+  return openrouter('openai/gpt-3.5-turbo'); // Fast and cheap (~$0.001 per title)
+}
 ```
+
+### Title Generation API
+
+**Purpose:** Generate concise essay titles (max 6 words) based on essay content and instructions.
+
+**Model Choice:** Uses a fast, cheap model (GPT-3.5 Turbo) instead of the grading models (Grok-4) to minimize cost and latency.
+
+**Implementation:**
+
+```typescript
+// src/app/api/essays/generate-title/route.ts
+import { generateText } from 'ai';
+import { getTitleGenerationModel } from '@/libs/AI';
+import { requireAuth } from '@/libs/Clerk';
+import { NextResponse } from 'next/server';
+
+export async function POST(req: Request) {
+  try {
+    const userId = await requireAuth();
+    const { instructions, content } = await req.json();
+
+    // Validate inputs
+    if (!instructions && !content) {
+      return NextResponse.json(
+        { error: 'Instructions or essay content required' },
+        { status: 400 }
+      );
+    }
+
+    // Build prompt for title generation
+    const prompt = `Generate a concise essay title (maximum 6 words) based on the following assignment instructions and essay content. The title should be descriptive and academic.
+
+Assignment Instructions: ${instructions || 'Not provided'}
+
+Essay Content (first 500 words): ${content ? content.substring(0, 500) : 'Not provided'}
+
+Title (max 6 words):`;
+
+    // Generate title using fast, cheap model
+    const result = await generateText({
+      model: getTitleGenerationModel(),
+      prompt,
+      maxTokens: 20, // Titles are short, limit tokens for cost savings
+      temperature: 0.7, // Some creativity but not too random
+    });
+
+    // Extract title and ensure it's max 6 words
+    const generatedTitle = result.text.trim();
+    const words = generatedTitle.split(/\s+/);
+    const title = words.slice(0, 6).join(' ');
+
+    return NextResponse.json({ title });
+  } catch (error) {
+    console.error('Title generation error:', error);
+    return NextResponse.json(
+      { error: 'Failed to generate title' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+**Client Usage:**
+
+```typescript
+// In essay submission form component
+async function handleGenerateTitle() {
+  try {
+    const response = await fetch('/api/essays/generate-title', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        instructions: assignmentBrief.instructions,
+        content: essayContent,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to generate title');
+    }
+
+    const { title } = await response.json();
+    setTitle(title); // Populate title field
+  } catch (error) {
+    // Show error: "Could not generate title. Please enter a title manually."
+  }
+}
+```
+
+**Cost Analysis:**
+- GPT-3.5 Turbo: ~$0.001 per title generation
+- Negligible cost compared to grading ($0.10-0.15 per essay)
+- No credit deduction (free feature for users)
 
 ### Usage in Railway Worker
 
