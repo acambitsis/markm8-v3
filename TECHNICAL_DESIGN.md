@@ -1154,67 +1154,341 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 ## Launch Checklist
 
-### Week 1: Foundation
+### Phase 1: Foundation
 
 - [ ] Clone boilerplate
 - [ ] Upgrade Next.js 14→15, React 18→19, Tailwind 3→4
 - [ ] Remove example code
-- [ ] Add Vercel AI SDK
-- [ ] Add Mistral Document AI SDK (`@mistralai/mistralai`)
-- [ ] Add Stripe integration
 - [ ] Add dark mode
-- [ ] Set up Clerk (Google OAuth, no Organizations)
-- [ ] Set up Mistral API key (Document AI/OCR)
-- [ ] Set up Neon (dev, prod, test branches)
-- [ ] Replace `src/models/Schema.ts` with schema above
-- [ ] Run migrations: `bun run db:push`
-- [ ] Set up Railway account and project
+- [ ] Set up Clerk (Google OAuth, no Organizations) - **Auth only, no webhooks yet**
 - [ ] Verify: `bun --bun run dev`
 
-### Week 2-3: Core Features
+**Note:** Skip database, AI SDK, Stripe, and Mistral setup for now. These will be added in backend phases.
 
-- [ ] Essay Submission
-  - [ ] 3-tab UI (Brief → Rubric → Essay)
-  - [ ] Document parsing via Mistral Document AI (PDF/DOCX/images)
-  - [ ] Document upload for Instructions & Custom Rubric (PDF/DOCX/images via Mistral)
-  - [ ] Unified OCR API endpoint (`/api/ocr/process`) for all document types
-  - [ ] Word count (50k limit)
-  - [ ] Cost estimator (real-time)
-  - [ ] Draft autosave (on document upload, typing/pasting/editing with 1-2s debounce, tab blur)
-  - [ ] Submit endpoint (create essay + grade, send NOTIFY)
-- [ ] Grading
-  - [ ] Railway worker with LISTEN/NOTIFY (3x Grok-4, outlier detection, custom retry)
-  - [ ] Backup polling (5-minute interval for stuck grades)
-  - [ ] SSE endpoint (real-time status)
-  - [ ] Results page (grade range, category scores, feedback)
-- [ ] History
-  - [ ] Essay list (filterable, sortable, paginated)
-  - [ ] Delete essay (soft delete)
+---
 
-### Week 4: Billing
+### Phase 2: UI Implementation with Mocked Backends
 
-- [ ] Credit purchases (Stripe checkout)
-- [ ] Credit balance display (navbar, settings)
-- [ ] Transaction history
+**Goal:** Build complete UI flows end-to-end with mocked API responses. Use dialogue boxes/alerts to indicate what backend would do.
 
-### Week 5: Testing & Polish
+**Mock Strategy:**
+- Create mock API route handlers in `src/app/api/` that return static/mock data
+- Use `alert()` or toast notifications to indicate backend actions
+- Store mock data in memory (Map/object) for session persistence
+- All UI interactions should work, but backend is simulated
 
-- [ ] E2E tests (submission, grading, purchase)
-- [ ] Error handling (timeouts, API failures)
-- [ ] Loading states (skeleton screens)
+#### 2.1: Landing Page & Auth Flow
+
+- [ ] Landing page (`/`)
+  - [ ] Hero section with value proposition
+  - [ ] Features section
+  - [ ] Pricing section (credit packages)
+  - [ ] "Get Started" button → Clerk sign-in
+- [ ] Clerk authentication (sign-in/sign-up)
+  - [ ] Mock: On signup, show alert: "Backend would: Create user record, initialize credits with signup bonus"
+  - [ ] Redirect to `/onboarding` on first signup (check localStorage flag)
+  - [ ] Redirect to `/dashboard` on subsequent logins
+
+#### 2.2: Onboarding Page
+
+- [ ] Onboarding form (`/onboarding`)
+  - [ ] Default Grading Scale dropdown (required)
+  - [ ] Institution field (optional, max 200 chars)
+  - [ ] Course field (optional, max 200 chars)
+  - [ ] "Skip" button → saves default grading scale, redirects to `/dashboard`
+  - [ ] "Continue" button → saves all fields, redirects to `/dashboard`
+  - [ ] Mock: Store in localStorage, show alert: "Backend would: Update user profile in database"
+  - [ ] Prevent re-showing after completion (localStorage flag)
+
+#### 2.3: Dashboard
+
+- [ ] Dashboard (`/dashboard`)
+  - [ ] Credit balance widget (top-right) - mock: `1.00 credits` from localStorage
+  - [ ] "Submit New Essay" button → `/submit`
+  - [ ] "Buy Credits" button → `/settings#credits`
+  - [ ] Recent essays list (last 5)
+    - [ ] Mock data: Array of essay objects with title, date, status, grade
+    - [ ] Click to navigate to `/grades/[id]`
+  - [ ] Stats section (optional): Total essays, average grade, credits used
+
+#### 2.4: Essay Submission (3-Tab UI)
+
+- [ ] Tab 1: Assignment Brief (`/submit`)
+  - [ ] Title field (required, max 200 chars)
+  - [ ] "Auto-generate Title" button
+    - [ ] Mock: Returns random title, show alert: "Backend would: Call AI API to generate title based on content"
+  - [ ] Instructions field (required, max 10,000 chars)
+  - [ ] Document upload for Instructions
+    - [ ] File picker (PDF, DOCX, PNG, JPEG, AVIF)
+    - [ ] Mock: Simulate processing delay, show alert: "Backend would: Send to Mistral Document AI, extract markdown"
+    - [ ] Populate Instructions field with mock markdown
+  - [ ] Subject dropdown (required)
+  - [ ] Academic Level dropdown (required)
+  - [ ] Focus Areas multi-select (optional)
+  - [ ] "Next" button → Tab 2
+- [ ] Tab 2: Rubric
+  - [ ] Custom Rubric field (optional, max 10,000 chars)
+  - [ ] Document upload for Custom Rubric
+    - [ ] Same mock behavior as Instructions upload
+  - [ ] "Back" button → Tab 1
+  - [ ] "Next" button → Tab 3
+- [ ] Tab 3: Essay Content
+  - [ ] Essay content textarea or document upload
+  - [ ] Document upload (PDF, DOCX, PNG, JPEG, AVIF)
+    - [ ] Mock: Simulate processing, show alert: "Backend would: Parse document, extract text, validate word count"
+    - [ ] Populate content field with mock text
+  - [ ] Word count display (update on paste/type)
+  - [ ] Word count validation (50-50,000 words)
+  - [ ] Cost estimator (mock: `1.00 credit`)
+  - [ ] "Back" button → Tab 2
+  - [ ] "Submit" button
+    - [ ] Validation (all required fields, word count)
+    - [ ] Mock: Show alert: "Backend would: Create essay record, create grade record (queued), reserve credit, send NOTIFY to worker"
+    - [ ] Redirect to `/grades/[mock-grade-id]`
+- [ ] Draft autosave
+  - [ ] Mock: Save to localStorage on document upload, typing (1-2s debounce), tab blur
+  - [ ] Show toast: "Draft saved" (mock: "Backend would: Update essay draft in database")
+  - [ ] Restore draft on page load
+
+#### 2.5: Grade Status & Results
+
+- [ ] Grade status page (`/grades/[id]`)
+  - [ ] Mock grade data with different statuses for testing
+  - [ ] Status: `queued`
+    - [ ] Show "Queued" badge
+    - [ ] Mock: Show alert: "Backend would: Connect to SSE stream, poll status every 2s"
+  - [ ] Status: `processing`
+    - [ ] Show "Processing" badge with progress indicator
+    - [ ] Mock: Simulate status updates, show alert: "Backend would: Receive SSE updates, show real-time progress"
+  - [ ] Status: `complete`
+    - [ ] Display full results:
+      - [ ] Grade range (percentage and letter) - convert to user's preferred scale
+      - [ ] Category scores (5 categories with progress bars)
+      - [ ] Strengths section (list with evidence)
+      - [ ] Improvements section (list with suggestions)
+      - [ ] Language tips section
+      - [ ] Resources section (optional)
+      - [ ] "Regrade" button (mock: shows alert about creating new grade)
+  - [ ] Status: `failed`
+    - [ ] Error message display
+    - [ ] "Retry" button (mock: shows alert about resubmitting)
+  - [ ] Breadcrumb navigation
+
+#### 2.6: Essay History
+
+- [ ] History page (`/history`)
+  - [ ] Table of essays (mock data)
+    - [ ] Columns: Date Submitted, Title, Grade, Status, Actions
+    - [ ] Pagination (20 per page)
+    - [ ] Search by title (client-side filter on mock data)
+    - [ ] Sort by date, grade
+  - [ ] Row click → navigate to `/grades/[id]`
+  - [ ] Delete action
+    - [ ] Confirmation modal
+    - [ ] Mock: Remove from mock data, show alert: "Backend would: Soft delete essay (set deletedAt timestamp)"
+
+#### 2.7: Settings
+
+- [ ] Settings page (`/settings`)
+  - [ ] Tab: Profile
+    - [ ] Email (read-only, from Clerk)
+    - [ ] Name (editable)
+    - [ ] Default Grading Scale dropdown
+    - [ ] Institution field
+    - [ ] Course field
+    - [ ] Save button → mock: Show alert: "Backend would: Update user profile in database"
+  - [ ] Tab: Credits
+    - [ ] Current balance display (mock: from localStorage)
+    - [ ] Purchase options (1, 5, 10, 20, 50 credits)
+    - [ ] Custom amount input
+    - [ ] "Buy Credits" button
+      - [ ] Mock: Show alert: "Backend would: Create Stripe checkout session, redirect to Stripe"
+      - [ ] Simulate purchase: Update localStorage balance, show success message
+    - [ ] Transaction history table (mock data)
+      - [ ] Columns: Date, Type, Amount, Balance After
+  - [ ] Tab: Billing
+    - [ ] Past payments list (mock data)
+    - [ ] Download receipt buttons (mock: show alert)
+
+#### 2.8: UI Polish
+
+- [ ] Loading states (skeleton screens for all async operations)
+- [ ] Error states (network errors, validation errors)
+- [ ] Toast notifications for all user actions
+- [ ] Mobile responsive design
 - [ ] Dark mode polish
-- [ ] Mobile responsive
+- [ ] Form validation feedback
+- [ ] Accessibility (keyboard navigation, ARIA labels)
 
-### Week 6: Launch
+**Testing Phase 2:**
+- [ ] Complete user flow: Sign up → Onboarding → Submit essay → View results → History → Settings
+- [ ] All UI interactions work smoothly
+- [ ] Mock alerts clearly indicate backend actions
+- [ ] No console errors
+- [ ] Responsive on mobile devices
 
-- [ ] Deploy to Railway (web + worker services)
-- [ ] Configure worker service startup command: `bun run src/worker/index.ts`
-- [ ] Set up production Neon database (Free plan works with LISTEN/NOTIFY!)
-- [ ] Verify LISTEN/NOTIFY working in production
-- [ ] Configure Stripe webhooks (production)
-- [ ] Set up Sentry (production)
-- [ ] Landing page copy
-- [ ] Privacy policy & Terms
+---
+
+### Phase 3: Authentication & User Management
+
+**Goal:** Replace Clerk auth mocks with real Clerk integration and user database operations.
+
+- [ ] Set up Neon database (dev branch)
+- [ ] Replace `src/models/Schema.ts` with schema from design doc
+- [ ] Run migrations: `bun run db:push`
+- [ ] Clerk webhook handler (`/api/webhooks/clerk`)
+  - [ ] Verify webhook signature
+  - [ ] On `user.created`: Create user record, initialize credits, log signup bonus transaction
+  - [ ] Use atomic transactions
+- [ ] User profile API (`/api/user/profile`)
+  - [ ] GET: Fetch user profile
+  - [ ] PATCH: Update profile (name, grading scale, institution, course)
+- [ ] Replace onboarding mocks with real API calls
+- [ ] Replace settings profile mocks with real API calls
+- [ ] Test: Sign up new user, verify database records, update profile
+
+---
+
+### Phase 4: Essay Submission & Draft Management
+
+**Goal:** Implement essay CRUD, draft autosave, and document parsing.
+
+- [ ] Essay API endpoints
+  - [ ] POST `/api/essays/submit`: Create essay, validate, create grade (queued), reserve credit
+    - [ ] Mock NOTIFY for now (just log: "Would send NOTIFY to worker")
+  - [ ] GET `/api/essays`: List user's essays (for history)
+  - [ ] GET `/api/essays/[id]`: Get single essay
+  - [ ] PATCH `/api/essays/[id]`: Update draft (autosave)
+  - [ ] DELETE `/api/essays/[id]`: Soft delete essay
+- [ ] Draft autosave
+  - [ ] Debounced save on typing (1-2s)
+  - [ ] Save on tab blur
+  - [ ] Save on document upload completion
+  - [ ] Restore draft on page load
+- [ ] Document parsing (Mistral Document AI)
+  - [ ] Add Mistral SDK: `bun add @mistralai/mistralai`
+  - [ ] Set up Mistral API key
+  - [ ] OCR endpoint (`/api/ocr/process`)
+    - [ ] Validate file type and size
+    - [ ] Process via Mistral Document AI
+    - [ ] Return markdown
+  - [ ] Replace document upload mocks with real API calls
+- [ ] Title generation API (`/api/essays/generate-title`)
+  - [ ] Add Vercel AI SDK: `bun add ai @ai-sdk/openai`
+  - [ ] Set up OpenRouter API key
+  - [ ] Use GPT-3.5 Turbo for fast/cheap title generation
+  - [ ] Replace title generation mock with real API call
+- [ ] Replace essay submission UI mocks with real API calls
+- [ ] Test: Submit essay, verify database records, test draft autosave, test document uploads
+
+---
+
+### Phase 5: Grading System
+
+**Goal:** Implement Railway worker, AI grading, and SSE status updates.
+
+- [ ] Railway worker setup
+  - [ ] Create `src/worker/index.ts` (LISTEN/NOTIFY + backup polling)
+  - [ ] Create `src/worker/processGrade.ts` (grading logic)
+  - [ ] Configure Railway worker service (startup command: `bun run src/worker/index.ts`)
+- [ ] AI grading implementation
+  - [ ] Configure OpenRouter client (Grok-4 × 3)
+  - [ ] Implement `generateObject` with Zod schema validation
+  - [ ] Multi-model consensus (3x parallel calls)
+  - [ ] Outlier detection algorithm
+  - [ ] Retry logic with exponential backoff
+  - [ ] Error classification (transient vs permanent)
+- [ ] Update submission endpoint
+  - [ ] Replace mock NOTIFY with real PostgreSQL NOTIFY
+  - [ ] Send `NOTIFY new_grade, ${gradeId}`
+- [ ] SSE endpoint (`/api/grades/[id]/stream`)
+  - [ ] Poll grade status every 2s
+  - [ ] Stream updates to client
+  - [ ] Handle client disconnect
+- [ ] Grade API endpoints
+  - [ ] GET `/api/grades/[id]`: Get grade status and results
+- [ ] Replace grade status UI mocks with real SSE connection
+- [ ] Replace grade results UI with real data
+- [ ] Test: Submit essay, verify worker processes grade, verify SSE updates, verify results display
+
+---
+
+### Phase 6: Credits & Billing
+
+**Goal:** Implement credit system and Stripe integration.
+
+- [ ] Stripe setup
+  - [ ] Add Stripe SDK: `bun add stripe @stripe/stripe-js`
+  - [ ] Set up Stripe API keys
+  - [ ] Initialize Stripe client
+- [ ] Credit API endpoints
+  - [ ] GET `/api/credits/balance`: Get user's credit balance
+  - [ ] GET `/api/credits/transactions`: Get transaction history
+- [ ] Stripe checkout
+  - [ ] POST `/api/payments/create-checkout`: Create Stripe checkout session
+  - [ ] Replace credit purchase mocks with real Stripe redirect
+- [ ] Stripe webhook (`/api/webhooks/stripe`)
+  - [ ] Verify webhook signature
+  - [ ] On `checkout.session.completed`: Idempotency check, update credits, log transaction
+  - [ ] Use atomic transactions
+- [ ] Replace credit balance mocks with real API calls
+- [ ] Replace transaction history mocks with real data
+- [ ] Test: Purchase credits, verify webhook, verify balance update, verify transaction log
+
+---
+
+### Phase 7: Testing & Polish
+
+**Goal:** End-to-end testing, error handling, and final polish.
+
+- [ ] E2E tests
+  - [ ] User signup flow
+  - [ ] Essay submission flow
+  - [ ] Grading flow (with mocked AI responses for speed)
+  - [ ] Credit purchase flow
+- [ ] Error handling
+  - [ ] API timeout handling
+  - [ ] Network error recovery
+  - [ ] Validation error display
+  - [ ] Graceful degradation
+- [ ] Performance optimization
+  - [ ] Image optimization
+  - [ ] Code splitting
+  - [ ] Lazy loading
+- [ ] Accessibility audit
+- [ ] Browser compatibility testing
+- [ ] Mobile device testing
+
+---
+
+### Phase 8: Launch
+
+**Goal:** Deploy to production and launch.
+
+- [ ] Production database setup
+  - [ ] Create Neon production branch
+  - [ ] Run migrations
+  - [ ] Initialize platform settings (signup bonus)
+- [ ] Railway deployment
+  - [ ] Deploy web service
+  - [ ] Deploy worker service
+  - [ ] Configure environment variables
+  - [ ] Verify LISTEN/NOTIFY working in production
+- [ ] Stripe production setup
+  - [ ] Switch to production API keys
+  - [ ] Configure production webhooks
+- [ ] Monitoring
+  - [ ] Set up Sentry (production)
+  - [ ] Set up logging
+- [ ] Content
+  - [ ] Landing page copy review
+  - [ ] Privacy policy
+  - [ ] Terms of service
+- [ ] Final checks
+  - [ ] Test complete user flow in production
+  - [ ] Verify credit purchases work
+  - [ ] Verify grading completes successfully
+  - [ ] Monitor error rates
 - [ ] Launch! 🚀
 
 ---
