@@ -22,7 +22,7 @@
 | **Deployment** | Railway | Long-running processes, auto-scaling, GitHub integration |
 | **Async Jobs** | PostgreSQL LISTEN/NOTIFY + Railway Worker | Event-driven job processing, backup polling for reliability |
 | **Real-time** | SSE | Grade status updates |
-| **UI** | Shadcn UI | Included in ixartz boilerplate |
+| **UI** | Shadcn UI | Component library |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming, provider-agnostic |
 | **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, less than $0.30/essay |
 | **Payments** | Stripe | One-time credit purchases, NOT subscriptions |
@@ -112,7 +112,7 @@ grades          // userId, essayId, status (queued→processing→complete/faile
 
 ---
 
-## File Structure (ixartz Boilerplate Aligned)
+## File Structure
 
 ```
 src/
@@ -136,7 +136,7 @@ src/
 │   ├── grading/                 # Results display
 │   └── credits/                 # Balance + purchase
 ├── libs/                        # Third-party configs
-│   ├── DB.ts                    # Drizzle setup (from template)
+│   ├── DB.ts                    # Drizzle setup
 │   ├── Clerk.ts                 # Auth helpers
 │   ├── Stripe.ts                # Payment client
 │   └── AI.ts                    # Vercel AI SDK client (OpenRouter)
@@ -226,83 +226,4 @@ railway up
 - ❌ Use React 18 patterns (forwardRef, manual loading states)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)
 
----
 
-## When to Reference Full Documentation
-
-**See `FUNCTIONAL_REQUIREMENTS.md` for:**
-- Full user journeys (sign up, submission, grading, purchases, settings)
-- Page & route specifications (all routes with detailed requirements)
-- Business rules (credit economics, SLA, multi-model consensus algorithm)
-- Admin functionality details
-- Error states & user messages
-- Data validation rules
-
-**See `TECHNICAL_DESIGN.md` for:**
-- Tech stack (with justifications for each choice)
-- Database schema (full definitions + design decisions)
-- File structure (ixartz boilerplate aligned)
-- Boilerplate setup & upgrades (Next.js 14→15, React 18→19, Tailwind 3→4)
-- Implementation code (Stripe, Clerk, Railway worker, AI SDK, SSE)
-- Key Next.js 15 / React 19 patterns
-- Architectural principles
-- Cost analysis
-- Launch checklist
-
-**See `PHASE_2_MIGRATION.md` for:**
-- Future multi-tenancy architecture (organizations/universities)
-- Not needed for current implementation
-
-**See `PR_CHECKLIST.md` for:**
-- Comprehensive PR review guidelines (detailed explanations)
-
-**See `PR_QUICK_CHECKLIST.md` for:**
-- Fast PR review (scannable checkbox format)
-
----
-
-## Environment Variables Required
-
-```env
-# Clerk (auth only)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-CLERK_WEBHOOK_SECRET=whsec_...
-
-# Neon (database)
-DATABASE_URL=postgresql://...
-
-# Stripe (payments)
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# OpenRouter (AI via Vercel AI SDK)
-OPENROUTER_API_KEY=sk-or-...
-
-# App
-NEXT_PUBLIC_URL=http://localhost:3000
-```
-
----
-
-## Current Status
-
-**What's done:**
-- [ ] Boilerplate cloned and upgraded (Next.js 15, React 19, Tailwind 4)
-- [ ] Vercel AI SDK added
-- [ ] Stripe integration added
-- [ ] Dark mode added
-- [ ] Database schema defined
-
-**What's next:**
-- [ ] Implement essay submission flow (3 tabs)
-- [ ] Implement Railway worker with LISTEN/NOTIFY
-- [ ] Implement SSE status updates
-- [ ] Implement grade results display
-- [ ] Implement credit purchases
-- [ ] Deploy to Railway (web + worker services)
-
----
-
-**Remember:** This file is your constant reference. When you need detailed specs, implementation code, or setup instructions, refer to `MARKM8_V3_GUIDE.md`.
