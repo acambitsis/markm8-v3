@@ -1111,7 +1111,7 @@ Stay on free tiers where possible.
 - Database can scale to zero between submissions
 - Savings: **$19/month** at launch, more at scale
 
-### Revenue (@ $0.30/essay avg)
+### Revenue (@ $1.00/essay)
 
 | Metric | Launch | Month 2 |
 |--------|--------|---------|

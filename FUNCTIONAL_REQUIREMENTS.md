@@ -276,21 +276,26 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 
 **Credit Balance Display:**
 - Shown in navbar: "2.50 credits"
-- Shown on settings page: "You have **2.50 credits** ($0.75 value)"
+- Shown on settings page: "You have **2.50 credits** ($2.50 value)"
 
 **Purchase Options:**
-- **10 credits** = $3.00 ($0.30/essay)
-- **50 credits** = $14.00 ($0.28/essay) - 7% discount
-- **100 credits** = $25.00 ($0.25/essay) - 17% discount
+- **Set Denominations:**
+  - **1 credit** = $1.00
+  - **5 credits** = $5.00
+  - **10 credits** = $10.00
+- **Custom Amount:**
+  - User can enter any amount (minimum 1 credit)
+  - Price: 1 credit = $1.00 (no discounts)
+- All purchases are 1 credit = 1 USD with no discounts
 
 **Checkout Flow:**
-1. User clicks "Buy 10 Credits"
+1. User clicks "Buy [X] Credits" or enters custom amount
 2. Redirected to Stripe hosted checkout
 3. After successful payment:
    - Credits added to balance atomically
-   - Transaction record created: `type: 'purchase', amount: 10.00`
+   - Transaction record created: `type: 'purchase', amount: [purchased amount]`
    - Redirects back to `/settings?success=true`
-4. Success message: "10 credits added! Your new balance: 12.50 credits"
+4. Success message: "[X] credits added! Your new balance: [new balance] credits"
 
 ---
 
@@ -360,7 +365,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 **Credit Costs:**
 - **Essay grading:** 1.00 credit (fixed, regardless of length)
 - **Regrading:** 1.00 credit (creates new grade record)
-- **User cost:** 1 credit = $0.25-$0.30 (depending on package)
+- **User cost:** 1 credit = $1.00 USD (fixed rate, no discounts)
 
 **Signup Bonus:**
 - Configurable via admin dashboard (can be set to 0.00)
@@ -368,12 +373,12 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - Transaction type: `signup_bonus` (only created if amount > 0)
 - Admin can adjust this value at any time (affects future signups only)
 
-**Credit Pricing Tiers:**
-| Package | Total Price | Price per Credit | Discount |
-|---------|-------------|------------------|----------|
-| 10 credits | $3.00 | $0.30 | 0% (base) |
-| 50 credits | $14.00 | $0.28 | 7% |
-| 100 credits | $25.00 | $0.25 | 17% |
+**Credit Pricing:**
+- **Fixed rate:** 1 credit = $1.00 USD
+- **Purchase options:**
+  - Set denominations: 1, 5, or 10 credits
+  - Custom amount: Any amount (minimum 1 credit)
+- **No discounts:** All purchases are at the same rate regardless of quantity
 
 ### Credit Transaction Rules
 
