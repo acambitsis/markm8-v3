@@ -8,13 +8,12 @@
 
 ### Product Description
 
-MarkM8 provides AI-powered essay grading for students. Users submit essays through a web interface and receive detailed feedback with grade ranges within 60 seconds.
+MarkM8 provides AI-powered essay grading for students. Users submit essays through a web interface and receive detailed feedback with grade ranges.
 
 ### Core Value Proposition
 
 - Multi-model grading (3 AI models for accuracy)
 - Detailed feedback (category scores + actionable suggestions)
-- Fast results (95% graded within 60 seconds)
 - Pay-per-use (no subscriptions, 1 free essay to start)
 
 ### Target Users
@@ -64,17 +63,14 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Max 200 characters
   - Example: "Renaissance Art History Essay"
 - **Instructions** (required)
-  - Max 5000 characters
+  - Max 10,000 characters
   - What the assignment asks for
   - Example: "Analyze the impact of the Medici family on Renaissance art..."
 - **Subject** (required)
   - Free text field
   - Examples: "History", "English Literature", "Psychology", "Computer Science"
-- **Academic Level** (required)
-  - Dropdown: "High School", "Undergraduate", "Postgraduate"
-  - Affects grading expectations
 - **Custom Rubric** (optional)
-  - Max 2000 characters
+  - Max 10,000 characters
   - Specific criteria to grade against
   - Example: "Focus on thesis clarity (30%), evidence quality (40%), writing style (30%)"
 
@@ -94,13 +90,12 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Supported formats: PDF, DOCX
   - Document parsing extracts text content
 - **Word Count Display**
-  - Real-time count as user types
   - Min: 50 words
   - Max: 50,000 words
   - Error if outside range
 - **Cost Estimator**
-  - Shows: "This will cost **1.00 credits** (~$0.30)"
-  - Updates based on word count (currently flat rate)
+  - Shows: "This will cost **1.00 credits**"
+  - Fixed rate: 1 credit per essay (regardless of word count)
 - **Draft Autosave**
   - Saves every 2 seconds
   - One draft per user (overwrites previous draft)
@@ -600,10 +595,10 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 When transitioning from 'draft' → 'submitted', validate:
 
 - **Title:** Required, 1-200 characters, trim whitespace
-- **Instructions:** Required, 1-5000 characters
+- **Instructions:** Required, 1-10,000 characters
 - **Subject:** Required, 1-100 characters
 - **Academic Level:** Required, enum validation
-- **Custom Rubric:** Optional, 0-2000 characters
+- **Custom Rubric:** Optional, 0-10,000 characters
 - **Focus Areas:** Optional, 0-3 items, each 1-100 characters
 - **Essay Content:** Required, 50-50,000 words (word count via split on whitespace)
 

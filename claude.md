@@ -19,7 +19,8 @@
 | **Styling** | Tailwind 4 | CSS-first config (@theme), native dark mode |
 | **Auth** | Clerk (auth only) | NO Organizations, just userId |
 | **Database** | Neon PostgreSQL + Drizzle | Serverless, branching (dev/test/prod) |
-| **Async Jobs** | Inngest | Background grading, auto-retry, observability |
+| **Deployment** | Railway | Long-running processes, auto-scaling, GitHub integration |
+| **Async Jobs** | PostgreSQL LISTEN/NOTIFY + Railway Worker | Event-driven job processing, backup polling for reliability |
 | **Real-time** | SSE | Grade status updates |
 | **UI** | Shadcn UI | Included in ixartz boilerplate |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming, provider-agnostic |
@@ -32,7 +33,7 @@
 
 1. **User-Scoped Resources** - All data belongs to a user (no organizations)
 2. **Avoid Vendor Lock-In** - Clerk for auth only, custom logic in our database
-3. **Background AI Grading** - AI calls run async via Inngest (slow, need retries, real-time status via SSE)
+3. **Background AI Grading** - AI calls run async via Railway worker (slow, need retries, real-time status via SSE)
 4. **Own Your Data** - All business logic in our database
 5. **Cost-Conscious** - Stay on free tiers, 68% profit margin
 
@@ -68,14 +69,18 @@ grades          // userId, essayId, status (queued→processing→complete/faile
    → Validate, check credits >= 1.00
    → Update essay: status 'draft' → 'submitted', set submittedAt
    → Create grade record (status: 'queued')
-   → Trigger Inngest event 'essay/grade'
+   → Send PostgreSQL NOTIFY 'new_grade', gradeId
    → Return gradeId instantly (<500ms)
 
-2. Inngest function (background)
+2. Railway worker (background, event-driven)
+   → Worker listens via PostgreSQL LISTEN 'new_grade'
+   → Receives gradeId instantly via notification
+   → Backup: Polls every 5 minutes for stuck grades
    → Fetch essay (has assignmentBrief, rubric, content) + grade
    → Check credits (race condition protection)
    → Mark status: 'processing'
    → Run 3x Grok-4 in parallel (using Vercel AI SDK)
+   → Custom retry logic (3 retries, exponential backoff: 5s, 15s, 45s)
    → Outlier detection (exclude if >10% different)
    → Calculate grade range + feedback
    → Deduct credits + save grade (atomic transaction)
@@ -94,7 +99,8 @@ grades          // userId, essayId, status (queued→processing→complete/faile
    → User clicks "Regrade" on completed essay
    → Find existing essay (has all data: brief, rubric, content)
    → Create NEW grade record (status: 'queued')
-   → Trigger Inngest event 'essay/grade'
+   → Send NOTIFY 'new_grade', gradeId
+   → Worker picks up via LISTEN
    → Same flow as initial grading
 ```
 
@@ -115,8 +121,10 @@ src/
 │   │   └── (unauth)/            # Public routes (landing)
 │   └── api/
 │       ├── webhooks/            # Clerk + Stripe
-│       ├── inngest/             # Inngest endpoint
 │       └── grades/[id]/stream/  # SSE endpoint
+├── worker/                      # Background worker (Railway service)
+│   ├── index.ts                 # Worker entry point (LISTEN + polling)
+│   └── processGrade.ts          # Grading logic (3x AI, retry, consensus)
 ├── features/                    # Feature modules
 │   ├── essays/                  # Submission forms
 │   ├── grading/                 # Results display
@@ -125,16 +133,11 @@ src/
 │   ├── DB.ts                    # Drizzle setup (from template)
 │   ├── Clerk.ts                 # Auth helpers
 │   ├── Stripe.ts                # Payment client
-│   ├── Inngest.ts               # Async job client
 │   └── AI.ts                    # Vercel AI SDK client (OpenRouter)
 ├── models/
 │   └── Schema.ts                # Database schema
 └── hooks/
     └── useGradeStatus.ts        # SSE client hook
-
-inngest/
-└── functions/
-    └── grade-essay.ts           # Background grading function
 ```
 
 ---
@@ -187,9 +190,11 @@ bun run db:push  # Push schema changes
 stripe listen --forward-to localhost:3000/api/webhooks/stripe
 ```
 
-**Deploy to Vercel:**
+**Deploy to Railway:**
 ```bash
-vercel --prod  # Uses Bun runtime (vercel.json configured)
+# Railway auto-deploys from GitHub
+# Or use Railway CLI:
+railway up
 ```
 
 ---
@@ -198,7 +203,7 @@ vercel --prod  # Uses Bun runtime (vercel.json configured)
 
 **DO:**
 - ✅ Keep resources user-scoped (`userId` foreign key)
-- ✅ Use Inngest for all AI grading (never synchronous)
+- ✅ Use Railway worker for all AI grading (never synchronous)
 - ✅ Use Vercel AI SDK for all AI calls (type-safe, provider-agnostic)
 - ✅ Use SSE for real-time updates
 - ✅ Deduct credits AFTER grading completes
@@ -209,7 +214,7 @@ vercel --prod  # Uses Bun runtime (vercel.json configured)
 **DON'T:**
 - ❌ Use Clerk Organizations (only Clerk auth)
 - ❌ Add organization tables (future feature, see PHASE_2_MIGRATION.md)
-- ❌ Run AI grading synchronously (use Inngest)
+- ❌ Run AI grading synchronously (use Railway worker)
 - ❌ Deduct credits at submission (wait for completion)
 - ❌ Use WebSockets (use SSE instead)
 - ❌ Use React 18 patterns (forwardRef, manual loading states)
@@ -232,7 +237,7 @@ vercel --prod  # Uses Bun runtime (vercel.json configured)
 - Database schema (full definitions + design decisions)
 - File structure (ixartz boilerplate aligned)
 - Boilerplate setup & upgrades (Next.js 14→15, React 18→19, Tailwind 3→4)
-- Implementation code (Stripe, Clerk, Inngest, AI SDK, SSE)
+- Implementation code (Stripe, Clerk, Railway worker, AI SDK, SSE)
 - Key Next.js 15 / React 19 patterns
 - Architectural principles
 - Cost analysis
@@ -266,10 +271,6 @@ STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Inngest (async jobs)
-INNGEST_EVENT_KEY=...
-INNGEST_SIGNING_KEY=...
-
 # OpenRouter (AI via Vercel AI SDK)
 OPENROUTER_API_KEY=sk-or-...
 
@@ -290,11 +291,11 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 **What's next:**
 - [ ] Implement essay submission flow (3 tabs)
-- [ ] Implement Inngest grading function
+- [ ] Implement Railway worker with LISTEN/NOTIFY
 - [ ] Implement SSE status updates
 - [ ] Implement grade results display
 - [ ] Implement credit purchases
-- [ ] Deploy to Vercel
+- [ ] Deploy to Railway (web + worker services)
 
 ---
 

@@ -12,7 +12,7 @@
   - Examples: `src/features/essays/`, `src/features/grading/`, `src/features/credits/`
   - Group related components, hooks, utilities together
 - ✅ Third-party configs go in `src/libs/`
-  - Examples: `src/libs/AI.ts`, `src/libs/Stripe.ts`, `src/libs/Inngest.ts`, `src/libs/DB.ts`
+  - Examples: `src/libs/AI.ts`, `src/libs/Stripe.ts`, `src/libs/DB.ts`
   - ONE file per service, exports configured client
 - ✅ Database schemas go in `src/models/Schema.ts`
   - Single source of truth for all tables
@@ -22,7 +22,7 @@
   - `(unauth)/` = public routes (landing page)
 - ✅ API routes in `src/app/api/`
   - Webhooks: `src/app/api/webhooks/[provider]/`
-  - Inngest: `src/app/api/inngest/`
+  - Grading: `src/app/api/grading/process/`
   - SSE: `src/app/api/grades/[id]/stream/`
 - ✅ Shared UI components in `src/components/ui/` (Shadcn pattern)
 - ✅ Utilities in `src/utils/` (keep boilerplate helpers)
@@ -132,9 +132,9 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 
 ---
 
-## 4. AI Grading (Inngest + SSE)
+## 4. AI Grading (Railway Worker + SSE)
 
-**AI grading runs async via Inngest (ONLY async operation in the app):**
+**AI grading runs async via Railway worker (ONLY async operation in the app):**
 
 - ✅ API route validates + queues job instantly (<500ms):
   ```typescript
@@ -143,27 +143,36 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
     essayId, userId, status: 'queued'
   }).returning();
 
-  await inngest.send({ name: 'essay/grade', data: { gradeId: grade.id } });
+  // Call Railway worker endpoint (non-blocking)
+  fetch(`${process.env.RAILWAY_WORKER_URL}/api/grading/process`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gradeId: grade.id }),
+  }).catch(err => console.error('Failed to trigger grading:', err));
 
   return NextResponse.json({ gradeId: grade.id }); // Return immediately
   ```
-- ✅ Inngest function handles processing:
+- ✅ Railway worker endpoint handles processing:
   ```typescript
-  // inngest/functions/grade-essay.ts
-  export const gradeEssay = inngest.createFunction(
-    { id: 'grade-essay' },
-    { event: 'essay/grade' },
-    async ({ event, step }) => {
-      // Step 1: Fetch & validate
-      const grade = await step.run('fetch-grade', async () => { ... });
+  // src/app/api/grading/process/route.ts
+  export async function POST(req: Request) {
+    const { gradeId } = await req.json();
+    
+    // Step 1: Fetch & validate
+    const grade = await db.query.grades.findFirst({ ... });
 
-      // Step 2: Call AI (uses Vercel AI SDK)
-      const results = await step.run('call-ai', async () => { ... });
+    // Step 2: Call AI with custom retry logic (uses Vercel AI SDK)
+    const results = await retryWithBackoff(async () => {
+      return await Promise.all([
+        generateText({ model: getGradingModel(), ... }),
+        generateText({ model: getGradingModel(), ... }),
+        generateText({ model: getGradingModel(), ... }),
+      ]);
+    });
 
-      // Step 3: Save results + deduct credits (atomic)
-      await step.run('save-results', async () => { ... });
-    }
-  );
+    // Step 3: Save results + deduct credits (atomic)
+    await db.transaction(async (tx) => { ... });
+  }
   ```
 - ✅ SSE for real-time status updates:
   ```typescript
@@ -195,9 +204,9 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 **Credits deducted AFTER grading completes:**
 
 - ✅ Check credits at submission (validate user has enough)
-- ✅ Deduct credits in Inngest AFTER AI call succeeds
+- ✅ Deduct credits in Railway worker AFTER AI call succeeds
 - ✅ Use database transaction (atomic credit deduction + grade save)
-- ✅ Refund credits if grading fails
+- ✅ No credit deduction if grading fails (no-hold model)
 
 **Don't:**
 
@@ -206,7 +215,7 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 - ❌ Use WebSockets for grade status (use SSE instead)
 - ❌ Skip credit validation before queuing job
 - ❌ Forget atomic transactions for credit operations
-- ❌ Use Inngest for non-AI operations (Stripe webhooks, signups, etc. are synchronous)
+- ❌ Use Railway worker for non-AI operations (Stripe webhooks, signups, etc. are synchronous)
 
 ---
 
@@ -404,8 +413,8 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 **What to test:**
 
 - ✅ Server Actions (form submissions, mutations)
-- ✅ API routes (webhooks, SSE endpoints)
-- ✅ Inngest functions (grading logic, credit operations)
+- ✅ API routes (webhooks, SSE endpoints, Railway worker)
+- ✅ Railway worker endpoint (grading logic, credit operations)
 - ✅ Database queries (complex joins, transactions)
 - ✅ Utilities (parsing, validation, formatting)
 
@@ -438,7 +447,7 @@ Before approving, verify:
 
 - [ ] **Structure**: Files in correct folders? (`features/`, `libs/`, `models/`, `app/`)
 - [ ] **User-Scoped**: No organization tables? All resources user-scoped?
-- [ ] **Async**: AI grading uses Inngest? Credits deducted after completion?
+- [ ] **Async**: AI grading uses Railway worker? Credits deducted after completion?
 - [ ] **Next.js 15**: Uses `await` for cookies/headers/params?
 - [ ] **React 19**: Uses Server Actions instead of manual form state?
 - [ ] **AI SDK**: Uses Vercel AI SDK, not raw fetch?
@@ -463,8 +472,8 @@ Before approving, verify:
 
 - ❌ Running AI calls in API routes (synchronously)
 - ❌ Deducting credits before grading completes
-- ❌ Missing credit refund on failure
-- ❌ Using Inngest for non-AI operations (unnecessary complexity)
+- ❌ Missing error handling in Railway worker
+- ❌ Using Railway worker for non-AI operations (unnecessary complexity)
 
 **Next.js 15 violations:**
 
@@ -492,7 +501,7 @@ Before approving, verify:
 1. ✅ **Boilerplate alignment** - Leverage ixartz structure effectively
 2. ✅ **Simple architecture** - User-scoped only, no premature complexity
 3. ✅ **Modern patterns** - Next.js 15, React 19, Tailwind 4 done right
-4. ✅ **Async grading** - Inngest + SSE for reliable AI background jobs
+4. ✅ **Async grading** - Railway worker + SSE for reliable AI background jobs
 5. ✅ **Type safety** - Drizzle + Zod + Vercel AI SDK
 6. ✅ **Security** - Validation, auth, ownership checks
 7. ✅ **Performance** - Indexes, transactions, Bun speed

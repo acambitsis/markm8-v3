@@ -8,14 +8,15 @@
 
 | Component | Choice | Justification |
 |-----------|--------|---------------|
-| **Runtime/Package Manager** | Bun | 2-10x faster installs, 28% faster rendering on Vercel, all-in-one tool (runtime + package manager + bundler + test runner) |
+| **Runtime/Package Manager** | Bun | 2-10x faster installs, all-in-one tool (runtime + package manager + bundler + test runner) |
 | **Framework** | Next.js 15 (ixartz boilerplate) | Modern, proven, Shadcn UI included, async request APIs |
 | **UI Library** | React 19 | Form actions, ref as prop (no forwardRef), improved suspense |
 | **Styling** | Tailwind 4 | CSS-first config (@theme), native dark mode, container queries |
 | **UI Components** | Shadcn UI | Accessible, customizable, included in boilerplate |
 | **Auth** | Clerk (auth only) | Multi-provider (Google, Apple, Magic Link), free tier = 10k MAU, NO Organizations feature used |
 | **Database** | Neon PostgreSQL + Drizzle | Serverless, branching (dev/prod/test), cost-effective, type-safe ORM |
-| **Async Jobs** | Inngest | Best DX, auto-retries, observability dashboard, free tier = 10k steps/mo |
+| **Deployment** | Railway | Long-running processes, auto-scaling, GitHub integration, supports background workers |
+| **Async Jobs** | PostgreSQL LISTEN/NOTIFY + Railway Worker | Event-driven job processing with backup polling, no HTTP overhead, cost-effective |
 | **Real-time** | Server-Sent Events (SSE) | Native browser support, simpler than WebSockets, perfect for one-way updates |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming support, provider-agnostic, built-in error handling |
 | **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, cost-effective (~$0.10-0.15/essay) |
@@ -36,10 +37,8 @@
 
 ### Why Bun Instead of pnpm/npm?
 
-- ✅ **28% faster** Next.js rendering on Vercel (official benchmark)
 - ✅ **2-10x faster** package installs vs pnpm/npm
-- ✅ **Official Vercel support** (native Bun runtime since October 2025)
-- ✅ **All dependencies compatible** (Clerk, Drizzle, Inngest, Stripe)
+- ✅ **All dependencies compatible** (Clerk, Drizzle, Stripe)
 - ⚠️ **Use Node.js-compatible APIs** (avoid Bun-specific imports for portability)
 
 ---
@@ -217,10 +216,12 @@ src/
 │       ├── webhooks/
 │       │   ├── clerk/               # User lifecycle webhook
 │       │   └── stripe/              # Payment events webhook
-│       ├── inngest/                 # Inngest endpoint
 │       ├── grades/[id]/stream/      # SSE endpoint
 │       └── payments/
 │           └── create-checkout/    # Stripe checkout session creation
+├── worker/                          # Background worker (Railway service)
+│   ├── index.ts                     # Worker entry point (LISTEN + polling)
+│   └── processGrade.ts              # Grading logic (3x AI, retry, consensus)
 ├── components/
 │   └── ui/                          # Shadcn components (from boilerplate)
 ├── features/                        # Feature modules (boilerplate pattern)
@@ -231,7 +232,6 @@ src/
 │   ├── DB.ts                        # Drizzle setup
 │   ├── Clerk.ts                     # Auth helpers
 │   ├── Stripe.ts                    # Payment client
-│   ├── Inngest.ts                   # Async job client
 │   └── AI.ts                        # Vercel AI SDK client (OpenRouter)
 ├── models/
 │   └── Schema.ts                    # Database schema (single source of truth)
@@ -240,10 +240,6 @@ src/
 ├── utils/                           # Utilities (from boilerplate)
 │   └── Helpers.ts
 └── locales/                         # i18n (from boilerplate)
-
-inngest/
-└── functions/
-    └── grade-essay.ts               # Background grading function
 ```
 
 ---
@@ -682,7 +678,7 @@ export function getGradingModel() {
 }
 ```
 
-### Usage in Inngest Function
+### Usage in Railway Worker
 
 ```typescript
 import { generateText } from 'ai';
@@ -773,113 +769,319 @@ export function countWords(text: string): number {
 
 ---
 
-## Async Grading (Inngest + SSE)
+## Async Grading (PostgreSQL LISTEN/NOTIFY + Railway Worker + SSE)
 
 ### Why Async?
 
 **Synchronous grading = BAD UX:**
 - ❌ User stuck waiting 30+ seconds
 - ❌ No progress indication
-- ❌ API timeout risk (Vercel max = 60s)
+- ❌ API timeout risk (Railway supports long-running, but still bad UX)
 - ❌ Can't navigate away
 - ❌ No retry on transient failures
 
 **Async workflow:**
 - ✅ Submit essay → Instant response (<500ms)
-- ✅ Background job → Inngest handles grading (retriable)
+- ✅ Event-driven job trigger → PostgreSQL NOTIFY sends instant notification to worker
+- ✅ Background processing → Railway worker handles grading (with custom retry logic)
 - ✅ Real-time updates → SSE streams status to client
 - ✅ User experience → Can navigate away, come back later
+- ✅ Cost-effective → No constant polling, Neon can scale to zero
 
-### Inngest Setup
+### Why LISTEN/NOTIFY Instead of Polling?
 
-```bash
-bun add inngest
-```
+**Polling problems:**
+- ❌ Keeps Neon database awake 24/7 (~$19/month for Launch plan)
+- ❌ Wastes CPU on empty queries (43,200 queries/day for 2s polling)
+- ❌ 2-second delay before jobs start
 
-### Inngest Client
+**LISTEN/NOTIFY benefits:**
+- ✅ Instant job notification (no delay)
+- ✅ Database can scale to zero (Neon Free plan works!)
+- ✅ Saves ~$19/month in database costs
+- ✅ Only active during actual work
+- ✅ Native PostgreSQL feature (no additional infrastructure)
 
-```typescript
-// src/libs/Inngest.ts
-import { Inngest } from 'inngest';
-
-export const inngest = new Inngest({
-  id: 'markm8',
-  eventKey: process.env.INNGEST_EVENT_KEY!,
-});
-```
-
-### Inngest Endpoint
+### Submission Endpoint (Triggers Worker via NOTIFY)
 
 ```typescript
-// src/app/api/inngest/route.ts
-import { serve } from 'inngest/next';
-import { inngest } from '@/libs/Inngest';
-import { gradeEssay } from '../../../inngest/functions/grade-essay';
-
-export const { GET, POST, PUT } = serve({
-  client: inngest,
-  functions: [gradeEssay],
-});
-```
-
-### Grade Essay Function
-
-```typescript
-// inngest/functions/grade-essay.ts
-import { inngest } from '@/libs/Inngest';
+// src/app/api/essays/submit/route.ts
 import { db } from '@/libs/DB';
-import { essays, grades, credits, creditTransactions } from '@/models/Schema';
-import { eq, sql } from 'drizzle-orm';
-import { generateText } from 'ai';
-import { getGradingModel } from '@/libs/AI';
+import { essays, grades } from '@/models/Schema';
+import { sql } from 'drizzle-orm';
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
-export const gradeEssay = inngest.createFunction(
-  {
-    id: 'grade-essay',
-    retries: 3, // Auto-retry on transient failures
-    timeout: '5m', // Hard timeout: 5 minutes (300 seconds) per SLA
-  },
-  { event: 'essay/grade' },
-  async ({ event, step }) => {
-    const { gradeId } = event.data;
+export async function POST(req: Request) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Step 1: Fetch essay + grade
-    const grade = await step.run('fetch-grade', async () => {
-      const result = await db.query.grades.findFirst({
-        where: eq(grades.id, gradeId),
-        with: {
-          essay: true,
-        },
-      });
+    const { essayId } = await req.json();
 
-      if (!result) throw new Error('Grade not found');
-      return result;
+    // Validate essay exists and belongs to user
+    const essay = await db.query.essays.findFirst({
+      where: and(
+        eq(essays.id, essayId),
+        eq(essays.userId, userId)
+      ),
     });
 
-    // Step 2: Check credits (race condition protection)
-    await step.run('check-credits', async () => {
-      const userCredits = await db.query.credits.findFirst({
-        where: eq(credits.userId, grade.userId),
-      });
+    if (!essay) {
+      return NextResponse.json({ error: 'Essay not found' }, { status: 404 });
+    }
 
-      if (!userCredits || parseFloat(userCredits.balance) < 1.0) {
-        throw new Error('Insufficient credits');
+    // Check user has sufficient credits
+    const userCredits = await db.query.credits.findFirst({
+      where: eq(credits.userId, userId),
+    });
+
+    if (!userCredits || parseFloat(userCredits.balance) < 1.0) {
+      return NextResponse.json({ error: 'Insufficient credits' }, { status: 400 });
+    }
+
+    // Create grade record and send NOTIFY in a transaction
+    const result = await db.transaction(async (tx) => {
+      // 1. Update essay status
+      await tx
+        .update(essays)
+        .set({
+          status: 'submitted',
+          submittedAt: new Date(),
+        })
+        .where(eq(essays.id, essayId));
+
+      // 2. Create grade record
+      const [grade] = await tx
+        .insert(grades)
+        .values({
+          userId,
+          essayId,
+          status: 'queued',
+          queuedAt: new Date(),
+        })
+        .returning();
+
+      // 3. Send PostgreSQL NOTIFY to wake up worker
+      await tx.execute(sql`NOTIFY new_grade, ${grade.id}`);
+
+      return grade;
+    });
+
+    // Return immediately - worker will pick up the grade via LISTEN
+    return NextResponse.json({ gradeId: result.id });
+  } catch (error) {
+    console.error('Essay submission error:', error);
+    return NextResponse.json(
+      { error: 'Submission failed' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Railway Worker (Event-Driven with Backup Polling)
+
+```typescript
+// src/worker/index.ts
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+import { processGrade } from './processGrade';
+import { grades } from '@/models/Schema';
+import { eq, and, lt } from 'drizzle-orm';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  // Keep connection alive for LISTEN
+  min: 1,
+  max: 5,
+});
+
+const db = drizzle(pool);
+
+async function startWorker() {
+  console.log('🚀 Starting MarkM8 grading worker...');
+
+  // Setup LISTEN for instant notifications
+  const notificationClient = await pool.connect();
+
+  try {
+    await notificationClient.query('LISTEN new_grade');
+    console.log('✅ Listening for new_grade notifications');
+
+    // Handle notifications
+    notificationClient.on('notification', async (msg) => {
+      if (msg.channel === 'new_grade') {
+        const gradeId = msg.payload;
+        console.log(`📨 Received notification for grade: ${gradeId}`);
+
+        try {
+          await processGrade(gradeId, db);
+        } catch (error) {
+          console.error(`❌ Failed to process grade ${gradeId}:`, error);
+        }
       }
     });
 
-    // Step 3: Update status to processing
-    await step.run('mark-processing', async () => {
-      await db
-        .update(grades)
-        .set({ status: 'processing', startedAt: new Date() })
-        .where(eq(grades.id, gradeId));
+    // Handle connection errors
+    notificationClient.on('error', (err) => {
+      console.error('❌ LISTEN connection error:', err);
+      // Reconnect logic handled by pg library
     });
 
-    // Step 4: Run 3 AI models in parallel
-    const modelResults = await step.run('call-ai', async () => {
-      const essay = grade.essay;
-      const prompt = `Grade this essay: ${essay.content}...`;
+  } catch (error) {
+    console.error('❌ Failed to setup LISTEN:', error);
+    throw error;
+  }
 
+  // Backup polling: Check for stuck grades every 5 minutes
+  setInterval(async () => {
+    try {
+      const tenMinutesAgo = new Date(Date.now() - 10 * 60 * 1000);
+
+      const stuckGrades = await db.query.grades.findMany({
+        where: and(
+          eq(grades.status, 'queued'),
+          lt(grades.queuedAt, tenMinutesAgo)
+        ),
+        limit: 10,
+      });
+
+      if (stuckGrades.length > 0) {
+        console.log(`🔍 Found ${stuckGrades.length} stuck grades, reprocessing...`);
+
+        for (const grade of stuckGrades) {
+          try {
+            await processGrade(grade.id, db);
+          } catch (error) {
+            console.error(`❌ Failed to reprocess stuck grade ${grade.id}:`, error);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Backup polling error:', error);
+    }
+  }, 5 * 60 * 1000); // Every 5 minutes
+
+  console.log('✅ Worker running (LISTEN + 5min backup polling)');
+}
+
+// Start the worker
+startWorker().catch((error) => {
+  console.error('❌ Worker failed to start:', error);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('⏹️  SIGTERM received, shutting down gracefully...');
+  await pool.end();
+  process.exit(0);
+});
+```
+
+### Grade Processing Logic
+
+```typescript
+// src/worker/processGrade.ts
+import { generateText } from 'ai';
+import { getGradingModel } from '@/libs/AI';
+import { essays, grades, credits, creditTransactions } from '@/models/Schema';
+import { eq, sql } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+
+// Custom retry function with exponential backoff
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  delays: number[] = [5000, 15000, 45000]
+): Promise<T> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Check if error is permanent (don't retry)
+      if (isPermanentError(lastError)) {
+        throw lastError;
+      }
+
+      // If not last attempt, wait before retrying
+      if (attempt < maxRetries) {
+        console.log(`⏳ Retry attempt ${attempt + 1}/${maxRetries} after ${delays[attempt]}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+      }
+    }
+  }
+
+  throw lastError || new Error('Max retries exceeded');
+}
+
+function isPermanentError(error: Error): boolean {
+  // Permanent errors: invalid API key, 400 Bad Request, essay too long, malformed prompt
+  const permanentPatterns = [
+    /invalid.*api.*key/i,
+    /400/i,
+    /bad.*request/i,
+    /malformed/i,
+  ];
+
+  return permanentPatterns.some(pattern => pattern.test(error.message));
+}
+
+export async function processGrade(gradeId: string, db: NodePgDatabase) {
+  console.log(`⚙️  Processing grade: ${gradeId}`);
+
+  try {
+    // Step 1: Fetch essay + grade
+    const grade = await db.query.grades.findFirst({
+      where: eq(grades.id, gradeId),
+      with: {
+        essay: true,
+      },
+    });
+
+    if (!grade) {
+      console.error(`❌ Grade not found: ${gradeId}`);
+      return;
+    }
+
+    // Step 2: Check credits (race condition protection)
+    const userCredits = await db.query.credits.findFirst({
+      where: eq(credits.userId, grade.userId),
+    });
+
+    if (!userCredits || parseFloat(userCredits.balance) < 1.0) {
+      console.warn(`⚠️  Insufficient credits for grade: ${gradeId}`);
+      await db
+        .update(grades)
+        .set({
+          status: 'failed',
+          errorMessage: 'Insufficient credits',
+          completedAt: new Date(),
+        })
+        .where(eq(grades.id, gradeId));
+      return;
+    }
+
+    // Step 3: Update status to processing
+    await db
+      .update(grades)
+      .set({ status: 'processing', startedAt: new Date() })
+      .where(eq(grades.id, gradeId));
+
+    console.log(`🤖 Running AI grading for: ${gradeId}`);
+
+    // Step 4: Run 3 AI models in parallel with retry logic
+    const essay = grade.essay;
+    const prompt = `Grade this essay: ${essay.content}...`; // Full prompt in actual implementation
+
+    const modelResults = await retryWithBackoff(async () => {
       const results = await Promise.all([
         generateText({ model: getGradingModel(), messages: [{ role: 'user', content: prompt }] }),
         generateText({ model: getGradingModel(), messages: [{ role: 'user', content: prompt }] }),
@@ -887,50 +1089,60 @@ export const gradeEssay = inngest.createFunction(
       ]);
 
       // Parse scores, apply outlier detection, calculate range
-      // ... (implementation in actual function)
+      // ... (full implementation in actual code)
 
       return results;
     });
 
     // Step 5: Save results + deduct credits (atomic)
-    await step.run('save-results', async () => {
-      await db.transaction(async (tx) => {
-        // Update grade
-        await tx
-          .update(grades)
-          .set({
-            status: 'complete',
-            letterGradeRange: '...',
-            percentageRange: { lower: 82, upper: 87 },
-            feedback: { /* ... */ },
-            modelResults,
-            completedAt: new Date(),
-          })
-          .where(eq(grades.id, gradeId));
+    await db.transaction(async (tx) => {
+      // Update grade
+      await tx
+        .update(grades)
+        .set({
+          status: 'complete',
+          letterGradeRange: '...', // Calculated from results
+          percentageRange: { lower: 82, upper: 87 }, // Calculated from results
+          feedback: { /* Parsed feedback */ },
+          modelResults,
+          completedAt: new Date(),
+        })
+        .where(eq(grades.id, gradeId));
 
-        // Deduct credits
-        await tx
-          .update(credits)
-          .set({
-            balance: sql`balance - 1.00`,
-            updatedAt: new Date(),
-          })
-          .where(eq(credits.userId, grade.userId));
+      // Deduct credits
+      await tx
+        .update(credits)
+        .set({
+          balance: sql`balance - 1.00`,
+          updatedAt: new Date(),
+        })
+        .where(eq(credits.userId, grade.userId));
 
-        // Log transaction
-        await tx.insert(creditTransactions).values({
-          userId: grade.userId,
-          amount: '-1.00',
-          transactionType: 'grading',
-          description: `Graded essay: ${grade.essay.assignmentBrief.title}`,
-          gradeId,
-        });
+      // Log transaction
+      await tx.insert(creditTransactions).values({
+        userId: grade.userId,
+        amount: '-1.00',
+        transactionType: 'grading',
+        description: `Graded essay: ${essay.assignmentBrief?.title || 'Untitled'}`,
+        gradeId,
       });
     });
 
-    return { success: true, gradeId };
+    console.log(`✅ Successfully graded: ${gradeId}`);
+  } catch (error) {
+    console.error(`❌ Grading failed for ${gradeId}:`, error);
+
+    // Mark as failed on error
+    await db
+      .update(grades)
+      .set({
+        status: 'failed',
+        errorMessage: error instanceof Error ? error.message : String(error),
+        completedAt: new Date(),
+      })
+      .where(eq(grades.id, gradeId));
   }
-);
+}
 ```
 
 ### SLA, Retry Logic, and Error Handling
@@ -940,12 +1152,12 @@ export const gradeEssay = inngest.createFunction(
 - **99% of essays** graded within **120 seconds**
 
 **Timeout Configuration:**
-- **Hard timeout:** 5 minutes (300 seconds) - configured in Inngest function
+- **Hard timeout:** 5 minutes (300 seconds) - enforced in Railway worker
 - After timeout: Grade marked as `failed`, no credit deduction (since credits aren't deducted until completion)
 
 **Retry Strategy:**
 - **3 automatic retries** on transient failures
-- **Exponential backoff:** 5s, 15s, 45s (Inngest handles this automatically)
+- **Exponential backoff:** 5s, 15s, 45s (custom implementation in Railway worker)
 - **Error Classification:**
   - **Transient errors (retry):** Network timeouts, 503 Service Unavailable, rate limits, temporary API failures
   - **Permanent errors (fail immediately):** Invalid API key, 400 Bad Request, essay too long, malformed prompt
@@ -956,22 +1168,27 @@ export const gradeEssay = inngest.createFunction(
 - **User messaging:** Instead of "refunded", use: "Grading failed. You were not charged. Please try again."
 - **Exception:** Manual admin refunds for verified errors (creates a `refund` transaction type for audit purposes)
 
-**Error Handling in Function:**
+**Error Handling in Worker:**
 ```typescript
-// In step.run('call-ai', ...), catch and classify errors:
-try {
-  // ... AI calls
-} catch (error) {
-  if (isTransientError(error)) {
-    throw error; // Let Inngest retry
-  } else {
-    // Permanent error - mark as failed immediately
-    await db.update(grades).set({
-      status: 'failed',
-      errorMessage: error.message,
-    }).where(eq(grades.id, gradeId));
-    throw error; // Stop retries
+// Custom retry function with error classification:
+async function retryWithBackoff<T>(
+  fn: () => Promise<T>,
+  maxRetries: number = 3,
+  delays: number[] = [5000, 15000, 45000]
+): Promise<T> {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (error) {
+      if (isPermanentError(error)) {
+        throw error; // Fail immediately for permanent errors
+      }
+      if (attempt < maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
+      }
+    }
   }
+  throw error;
 }
 ```
 
@@ -1095,9 +1312,9 @@ Use Clerk for auth only, not Organizations.
 
 ### 3. Background AI Grading
 
-AI calls run async via Inngest (slow, need retries, real-time status via SSE).
+AI calls run async via Railway worker (slow, need retries, real-time status via SSE).
 
-**When NOT to use Inngest:**
+**When NOT to use Railway worker:**
 - Stripe webhooks (synchronous)
 - User signups (synchronous)
 - Other fast operations
@@ -1117,9 +1334,8 @@ Stay on free tiers where possible.
 
 **Free tier usage:**
 - Clerk: 10k MAU
-- Inngest: 10k steps/month
 - Sentry: 5k events/month
-- Vercel: Hobby tier (upgrade as needed)
+- Railway: Pay-as-you-go pricing (scales with usage)
 
 ---
 
@@ -1127,15 +1343,20 @@ Stay on free tiers where possible.
 
 ### Infrastructure Costs
 
-| Service | Launch (10 users) | Month 2 (500 users) |
-|---------|-------------------|---------------------|
-| **Clerk** | Free | Free (under 10k MAU) |
-| **Neon** | Free | $69/mo (Scale tier) |
-| **Vercel** | $20/mo | $100/mo |
-| **Inngest** | Free | Free (under 10k steps) |
-| **Sentry** | Free | Free (under 5k events) |
-| **OpenRouter** | $90/mo | $4,500/mo |
-| **Total** | **$110/mo** | **$4,718/mo** |
+| Service | Launch (10 users) | Month 2 (500 users) | Notes |
+|---------|-------------------|---------------------|-------|
+| **Clerk** | Free | Free (under 10k MAU) | Authentication |
+| **Neon** | **Free** | $69/mo (Scale tier) | **LISTEN/NOTIFY allows Free plan!** |
+| **Railway** | $5/mo | $50/mo (estimated) | Web + Worker services |
+| **Sentry** | Free | Free (under 5k events) | Error tracking |
+| **OpenRouter** | $90/mo | $4,500/mo | AI grading (3x Grok-4) |
+| **Total** | **$95/mo** | **$4,619/mo** | |
+
+**Cost Savings with LISTEN/NOTIFY:**
+- Launch phase: **Free tier on Neon works** (vs $19/mo Launch plan with polling)
+- Neon only active during submissions + grading (~7 hours/month at launch)
+- Database can scale to zero between submissions
+- Savings: **$19/month** at launch, more at scale
 
 ### Revenue (@ $0.30/essay avg)
 
@@ -1143,8 +1364,8 @@ Stay on free tiers where possible.
 |--------|--------|---------|
 | Essays/day | 10 | 500 |
 | Revenue/month | $300 | $15,000 |
-| Infrastructure | $110 | $4,718 |
-| **Profit** | **$190** | **$10,282** |
+| Infrastructure | $95 | $4,619 |
+| **Profit** | **$205** | **$10,381** |
 
 **Margin:** ~68%
 
@@ -1165,10 +1386,6 @@ DATABASE_URL=postgresql://...
 STRIPE_SECRET_KEY=sk_test_...
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
-
-# Inngest (async jobs)
-INNGEST_EVENT_KEY=...
-INNGEST_SIGNING_KEY=...
 
 # OpenRouter (AI via Vercel AI SDK)
 OPENROUTER_API_KEY=sk-or-...
@@ -1193,7 +1410,7 @@ NEXT_PUBLIC_URL=http://localhost:3000
 - [ ] Set up Neon (dev, prod, test branches)
 - [ ] Replace `src/models/Schema.ts` with schema above
 - [ ] Run migrations: `bun run db:push`
-- [ ] Set up Inngest account
+- [ ] Set up Railway account and project
 - [ ] Verify: `bun --bun run dev`
 
 ### Week 2-3: Core Features
@@ -1204,9 +1421,10 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] Word count (50k limit)
   - [ ] Cost estimator (real-time)
   - [ ] Draft autosave (2s debounce)
-  - [ ] Submit endpoint (create essay + grade, trigger Inngest)
+  - [ ] Submit endpoint (create essay + grade, send NOTIFY)
 - [ ] Grading
-  - [ ] Inngest function (3x Grok-4, outlier detection)
+  - [ ] Railway worker with LISTEN/NOTIFY (3x Grok-4, outlier detection, custom retry)
+  - [ ] Backup polling (5-minute interval for stuck grades)
   - [ ] SSE endpoint (real-time status)
   - [ ] Results page (grade range, category scores, feedback)
 - [ ] History
@@ -1229,8 +1447,10 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 ### Week 6: Launch
 
-- [ ] Deploy to Vercel
-- [ ] Set up production Neon database
+- [ ] Deploy to Railway (web + worker services)
+- [ ] Configure worker service startup command: `bun run src/worker/index.ts`
+- [ ] Set up production Neon database (Free plan works with LISTEN/NOTIFY!)
+- [ ] Verify LISTEN/NOTIFY working in production
 - [ ] Configure Stripe webhooks (production)
 - [ ] Set up Sentry (production)
 - [ ] Landing page copy

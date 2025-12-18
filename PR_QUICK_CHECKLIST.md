@@ -36,9 +36,9 @@
 
 ## AI Grading (Async)
 
-- [ ] AI grading runs in Inngest (not API routes)
+- [ ] AI grading runs in Railway worker (not API routes)
 - [ ] Credits checked at submission, deducted after completion
-- [ ] Grade refunded if grading fails
+- [ ] No credit deduction if grading fails (no-hold model)
 - [ ] SSE for grade status updates (not WebSockets)
 - [ ] Submit API route returns instantly (<500ms)
 - [ ] Other operations (Stripe, Clerk webhooks) are synchronous
@@ -102,8 +102,8 @@
 ## Common Red Flags
 
 - 🚨 Organization tables added (not in scope, see PHASE_2_MIGRATION.md)
-- 🚨 Synchronous AI calls in API routes (must use Inngest)
-- 🚨 Inngest used for non-AI operations (keep it simple)
+- 🚨 Synchronous AI calls in API routes (must use Railway worker)
+- 🚨 Railway worker used for non-AI operations (keep it simple)
 - 🚨 Credits deducted at submission (wait for grading)
 - 🚨 Missing `await` on Next.js 15 async APIs
 - 🚨 `tailwind.config.ts` exists
