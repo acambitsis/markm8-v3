@@ -20,6 +20,7 @@
 | **Real-time** | Server-Sent Events (SSE) | Native browser support, simpler than WebSockets, perfect for one-way updates |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming support, provider-agnostic, built-in error handling |
 | **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, cost-effective (~$0.10-0.15/essay) |
+| **OCR/Document AI** | Mistral Document AI | Image-to-markdown conversion for instructions/rubrics, 99%+ accuracy, multilingual |
 | **Payments** | Stripe | Industry standard, one-time purchases (not subscriptions) |
 | **Monitoring** | Sentry + LogTape | Error tracking + structured logging |
 
@@ -230,6 +231,8 @@ src/
 │       ├── essays/
 │       │   ├── submit/              # Essay submission endpoint
 │       │   └── generate-title/     # Auto-generate title endpoint
+│       ├── ocr/
+│       │   └── process/            # Image-to-markdown OCR endpoint
 │       ├── grades/[id]/stream/      # SSE endpoint
 │       └── payments/
 │           └── create-checkout/    # Stripe checkout session creation
@@ -246,7 +249,8 @@ src/
 │   ├── DB.ts                        # Drizzle setup
 │   ├── Clerk.ts                     # Auth helpers
 │   ├── Stripe.ts                    # Payment client
-│   └── AI.ts                        # Vercel AI SDK client (OpenRouter)
+│   ├── AI.ts                        # Vercel AI SDK client (OpenRouter)
+│   └── Mistral.ts                   # Mistral Document AI client (OCR)
 ├── models/
 │   └── Schema.ts                    # Database schema (single source of truth)
 ├── hooks/
@@ -1048,49 +1052,84 @@ Without schema validation, malformed JSON responses from AI models cause product
 
 ---
 
-## Document Ingestion (File Upload & Parsing)
+## Document Ingestion (File Upload & Parsing via Mistral Document AI)
 
 ### Supported Formats
 
-- **PDF:** `.pdf` files
+- **PDF:** `.pdf` files (text-based and scanned)
 - **DOCX:** `.docx` files (Microsoft Word)
+- **Images:** PNG, JPEG/JPG, AVIF (for scanned documents/photos)
 - **Plain text:** Direct paste (no parsing needed)
 
 ### File Size Limits
 
-- **Maximum file size:** 10 MB
+- **Maximum file size:** 10 MB per file
 - **Maximum word count:** 50,000 words (enforced after parsing)
 - **Minimum word count:** 50 words
 
-### Parsing Implementation
+### Unified Document Processing with Mistral Document AI
 
-**Library Choice:**
-- **PDF:** Use `pdf-parse` or `pdfjs-dist` (Mozilla's PDF.js)
-- **DOCX:** Use `mammoth` (converts DOCX to HTML, then extract text)
-
-**Installation:**
-```bash
-bun add pdf-parse mammoth
-```
+**Why Mistral for All Documents:**
+- ✅ **Single service** for all document types (PDF, DOCX, images)
+- ✅ **99%+ accuracy** with OCR (handles scanned PDFs and images)
+- ✅ **Markdown output** preserves structure (headers, lists, tables)
+- ✅ **Multilingual support** (11+ languages)
+- ✅ **Handles complex layouts** (tables, forms, multi-column text)
+- ✅ **Simpler architecture** (one API instead of multiple libraries)
 
 **Implementation Pattern:**
 ```typescript
 // src/utils/documentParser.ts
-import pdfParse from 'pdf-parse';
-import mammoth from 'mammoth';
+import { mistralClient } from '@/libs/Mistral';
 
 export async function parseDocument(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  
-  if (file.type === 'application/pdf') {
-    const data = await pdfParse(Buffer.from(buffer));
-    return data.text;
-  } else if (file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-    const result = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
-    return result.value;
-  } else {
-    throw new Error('Unsupported file type');
+  // Validate file type
+  const allowedTypes = [
+    'application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/avif',
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    throw new Error('Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF.');
   }
+
+  // Convert file to buffer
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  // Process with Mistral Document AI
+  // Note: Adjust API call based on actual Mistral SDK/API
+  const formData = new FormData();
+  formData.append('file', new Blob([buffer], { type: file.type }));
+
+  const response = await fetch('https://api.mistral.ai/v1/ocr', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+    },
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Document processing failed' }));
+    throw new Error(error.error || 'Document processing failed');
+  }
+
+  const result = await response.json();
+  
+  // Extract markdown text from response
+  // Response format: { text_content: string } or { text: string }
+  const markdown = result.text_content || result.text || '';
+
+  if (!markdown || markdown.trim().length === 0) {
+    throw new Error('No text could be extracted from this document. Please ensure the document contains readable text.');
+  }
+
+  return markdown;
 }
 
 export function countWords(text: string): number {
@@ -1103,29 +1142,392 @@ export async function parseAndValidateDocument(file: File): Promise<string> {
   const wordCount = countWords(text);
   
   if (wordCount === 0) {
-    throw new Error('No text could be extracted. Please ensure your document contains selectable text, not images.');
+    throw new Error('No text could be extracted. Please ensure your document contains readable text.');
+  }
+  
+  if (wordCount < 50) {
+    throw new Error(`Essay must be at least 50 words. Current: ${wordCount} words.`);
+  }
+  
+  if (wordCount > 50000) {
+    throw new Error(`Essay exceeds 50,000 word limit. Current: ${wordCount} words. Please shorten your essay.`);
   }
   
   return text;
 }
 ```
 
+**Alternative: Using Mistral SDK (if available)**
+
+If the Mistral SDK provides a cleaner API:
+
+```typescript
+// src/utils/documentParser.ts
+import { mistralClient } from '@/libs/Mistral';
+
+export async function parseDocument(file: File): Promise<string> {
+  // Validate file type (same as above)
+  // ...
+
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  // Process with Mistral Document AI SDK
+  // Note: Adjust method name based on actual SDK API
+  const result = await mistralClient.ocr.process(buffer, {
+    output_type: 'markdown', // Request markdown output
+  });
+
+  const markdown = result.text_content || result.text || '';
+
+  if (!markdown || markdown.trim().length === 0) {
+    throw new Error('No text could be extracted from this document.');
+  }
+
+  return markdown;
+}
+```
+
 **Security Considerations:**
 - Validate MIME type server-side (don't trust client `file.type`)
-- Scan for malicious content (consider virus scanning for production)
-- Limit file size before parsing (prevent DoS)
-- Sanitize extracted text (remove potential XSS if displaying)
+- Validate file size before processing (prevent DoS)
+- Limit file size (10 MB) before sending to Mistral API
+- Sanitize extracted markdown (remove potential XSS if displaying)
+- Rate limit per user (prevent abuse)
 
 **Storage:**
-- Extracted text stored in `essays.content` (text field)
-- Original file **NOT stored** (only parsed text kept)
+- Extracted markdown stored in `essays.content` (text field)
+- Original file **NOT stored** (only parsed markdown kept)
 - If user wants to re-upload, they must upload again
 
 **Error Handling:**
 - Parsing failures → Show error: "Could not extract text from this file. Please check the format or paste text directly."
 - File too large → Show error: "File exceeds 10 MB limit. Please use a smaller file."
-- Invalid format → Show error: "Unsupported file type. Please use PDF or DOCX."
-- No text extracted (blank/scanned PDF) → Show error: "No text could be extracted. Please ensure your document contains selectable text, not images."
+- Invalid format → Show error: "Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF."
+- No text extracted → Show error: "No text could be extracted from this document. Please ensure the document contains readable text."
+- OCR processing failed → Show error: "Failed to process document. Please try again or paste text directly."
+
+---
+
+## Document Upload for Instructions & Rubric (Mistral Document AI)
+
+### Overview
+
+Users can upload documents (PDF, DOCX, PNG, JPEG, AVIF) for **Instructions** and **Custom Rubric** fields. Mistral Document AI processes all document types uniformly, converting them to markdown while preserving structure and formatting.
+
+**Note:** This uses the same Mistral Document AI service as essay document parsing (see Document Ingestion section above). The unified endpoint handles all document types (text-based PDFs, DOCX, scanned PDFs, images) seamlessly.
+
+### Supported Document Formats
+
+- **PDF:** Text-based and scanned PDFs
+- **DOCX:** Microsoft Word documents
+- **Images:** PNG, JPEG/JPG, AVIF (for photos/screenshots of documents)
+- **Maximum file size:** 10 MB per document
+
+### Why Mistral Document AI?
+
+- ✅ **99%+ accuracy** across global languages
+- ✅ **Markdown output** preserves structure (headers, lists, tables)
+- ✅ **Multilingual support** (11+ languages)
+- ✅ **Fast processing** (up to 2,000 pages/minute)
+- ✅ **Handles complex layouts** (tables, forms, multi-column text)
+
+### Setup
+
+**Installation:**
+```bash
+bun add @mistralai/mistralai
+```
+
+**Environment Variables:**
+```env
+MISTRAL_API_KEY=your_mistral_api_key_here
+```
+
+### Mistral Client
+
+```typescript
+// src/libs/Mistral.ts
+import MistralClient from '@mistralai/mistralai';
+
+if (!process.env.MISTRAL_API_KEY) {
+  throw new Error('MISTRAL_API_KEY is not set');
+}
+
+export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
+```
+
+### OCR API Endpoint
+
+**Shared endpoint for both essay document parsing and image uploads (Instructions/Rubric):**
+
+```typescript
+// src/app/api/ocr/process/route.ts
+import { mistralClient } from '@/libs/Mistral';
+import { requireAuth } from '@/libs/Clerk';
+import { NextResponse } from 'next/server';
+
+export async function POST(req: Request) {
+  try {
+    const userId = await requireAuth();
+    
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file type (supports PDF, DOCX, and images)
+    const allowedTypes = [
+      'image/png',
+      'image/jpeg',
+      'image/jpg',
+      'image/avif',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+    ];
+    
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json(
+        { error: 'Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF.' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file size (10 MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10 MB
+    if (file.size > maxSize) {
+      return NextResponse.json(
+        { error: 'File exceeds 10 MB limit. Please use a smaller file.' },
+        { status: 400 }
+      );
+    }
+
+    // Convert file to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Process with Mistral Document AI
+    // Note: Mistral SDK may require file path or base64, check SDK docs
+    // For now, using direct API call pattern
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', new Blob([buffer], { type: file.type }));
+
+    const response = await fetch('https://api.mistral.ai/v1/ocr', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+      },
+      body: uploadFormData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Document processing failed' }));
+      throw new Error(error.error || 'Document processing failed');
+    }
+
+    const result = await response.json();
+    
+    // Extract markdown text from response
+    // Response format: { text_content: string } or { text: string }
+    const markdown = result.text_content || result.text || '';
+
+    if (!markdown || markdown.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'No text could be extracted from this document. Please ensure the document contains readable text.' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ markdown });
+  } catch (error) {
+    console.error('Document processing error:', error);
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to process document' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Alternative: Using Mistral SDK (if available)
+
+If the Mistral SDK provides a cleaner API:
+
+```typescript
+// src/app/api/ocr/process/route.ts
+import { mistralClient } from '@/libs/Mistral';
+import { requireAuth } from '@/libs/Clerk';
+import { NextResponse } from 'next/server';
+
+export async function POST(req: Request) {
+  try {
+    const userId = await requireAuth();
+    
+    const formData = await req.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return NextResponse.json(
+        { error: 'No file provided' },
+        { status: 400 }
+      );
+    }
+
+    // Validate file type and size (same as above)
+    // ...
+
+    // Convert to buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Process with Mistral Document AI SDK
+    // Note: Adjust method name based on actual SDK API
+    const result = await mistralClient.ocr.process(buffer, {
+      output_type: 'markdown', // Request markdown output
+    });
+
+    const markdown = result.text_content || result.text || '';
+
+    if (!markdown || markdown.trim().length === 0) {
+      return NextResponse.json(
+        { error: 'No text could be extracted from this document.' },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ markdown });
+  } catch (error) {
+    console.error('Document processing error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process document' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Client-Side Usage
+
+**For Instructions/Rubric document uploads:**
+```typescript
+// In essay submission form component
+async function handleDocumentUpload(file: File, field: 'instructions' | 'rubric') {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/ocr/process', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to process document');
+    }
+
+    const { markdown } = await response.json();
+    
+    // Populate the field with extracted markdown
+    if (field === 'instructions') {
+      setInstructions(markdown);
+    } else if (field === 'rubric') {
+      setCustomRubric(markdown);
+    }
+  } catch (error) {
+    // Show error: "Failed to process document. Please try again or paste text directly."
+    console.error('Document processing error:', error);
+  }
+}
+```
+
+**For Essay content file uploads:**
+```typescript
+// In essay submission form component (Tab 3)
+async function handleEssayFileUpload(file: File) {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const response = await fetch('/api/ocr/process', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Failed to process document');
+    }
+
+    const { markdown } = await response.json();
+    
+    // Validate word count (50-50,000 words)
+    const wordCount = markdown.trim().split(/\s+/).filter(w => w.length > 0).length;
+    
+    if (wordCount < 50) {
+      throw new Error(`Essay must be at least 50 words. Current: ${wordCount} words.`);
+    }
+    
+    if (wordCount > 50000) {
+      throw new Error(`Essay exceeds 50,000 word limit. Current: ${wordCount} words.`);
+    }
+    
+    setEssayContent(markdown);
+    setWordCount(wordCount);
+  } catch (error) {
+    // Show error message to user
+    console.error('Document processing error:', error);
+  }
+}
+```
+
+### UI Integration
+
+**Instructions Field (Tab 1):**
+- Text area with "Paste text" or "Upload document" toggle
+- Document upload button (PDF, DOCX, PNG, JPEG, AVIF)
+- Loading state while processing
+- Preview extracted markdown (editable)
+- Character count (max 10,000)
+
+**Custom Rubric Field (Tab 1):**
+- Same pattern as Instructions
+- Optional field (can be empty)
+- Character count (max 10,000)
+
+### Error Handling
+
+| Error | User Message | Action |
+|-------|-------------|---------|
+| File too large | "File exceeds 10 MB limit. Please use a smaller document." | Allow retry |
+| Unsupported format | "Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF." | Allow retry |
+| Document processing failed | "Failed to process document. Please try again or paste text directly." | Allow retry or paste text |
+| No text extracted | "No text could be extracted from this document. Please ensure the document contains readable text." | Allow retry or paste text |
+| API timeout | "Processing took too long. Please try again or paste text directly." | Allow retry or paste text |
+
+### Cost Considerations
+
+- **Mistral Document AI pricing:** Check current pricing (typically per page/document)
+- **Cost per document:** Estimate ~$0.01-0.05 per document (verify with Mistral)
+- **No credit deduction:** Document processing is free for users (cost absorbed by platform)
+- **Rate limiting:** Consider rate limiting to prevent abuse (e.g., 10 documents/minute per user)
+- **Usage:** Used for:
+  - Essay content parsing (PDF/DOCX/images)
+  - Instructions image uploads
+  - Custom Rubric image uploads
+
+### Security Considerations
+
+- ✅ Validate file type server-side (MIME type check)
+- ✅ Validate file size (10 MB limit)
+- ✅ Authenticate requests (require auth)
+- ✅ Sanitize extracted markdown (remove potential XSS)
+- ✅ Rate limit per user (prevent abuse)
 
 ---
 
@@ -1882,6 +2284,9 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 # OpenRouter (AI via Vercel AI SDK)
 OPENROUTER_API_KEY=sk-or-...
 
+# Mistral (Document AI / OCR)
+MISTRAL_API_KEY=your_mistral_api_key_here
+
 # App
 NEXT_PUBLIC_URL=http://localhost:3000
 ```
@@ -1896,9 +2301,11 @@ NEXT_PUBLIC_URL=http://localhost:3000
 - [ ] Upgrade Next.js 14→15, React 18→19, Tailwind 3→4
 - [ ] Remove example code
 - [ ] Add Vercel AI SDK
+- [ ] Add Mistral Document AI SDK (`@mistralai/mistralai`)
 - [ ] Add Stripe integration
 - [ ] Add dark mode
 - [ ] Set up Clerk (Google OAuth, no Organizations)
+- [ ] Set up Mistral API key (Document AI/OCR)
 - [ ] Set up Neon (dev, prod, test branches)
 - [ ] Replace `src/models/Schema.ts` with schema above
 - [ ] Run migrations: `bun run db:push`
@@ -1909,7 +2316,9 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 - [ ] Essay Submission
   - [ ] 3-tab UI (Brief → Rubric → Essay)
-  - [ ] Document parsing (PDF/DOCX)
+  - [ ] Document parsing via Mistral Document AI (PDF/DOCX/images)
+  - [ ] Document upload for Instructions & Custom Rubric (PDF/DOCX/images via Mistral)
+  - [ ] Unified OCR API endpoint (`/api/ocr/process`) for all document types
   - [ ] Word count (50k limit)
   - [ ] Cost estimator (real-time)
   - [ ] Draft autosave (2s debounce)

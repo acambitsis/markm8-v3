@@ -83,6 +83,12 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Max 10,000 characters
   - What the assignment asks for
   - Example: "Analyze the impact of the Medici family on Renaissance art..."
+  - **Document upload support:** Users can upload a document (PDF, DOCX, PNG, JPEG, AVIF) containing instructions
+    - Document is converted to markdown via Mistral Document AI
+    - Works with text-based PDFs, DOCX files, scanned PDFs, and images (photos/screenshots)
+    - Extracted text populates the Instructions field (editable after conversion)
+    - Shows loading state during processing
+    - Error handling: "Failed to process document. Please try again or paste text directly."
 - **Subject** (required)
   - Free text field
   - Examples: "History", "English Literature", "Psychology", "Computer Science"
@@ -90,6 +96,12 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Max 10,000 characters
   - Specific criteria to grade against
   - Example: "Focus on thesis clarity (30%), evidence quality (40%), writing style (30%)"
+  - **Document upload support:** Users can upload a document (PDF, DOCX, PNG, JPEG, AVIF) containing rubric
+    - Document is converted to markdown via Mistral Document AI
+    - Works with text-based PDFs, DOCX files, scanned PDFs, and images (photos/screenshots)
+    - Extracted text populates the Custom Rubric field (editable after conversion)
+    - Shows loading state during processing
+    - Error handling: "Failed to process document. Please try again or paste text directly."
 
 #### Tab 2: Focus Areas (optional)
 
@@ -104,9 +116,10 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 #### Tab 3: Essay Content
 
 - **Upload File** OR **Paste Text**
-  - Supported formats: PDF, DOCX
-  - Document parsing extracts text content
-  - **Warning displayed:** "⚠️ Note: We extract text from your document. Scanned images or handwritten essays are not supported. Please upload a text-based PDF or DOCX."
+  - Supported formats: PDF, DOCX, PNG, JPEG, AVIF (images for scanned documents)
+  - Document parsing via Mistral Document AI extracts text content and converts to markdown
+  - **Supports scanned PDFs and images:** Mistral OCR handles text extraction from scanned documents and photos
+  - **Note displayed:** "We'll extract text from your document using AI-powered OCR. This works with text-based PDFs, DOCX files, and scanned documents/images."
 - **Word Count Display**
   - Min: 50 words
   - Max: 50,000 words
@@ -611,8 +624,10 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 | Word count too high | "Essay exceeds 50,000 word limit. Current: 52,134 words. Please shorten your essay." | Disable submit button |
 | Missing required field | "Please fill in all required fields: [Instructions]" | Highlight missing field |
 | File upload failed | "Failed to upload file. Please try again or paste text directly." | Allow retry or paste text |
-| Parsing failed | "Could not extract text from this file. Please check the format or paste text directly." | Fall back to paste text |
-| No text extracted (blank/scanned PDF) | "No text could be extracted. Please ensure your document contains selectable text, not images." | Show error, allow retry or paste text |
+| Document processing failed | "Failed to process document. Please try again or paste text directly." | Allow retry or paste text |
+| No text extracted | "No text could be extracted from this document. Please ensure the document contains readable text." | Show error, allow retry or paste text |
+| File too large | "File exceeds 10 MB limit. Please use a smaller file." | Allow retry |
+| Unsupported file format | "Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF." | Allow retry |
 | Rate limit exceeded | "Rate limit exceeded - Please wait 30 seconds between submissions" | Disable submit button temporarily |
 | Title generation failed | "Could not generate title. Please enter a title manually." | Allow manual entry, no blocking |
 
