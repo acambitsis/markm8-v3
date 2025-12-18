@@ -75,15 +75,25 @@ export const users = pgTable('users', {
   email: text('email').notNull(),
   name: text('name'),
   imageUrl: text('image_url'),
+  institution: text('institution'), // Optional: user's institution (free text)
+  course: text('course'), // Optional: user's course (free text)
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Platform Settings (singleton table for admin-configurable values)
+export const platformSettings = pgTable('platform_settings', {
+  id: text('id').primaryKey().default('singleton'), // Only one row
+  signupBonusAmount: numeric('signup_bonus_amount', { precision: 10, scale: 2 }).default('1.00').notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  updatedBy: text('updated_by'), // Admin user ID who made the change
 });
 
 // Credits (user-scoped)
 export const credits = pgTable('credits', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
-  balance: numeric('balance', { precision: 10, scale: 2 }).default('1.00').notNull(),
+  balance: numeric('balance', { precision: 10, scale: 2 }).default('0.00').notNull(),
   reserved: numeric('reserved', { precision: 10, scale: 2 }).default('0.00').notNull(), // Credits reserved for pending grading
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
@@ -419,7 +429,8 @@ CLERK_WEBHOOK_SECRET=whsec_...
 // src/app/api/webhooks/clerk/route.ts
 import { Webhook } from 'svix';
 import { db } from '@/libs/DB';
-import { users, credits, creditTransactions } from '@/models/Schema';
+import { users, credits, creditTransactions, platformSettings } from '@/models/Schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(req: Request) {
   const payload = await req.json();
@@ -441,19 +452,28 @@ export async function POST(req: Request) {
         imageUrl: image_url,
       });
 
-      // 2. Create credits (signup bonus)
+      // 2. Get signup bonus amount from platform settings
+      const settings = await tx.query.platformSettings.findFirst({
+        where: eq(platformSettings.id, 'singleton'),
+      });
+      const signupBonus = settings?.signupBonusAmount || '1.00';
+      const signupBonusFloat = parseFloat(signupBonus);
+
+      // 3. Create credits (with configurable signup bonus)
       await tx.insert(credits).values({
         userId: id,
-        balance: '1.00',
+        balance: signupBonus,
       });
 
-      // 3. Log transaction
-      await tx.insert(creditTransactions).values({
-        userId: id,
-        amount: '1.00',
-        transactionType: 'signup_bonus',
-        description: 'Welcome! Free first essay',
-      });
+      // 4. Log transaction (only if signup bonus > 0)
+      if (signupBonusFloat > 0) {
+        await tx.insert(creditTransactions).values({
+          userId: id,
+          amount: signupBonus,
+          transactionType: 'signup_bonus',
+          description: 'Welcome! Free first essay',
+        });
+      }
     });
   }
 
@@ -498,6 +518,180 @@ export async function requireAuth() {
     throw new Error('Unauthorized');
   }
   return userId;
+}
+```
+
+### User Profile Update API
+
+```typescript
+// src/app/api/user/profile/route.ts
+import { db } from '@/libs/DB';
+import { users } from '@/models/Schema';
+import { eq } from 'drizzle-orm';
+import { requireAuth } from '@/libs/Clerk';
+import { NextResponse } from 'next/server';
+
+// PATCH: Update user profile (name, institution, course)
+export async function PATCH(req: Request) {
+  try {
+    const userId = await requireAuth();
+    const body = await req.json();
+    const { name, institution, course } = body;
+
+    // Validate field lengths
+    if (institution && institution.length > 200) {
+      return NextResponse.json(
+        { error: 'Institution must be 200 characters or less' },
+        { status: 400 }
+      );
+    }
+    if (course && course.length > 200) {
+      return NextResponse.json(
+        { error: 'Course must be 200 characters or less' },
+        { status: 400 }
+      );
+    }
+
+    // Update user
+    await db
+      .update(users)
+      .set({
+        ...(name !== undefined && { name }),
+        ...(institution !== undefined && { institution }),
+        ...(course !== undefined && { course }),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId));
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return NextResponse.json(
+      { error: 'Failed to update profile' },
+      { status: 500 }
+    );
+  }
+}
+
+// GET: Retrieve current user profile
+export async function GET() {
+  try {
+    const userId = await requireAuth();
+    const user = await db.query.users.findFirst({
+      where: eq(users.id, userId),
+      columns: {
+        id: true,
+        email: true,
+        name: true,
+        imageUrl: true,
+        institution: true,
+        course: true,
+      },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch profile' },
+      { status: 500 }
+    );
+  }
+}
+```
+
+### Platform Settings (Admin Configuration)
+
+**Initialization:**
+On first deployment, create the singleton row with default values:
+
+```sql
+-- Run this migration after initial schema push
+INSERT INTO platform_settings (id, signup_bonus_amount, updated_at)
+VALUES ('singleton', '1.00', NOW())
+ON CONFLICT (id) DO NOTHING;
+```
+
+**Admin Settings API:**
+
+```typescript
+// src/app/api/admin/settings/route.ts
+import { db } from '@/libs/DB';
+import { platformSettings } from '@/models/Schema';
+import { eq } from 'drizzle-orm';
+import { requireAuth } from '@/libs/Clerk';
+import { NextResponse } from 'next/server';
+
+// GET: Retrieve current settings
+export async function GET() {
+  try {
+    const adminId = await requireAuth();
+    // TODO: Check isAdmin flag (to be implemented)
+    
+    const settings = await db.query.platformSettings.findFirst({
+      where: eq(platformSettings.id, 'singleton'),
+    });
+
+    if (!settings) {
+      // Initialize with defaults if not exists
+      const [newSettings] = await db.insert(platformSettings).values({
+        id: 'singleton',
+        signupBonusAmount: '1.00',
+      }).returning();
+      return NextResponse.json(newSettings);
+    }
+
+    return NextResponse.json(settings);
+  } catch (error) {
+    console.error('Failed to fetch platform settings:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch settings' },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH: Update settings
+export async function PATCH(req: Request) {
+  try {
+    const adminId = await requireAuth();
+    // TODO: Check isAdmin flag (to be implemented)
+    
+    const { signupBonusAmount } = await req.json();
+
+    // Validation
+    const amount = parseFloat(signupBonusAmount);
+    if (isNaN(amount) || amount < 0 || amount > 1000) {
+      return NextResponse.json(
+        { error: 'Signup bonus amount must be between 0.00 and 1000.00' },
+        { status: 400 }
+      );
+    }
+
+    const formattedAmount = amount.toFixed(2);
+
+    const [updated] = await db
+      .update(platformSettings)
+      .set({
+        signupBonusAmount: formattedAmount,
+        updatedAt: new Date(),
+        updatedBy: adminId,
+      })
+      .where(eq(platformSettings.id, 'singleton'))
+      .returning();
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error('Failed to update platform settings:', error);
+    return NextResponse.json(
+      { error: 'Failed to update settings' },
+      { status: 500 }
+    );
+  }
 }
 ```
 

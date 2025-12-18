@@ -14,14 +14,14 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 
 - Multi-model grading (3 AI models for accuracy)
 - Detailed feedback (category scores + actionable suggestions)
-- Pay-per-use (no subscriptions, 1 free essay to start)
+- Pay-per-use (no subscriptions, configurable signup bonus)
 
 ### Target Users
 
 **Launch:**
-- Individual students (high school, undergraduate, postgraduate)
+- Individual students (undergraduate initially, and then high school and postgraduate)
 - Self-directed learners
-- Test prep students
+- Learners who want to improve their writing skills and scores
 
 ### Scale Targets
 
@@ -37,12 +37,22 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 **Flow:**
 1. User visits landing page at `/`
 2. Clicks "Get Started" → redirected to Clerk sign-in
-3. Signs in with Google, Apple, or Magic Link
+3. Signs in with Google, Apple, Microsoft, or Magic Link
 4. On first signup:
    - User record created in database
-   - Credits record created with `balance: 1.00` (signup bonus)
-   - CreditTransaction record: `type: 'signup_bonus', amount: 1.00`
-5. Redirected to `/dashboard`
+   - Credits record created with `balance: [configurable signup bonus amount]` (from admin settings)
+   - CreditTransaction record: `type: 'signup_bonus', amount: [configurable signup bonus amount]` (only if amount > 0)
+5. Redirected to `/onboarding` (first-time users only)
+6. Onboarding page (optional):
+   - **Institution** (optional free text field)
+     - Max 200 characters
+     - Example: "University of Oxford", "Harvard University", "Manchester High School"
+   - **Course** (optional free text field)
+     - Max 200 characters
+     - Example: "English Literature", "Computer Science", "History"
+   - "Skip" button → redirects to `/dashboard` (fields remain null)
+   - "Continue" button → saves institution/course and redirects to `/dashboard`
+7. On subsequent logins, redirect directly to `/dashboard` (skip onboarding)
 
 **Landing Page Requirements:**
 - Hero section explaining MarkM8's value proposition
@@ -283,6 +293,8 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
    - Email (read-only)
    - Name (editable)
    - Profile picture
+   - Institution (optional, editable free text field, max 200 characters)
+   - Course (optional, editable free text field, max 200 characters)
 
 2. **Credits**
    - Current balance
@@ -311,9 +323,10 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - **User cost:** 1 credit = $0.25-$0.30 (depending on package)
 
 **Signup Bonus:**
-- Every new user receives **1.00 free credit**
-- Allows risk-free trial
-- Transaction type: `signup_bonus`
+- Configurable via admin dashboard (can be set to 0.00)
+- Default: 1.00 credit (allows risk-free trial)
+- Transaction type: `signup_bonus` (only created if amount > 0)
+- Admin can adjust this value at any time (affects future signups only)
 
 **Credit Pricing Tiers:**
 | Package | Total Price | Price per Credit | Discount |
@@ -415,7 +428,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - "Fast Results" - 95% graded within 60 seconds
 - Pricing section (credit packages)
 - Social proof (testimonials, if available)
-- CTA: "Get Started Free" (1 free essay)
+- CTA: "Get Started Free" (shows signup bonus amount if > 0, e.g., "1 free essay" or "0.50 free credits")
 
 **`/privacy` - Privacy Policy**
 - Standard privacy policy
@@ -425,6 +438,17 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 - Usage terms, refund policy, acceptable use
 
 ### Protected Routes (Auth Required)
+
+**`/onboarding` - Optional Onboarding (First-Time Users Only)**
+- Shown only on first signup (check if user has institution/course set)
+- If user already has institution/course, redirect to `/dashboard`
+- Form fields:
+  - **Institution** (optional free text, max 200 characters)
+  - **Course** (optional free text, max 200 characters)
+- Actions:
+  - "Skip" button → redirects to `/dashboard` (fields remain null)
+  - "Continue" button → saves institution/course via API and redirects to `/dashboard`
+- After submission, user never sees this page again (redirects to dashboard on subsequent visits)
 
 **`/dashboard` - Main Dashboard**
 - Credit balance widget (top-right)
@@ -515,6 +539,14 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Average essay word count
   - Average grading time
   - Retry rate
+
+**`/admin/settings` - Platform Settings**
+- **Signup Bonus Configuration:**
+  - Input field: Signup bonus amount (numeric, 0.00 or greater, 2 decimal places)
+  - Current value displayed
+  - Save button updates configuration
+  - Changes apply to future signups only (existing users unaffected)
+  - Validation: Must be ≥ 0.00, max 1000.00 (safety limit)
 
 ---
 
@@ -627,6 +659,15 @@ If validation fails, keep status as 'draft' and show error to user.
 - **Reason:** Required for credit adjustments, min 10 characters
 - **Amount:** For credit adjustments, must be non-zero number
 - **Target User:** Must exist and not be deleted
+
+### Platform Settings
+
+- **Signup Bonus Amount:**
+  - Type: Numeric (decimal, 2 places)
+  - Range: 0.00 to 1000.00
+  - Default: 1.00
+  - Can be set to 0.00 (no signup bonus)
+  - Changes apply to future signups only
 
 ---
 
