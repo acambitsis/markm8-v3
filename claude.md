@@ -205,6 +205,55 @@ railway up
 
 ---
 
+## Boilerplate Patterns (ixartz SaaS)
+
+**Follow these patterns for consistency with the boilerplate:**
+
+```
+Locations:
+├── src/libs/Env.ts       # t3-env + Zod validation (import Env, not process.env)
+├── src/libs/Logger.ts    # Pino logger (import { logger } from '@/libs/Logger')
+├── src/libs/DB.ts        # Dual-mode: PGlite (dev/build), PostgreSQL (prod)
+├── src/utils/Helpers.ts  # cn() utility lives here
+├── src/templates/        # Landing page sections (Hero, Features, Pricing, etc.)
+├── src/types/            # Shared TypeScript definitions
+└── src/locales/          # i18n JSON files (en.json, fr.json)
+```
+
+**Key patterns:**
+- **Env vars:** Use `Env.DATABASE_URL` not `process.env.DATABASE_URL`
+- **Logging:** Use `logger.info()` / `logger.error()` from Logger.ts
+- **Clerk:** Use `@clerk/nextjs/server` directly (no wrapper file)
+- **Testing:** Vitest for unit tests (`bun run test`), Playwright for E2E
+- **Shadcn:** Components use `forwardRef` (React 18 style, keep for compatibility)
+- **Class merging:** `import { cn } from '@/utils/Helpers'`
+
+**Creating new libs:**
+```typescript
+// src/libs/Stripe.ts (example pattern)
+import Stripe from 'stripe';
+import { Env } from './Env';
+
+export const stripe = new Stripe(Env.STRIPE_SECRET_KEY, {
+  apiVersion: '2024-12-18.acacia',
+});
+```
+
+---
+
+## Critical Code Patterns
+
+```typescript
+// User-scoped queries (security-critical) - ALWAYS include:
+where: eq(table.userId, userId)
+
+// API responses - use consistently:
+// Success: NextResponse.json({ data })
+// Error:   NextResponse.json({ error: "message" }, { status: 4xx })
+```
+
+---
+
 ## Important Constraints
 
 **DO:**
