@@ -1,7 +1,7 @@
 ---
 name: pr-check-quality
 description: Validates React, Next.js, TypeScript, Tailwind, and code quality patterns in PR changes
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 ---
 
 # PR Validation: Code Quality & Framework Patterns

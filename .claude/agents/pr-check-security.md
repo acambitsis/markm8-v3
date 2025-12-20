@@ -1,7 +1,7 @@
 ---
 name: pr-check-security
 description: Validates authentication, authorization, user-scoping, input validation, and secrets handling in PR changes
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 ---
 
 # PR Validation: Security & Authorization

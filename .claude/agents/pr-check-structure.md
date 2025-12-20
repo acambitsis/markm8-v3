@@ -1,7 +1,7 @@
 ---
 name: pr-check-structure
 description: Validates file structure, organization, naming conventions, and import patterns in PR changes
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 ---
 
 # PR Validation: Structure & Organization

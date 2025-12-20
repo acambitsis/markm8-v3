@@ -1,7 +1,7 @@
 ---
 name: pr-check-data
 description: Validates database schema, queries, API routes, transactions, and data handling patterns in PR changes
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, Bash
 ---
 
 # PR Validation: Database & API Patterns
