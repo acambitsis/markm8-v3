@@ -45,11 +45,11 @@
 
 ```typescript
 // Core tables
-users           // Synced from Clerk (id = clerkId)
-credits         // balance + reserved per user (starts at 1.00 balance, 0.00 reserved)
-creditTransactions // Audit log (signup_bonus, purchase, grading, refund)
-essays          // userId, status (draft/submitted), assignmentBrief, rubric, content (all JSONB/nullable for drafts)
-grades          // userId, essayId, status (queued→processing→complete/failed) - 1-to-many (regrading support)
+users; // Synced from Clerk (id = clerkId)
+credits; // balance + reserved per user (starts at 1.00 balance, 0.00 reserved)
+creditTransactions; // Audit log (signup_bonus, purchase, grading, refund)
+essays; // userId, status (draft/submitted), assignmentBrief, rubric, content (all JSONB/nullable for drafts)
+grades; // userId, essayId, status (queued→processing→complete/failed) - 1-to-many (regrading support)
 ```
 
 **Key constraints:**
@@ -225,5 +225,3 @@ railway up
 - ❌ Use WebSockets (use SSE instead)
 - ❌ Use React 18 patterns (forwardRef, manual loading states)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)
-
-
