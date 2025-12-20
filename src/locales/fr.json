@@ -88,6 +88,7 @@
   },
   "DashboardLayout": {
     "home": "Accueil",
+    "profile": "Profil",
     "todos": "Todos",
     "members": "Membres",
     "billing": "Facturation",

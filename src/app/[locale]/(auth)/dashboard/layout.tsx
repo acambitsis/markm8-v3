@@ -3,9 +3,10 @@ import { getTranslations } from 'next-intl/server';
 
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
+export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
+  const { locale } = await props.params;
   const t = await getTranslations({
-    locale: props.params.locale,
+    locale,
     namespace: 'Dashboard',
   });
 
@@ -28,16 +29,10 @@ export default function DashboardLayout(props: { children: React.ReactNode }) {
                 href: '/dashboard',
                 label: t('home'),
               },
-              // PRO: Link to the /dashboard/todos page
               {
-                href: '/dashboard/organization-profile/organization-members',
-                label: t('members'),
+                href: '/dashboard/user-profile',
+                label: t('profile'),
               },
-              {
-                href: '/dashboard/organization-profile',
-                label: t('settings'),
-              },
-              // PRO: Link to the /dashboard/billing page
             ]}
           />
         </div>

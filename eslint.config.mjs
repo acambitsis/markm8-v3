@@ -4,7 +4,8 @@ import jestDom from 'eslint-plugin-jest-dom';
 import jsxA11y from 'eslint-plugin-jsx-a11y';
 import playwright from 'eslint-plugin-playwright';
 import simpleImportSort from 'eslint-plugin-simple-import-sort';
-import tailwind from 'eslint-plugin-tailwindcss';
+// eslint-plugin-tailwindcss is not compatible with Tailwind 4 (uses resolveConfig which doesn't exist)
+// import tailwind from 'eslint-plugin-tailwindcss';
 import testingLibrary from 'eslint-plugin-testing-library';
 
 export default antfu({
@@ -26,7 +27,7 @@ export default antfu({
     'migrations/**/*',
     'next-env.d.ts',
   ],
-}, ...tailwind.configs['flat/recommended'], jsxA11y.flatConfigs.recommended, {
+}, /* ...tailwind.configs['flat/recommended'], */ jsxA11y.flatConfigs.recommended, {
   plugins: {
     '@next/next': nextPlugin,
   },
