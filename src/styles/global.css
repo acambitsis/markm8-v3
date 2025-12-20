@@ -1,4 +1,4 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
 /* Accordion keyframes */
 @keyframes accordion-down {
@@ -100,7 +100,7 @@
   /* Custom colors */
   --color-primary: oklch(0.6 0.2 250);
   --color-secondary: oklch(0.7 0.15 200);
-  
+
   /* Shadcn UI color variables (preserved for compatibility) */
   --background: 0 0% 100%;
   --foreground: 222.2 84% 4.9%;
@@ -122,11 +122,11 @@
   --input: 214.3 31.8% 91.4%;
   --ring: 222.2 84% 4.9%;
   --radius: 0.5rem;
-  
+
   /* Accordion animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
-  
+
   /* tailwindcss-animate animations */
   --animate-in: fade-in 0.15s ease-out;
   --animate-out: fade-out 0.15s ease-in;
@@ -145,7 +145,7 @@
   @theme {
     --color-primary: oklch(0.7 0.2 250);
     --color-secondary: oklch(0.8 0.15 200);
-    
+
     /* Shadcn UI dark mode variables */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
@@ -180,39 +180,39 @@
   .animate-in {
     animation: var(--animate-in);
   }
-  
+
   .animate-out {
     animation: var(--animate-out);
   }
-  
+
   .fade-in-0 {
     animation: var(--animate-fade-in-0);
   }
-  
+
   .fade-out-0 {
     animation: var(--animate-fade-out-0);
   }
-  
+
   .zoom-in-95 {
     animation: var(--animate-zoom-in-95);
   }
-  
+
   .zoom-out-95 {
     animation: var(--animate-zoom-out-95);
   }
-  
+
   .slide-in-from-top-2 {
     animation: var(--animate-slide-in-from-top-2);
   }
-  
+
   .slide-in-from-right-2 {
     animation: var(--animate-slide-in-from-right-2);
   }
-  
+
   .slide-in-from-bottom-2 {
     animation: var(--animate-slide-in-from-bottom-2);
   }
-  
+
   .slide-in-from-left-2 {
     animation: var(--animate-slide-in-from-left-2);
   }

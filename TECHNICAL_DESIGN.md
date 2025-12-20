@@ -62,7 +62,7 @@ The `grades` table supports **1-to-many** with essays (no unique constraint on `
 
 ```typescript
 // src/models/Schema.ts
-import { pgTable, uuid, text, timestamp, integer, jsonb, numeric, pgEnum, index, sql } from 'drizzle-orm/pg-core';
+import { index, integer, jsonb, numeric, pgEnum, pgTable, sql, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 // Enums
 export const essayStatusEnum = pgEnum('essay_status', ['draft', 'submitted', 'archived']);
@@ -112,7 +112,7 @@ export const creditTransactions = pgTable('credit_transactions', {
   gradeId: uuid('grade_id'),
   stripePaymentIntentId: text('stripe_payment_intent_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, table => ({
   userIdIdx: index('idx_credit_transactions_user_id').on(table.userId),
   createdAtIdx: index('idx_credit_transactions_created_at').on(table.createdAt.desc()),
 }));
@@ -137,7 +137,7 @@ export const essays = pgTable('essays', {
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
   submittedAt: timestamp('submitted_at'),
   deletedAt: timestamp('deleted_at'), // Soft delete
-}, (table) => ({
+}, table => ({
   userIdIdx: index('idx_essays_user_id').on(table.userId),
   statusIdx: index('idx_essays_status').on(table.status),
   submittedAtIdx: index('idx_essays_submitted_at').on(table.submittedAt.desc()),
@@ -177,7 +177,7 @@ export const grades = pgTable('grades', {
 
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, (table) => ({
+}, table => ({
   userIdIdx: index('idx_grades_user_id').on(table.userId),
   statusIdx: index('idx_grades_status').on(table.status),
   essayIdIdx: index('idx_grades_essay_id').on(table.essayId),
@@ -387,7 +387,7 @@ rm tailwind.config.ts
 
 ```css
 /* src/app/globals.css */
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Custom colors */
@@ -481,26 +481,26 @@ function formatGradeForUser(
   userGradingScale: 'percentage' | 'letter' | 'uk' | 'gpa' | 'pass_fail'
 ): string {
   const average = (percentageRange.lower + percentageRange.upper) / 2;
-  
+
   switch (userGradingScale) {
     case 'percentage':
       return `${percentageRange.lower}-${percentageRange.upper}%`;
-    
+
     case 'letter':
       // Use stored letterGradeRange if available, otherwise convert from percentage
       // Conversion: A (90-100), B (80-89), C (70-79), D (60-69), F (<60)
       // With +/-: A+ (97-100), A (93-96), A- (90-92), etc.
       return convertPercentageToLetter(percentageRange);
-    
+
     case 'uk':
       // First (70-100), Upper Second/2:1 (60-69), Lower Second/2:2 (50-59), Third (40-49), Fail (<40)
       return convertPercentageToUK(percentageRange);
-    
+
     case 'gpa':
       // Convert to 0.0-4.0 scale: 4.0 (90-100), 3.0 (80-89), 2.0 (70-79), 1.0 (60-69), 0.0 (<60)
       // Linear interpolation for precise mapping
       return convertPercentageToGPA(percentageRange);
-    
+
     case 'pass_fail':
       return average >= 50 ? 'Pass' : 'Fail';
   }
@@ -935,7 +935,9 @@ async function retryWithBackoff<T>(
     try {
       return await fn();
     } catch (error) {
-      if (isPermanentError(error)) throw error; // Don't retry
+      if (isPermanentError(error)) {
+        throw error;
+      } // Don't retry
       if (attempt < maxRetries) {
         await new Promise(resolve => setTimeout(resolve, delays[attempt]));
       }
@@ -947,7 +949,7 @@ async function retryWithBackoff<T>(
 function isPermanentError(error: Error): boolean {
   const permanentPatterns = [
     /invalid.*api.*key/i,
-    /400/i,
+    /400/,
     /bad.*request/i,
     /malformed/i,
   ];
@@ -962,7 +964,9 @@ function isPermanentError(error: Error): boolean {
  * Replaces pairwise comparison which can incorrectly exclude median scores.
  */
 function findOutlier(scores: number[]): number | null {
-  if (scores.length < 3) return null;
+  if (scores.length < 3) {
+    return null;
+  }
 
   const mean = scores.reduce((a, b) => a + b) / scores.length;
   const deviations = scores.map(s => Math.abs(s - mean));

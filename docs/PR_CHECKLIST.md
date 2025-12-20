@@ -140,7 +140,9 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
   ```typescript
   // src/app/api/essays/submit/route.ts
   const grade = await db.insert(grades).values({
-    essayId, userId, status: 'queued'
+    essayId,
+    userId,
+    status: 'queued'
   }).returning();
 
   // Call Railway worker endpoint (non-blocking)
@@ -157,7 +159,7 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
   // src/app/api/grading/process/route.ts
   export async function POST(req: Request) {
     const { gradeId } = await req.json();
-    
+
     // Step 1: Fetch & validate
     const grade = await db.query.grades.findFirst({ ... });
 
@@ -193,7 +195,7 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 
     useEffect(() => {
       const eventSource = new EventSource(`/api/grades/${gradeId}/stream`);
-      eventSource.onmessage = (e) => setStatus(JSON.parse(e.data).status);
+      eventSource.onmessage = e => setStatus(JSON.parse(e.data).status);
       return () => eventSource.close();
     }, [gradeId]);
 
@@ -235,6 +237,7 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 - ✅ Use `generateText` for grading:
   ```typescript
   import { generateText } from 'ai';
+
   import { openrouter } from '@/libs/AI';
 
   const result = await generateText({
@@ -281,7 +284,7 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 
 ```css
 /* ✅ Correct - Tailwind 4 in src/app/globals.css */
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   --color-primary: #3b82f6;
@@ -327,14 +330,18 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
   import { auth } from '@clerk/nextjs/server';
 
   const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
+  if (!userId) {
+    redirect('/sign-in');
+  }
   ```
 - ✅ Verify user owns resource before mutations:
   ```typescript
   const essay = await db.query.essays.findFirst({
     where: and(eq(essays.id, essayId), eq(essays.userId, userId))
   });
-  if (!essay) throw new Error('Not found');
+  if (!essay) {
+    throw new Error('Not found');
+  }
   ```
 - ✅ Use middleware for route protection:
   ```typescript
@@ -369,9 +376,9 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 - ✅ Use Node.js-compatible APIs (avoid Bun-specific imports)
   ```typescript
   // ✅ Compatible
-  import { readFile } from 'fs/promises';
-
   // ❌ Bun-specific
+  import { readFile } from 'node:fs/promises';
+
   import { file } from 'bun';
   ```
 - ✅ Leverage Bun speed for tests: `bun test`
@@ -384,7 +391,7 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
   export const essays = pgTable('essays', {
     userId: text('user_id').notNull(),
     status: text('status').notNull(),
-  }, (table) => ({
+  }, table => ({
     userIdIdx: index('essays_user_id_idx').on(table.userId),
     statusIdx: index('essays_status_idx').on(table.status),
   }));
@@ -422,10 +429,11 @@ const Input = forwardRef<HTMLInputElement, Props>((props, ref) => {
 
 ```typescript
 // ✅ Use Bun's built-in test runner
-import { test, expect } from 'bun:test';
+import { expect, test } from 'bun:test';
 
 test('creates essay draft', async () => {
   const draft = await createDraft(userId, { title: 'Test' });
+
   expect(draft.status).toBe('draft');
 });
 

@@ -59,7 +59,7 @@ function Input({ ref, ...props }: Props & { ref?: Ref<HTMLInputElement> }) {
 
 **Configuration Pattern (src/styles/global.css):**
 ```css
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @theme {
   /* Light mode colors */

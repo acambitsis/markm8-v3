@@ -5,7 +5,7 @@
 These are **optimizations** or **edge cases** that don't affect core data models and can be added incrementally.
 
 ### 1. **Document Parsing in Worker** ⏸️ (Independent audit)
-**Why Defer:** At launch scale (10 essays/day), parsing a 50k-word doc in the API route is fine. The OOM risk is real but unlikely at low volume. 
+**Why Defer:** At launch scale (10 essays/day), parsing a 50k-word doc in the API route is fine. The OOM risk is real but unlikely at low volume.
 
 **When to Add:** When you see p95 API latency >5s or memory alerts. Then move parsing to worker + S3 storage.
 
@@ -42,7 +42,7 @@ These are **optimizations** or **edge cases** that don't affect core data models
 ---
 
 ### 6. **Soft Delete Cleanup Job** ⏸️ (My finding)
-**Why Defer:** Soft-deleted records accumulating for 6 months won't hurt anything. 
+**Why Defer:** Soft-deleted records accumulating for 6 months won't hurt anything.
 
 **When to Add:** When database size becomes a cost concern.
 

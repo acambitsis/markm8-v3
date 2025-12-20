@@ -48,7 +48,7 @@ export const orgMemberships = pgTable('org_memberships', {
   organizationId: uuid('organization_id').references(() => organizations.id, { onDelete: 'cascade' }).notNull(),
   role: membershipRoleEnum('role').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, table => ({
   userOrgIdx: index('idx_org_memberships_user_org').on(table.userId, table.organizationId),
 }));
 
@@ -71,7 +71,7 @@ export const orgCreditTransactions = pgTable('org_credit_transactions', {
   gradeId: uuid('grade_id'),
   stripePaymentIntentId: text('stripe_payment_intent_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
-}, (table) => ({
+}, table => ({
   orgIdIdx: index('idx_org_credit_transactions_org_id').on(table.organizationId),
 }));
 ```
@@ -113,9 +113,10 @@ ALTER TABLE grades ADD CONSTRAINT grades_owner_check
 
 ```typescript
 // src/libs/Organization.ts (NEW file)
+import { and, eq } from 'drizzle-orm';
+
 import { db } from '@/libs/DB';
-import { orgMemberships, organizations } from '@/models/Schema';
-import { eq, and } from 'drizzle-orm';
+import { organizations, orgMemberships } from '@/models/Schema';
 
 export async function getOrganizationsForUser(userId: string) {
   return await db
@@ -236,7 +237,6 @@ if (context.type === 'organization') {
   // Essay owned by org
   essayData.organizationId = context.organizationId;
   essayData.authorUserId = userId;
-
 } else {
   // Check personal credits (existing logic)
   const userCredits = await db.query.credits.findFirst({
@@ -264,7 +264,7 @@ if (context.type === 'organization') {
   <SelectItem value="personal">Personal</SelectItem>
   <SelectItem value="org_123">Acme University</SelectItem>
   <SelectItem value="org_456">Beta School</SelectItem>
-</Select>
+</Select>;
 ```
 
 ### Dashboard Changes
