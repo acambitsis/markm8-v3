@@ -566,7 +566,7 @@ Initialize Stripe client with secret key, latest API version (`2024-12-18.acacia
      const existing = await tx.query.creditTransactions.findFirst({
        where: eq(creditTransactions.stripePaymentIntentId, session.payment_intent as string),
      });
-     if (existing) {} // Skip to prevent double-crediting
+     if (existing) return; // Skip to prevent double-crediting
      ```
    - Update balance: `balance = balance + creditAmount` (SQL increment)
    - Log transaction with `stripePaymentIntentId`
