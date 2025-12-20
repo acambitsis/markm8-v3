@@ -1,18 +1,16 @@
-'use client';
-
 import { enUS, frFR } from '@clerk/localizations';
 import { ClerkProvider } from '@clerk/nextjs';
-import { use } from 'react';
 
 import { AppConfig } from '@/utils/AppConfig';
 
-export default function AuthLayout(props: {
+export default async function AuthLayout(props: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
 }) {
-  // Use React 19's use() hook to unwrap the Promise
-  const { locale } = use(props.params);
+  // Server Component: unwrap Promise params using await
+  const { locale } = await props.params;
 
+  // Compute Clerk configuration based on locale
   let clerkLocale = enUS;
   let signInUrl = '/sign-in';
   let signUpUrl = '/sign-up';
@@ -30,6 +28,8 @@ export default function AuthLayout(props: {
     afterSignOutUrl = `/${locale}${afterSignOutUrl}`;
   }
 
+  // ClerkProvider can be used in Server Components - it creates a client boundary automatically
+  // Server Component children passed as props are properly handled by Next.js
   return (
     <ClerkProvider
       // PRO: Dark mode support for Clerk
