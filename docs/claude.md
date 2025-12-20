@@ -158,6 +158,31 @@ const headersList = await headers();
 const { id } = await params;
 ```
 
+**Client Components with async params:**
+```typescript
+'use client';
+import { use } from 'react';
+
+export default function ClientComponent(props: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = use(props.params); // React 19 use() unwraps Promises
+  // ... rest of component
+}
+```
+
+**Middleware (Next.js 15 + Clerk):**
+```typescript
+export default function middleware(request: NextRequest, event: NextFetchEvent) {
+  return clerkMiddleware(async (auth, req) => {
+    if (isProtectedRoute(req)) {
+      await auth.protect({ unauthenticatedUrl: signInUrl.toString() });
+    }
+    return intlMiddleware(req);
+  })(request, event);
+}
+```
+
 **Form Actions (no more onSubmit):**
 ```typescript
 async function submitAction(formData: FormData) {
@@ -166,8 +191,14 @@ async function submitAction(formData: FormData) {
 }
 
 <form action={submitAction}>
-  <button>Submit</button>
+  <SubmitButton />
 </form>
+
+// Submit button with pending state
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return <button disabled={pending}>Submit</button>;
+}
 ```
 
 **Ref as prop (no forwardRef):**
@@ -175,6 +206,12 @@ async function submitAction(formData: FormData) {
 function Input({ ref, ...props }: Props & { ref?: Ref<HTMLInputElement> }) {
   return <input ref={ref} {...props} />;
 }
+```
+
+**Tailwind 4 theming:**
+```typescript
+// See src/styles/global.css for @theme directive syntax
+// Uses CSS-first config with native dark mode (@media prefers-color-scheme)
 ```
 
 ---
