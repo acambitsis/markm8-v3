@@ -17,11 +17,11 @@ export const Section = (props: {
         )}
 
         {props.title && (
-          <div className="mt-1 text-3xl font-bold">{props.title}</div>
+          <div className="mt-1 text-balance text-3xl font-bold">{props.title}</div>
         )}
 
         {props.description && (
-          <div className="mt-2 text-lg text-muted-foreground">
+          <div className="mt-2 text-pretty text-lg text-muted-foreground">
             {props.description}
           </div>
         )}

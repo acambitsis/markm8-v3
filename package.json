@@ -96,6 +96,7 @@
     "@vitejs/plugin-react": "^4.3.2",
     "@vitest/coverage-v8": "^2.1.9",
     "@vitest/expect": "^2.1.9",
+    "autoprefixer": "^10.4.23",
     "checkly": "^4.9.0",
     "commitizen": "^4.3.1",
     "cross-env": "^7.0.3",
