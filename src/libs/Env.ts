@@ -1,7 +1,12 @@
 import { createEnv } from '@t3-oss/env-nextjs';
 import { z } from 'zod';
 
+// Skip validation in CI to allow builds without secrets
+const skipValidation = !!process.env.CI;
+
 export const Env = createEnv({
+  // Skip validation in CI environments (GitHub Actions, etc.)
+  skipValidation,
   server: {
     CLERK_SECRET_KEY: z.string().min(1),
     DATABASE_URL: z.string().optional(),
