@@ -1,5 +1,5 @@
 {
-  "name": "saas-boilerplate",
+  "name": "markm8",
   "version": "1.0.1",
   "scripts": {
     "dev:spotlight": "spotlight-sidecar",

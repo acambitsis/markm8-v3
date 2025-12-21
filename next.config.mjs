@@ -30,9 +30,8 @@ export default withSentryConfig(
   {
     // For all available options, see:
     // https://github.com/getsentry/sentry-webpack-plugin#options
-    // FIXME: Add your Sentry organization and project names
-    org: 'nextjs-boilerplate-org',
-    project: 'nextjs-boilerplate',
+    org: 'markm8',
+    project: 'markm8-v3',
 
     // Only print logs for uploading source maps in CI
     silent: !process.env.CI,

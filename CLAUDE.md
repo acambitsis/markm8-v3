@@ -210,7 +210,8 @@ bun --bun run dev  # Uses Turbopack + Bun runtime (explicit Bun flag)
 
 **Database migrations:**
 ```bash
-bun run db:push  # Push schema changes
+bun run db:generate  # Generate migrations from schema changes
+bun run db:migrate   # Apply migrations to production database
 ```
 
 **Test Stripe webhooks locally:**

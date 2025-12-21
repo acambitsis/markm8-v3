@@ -7,20 +7,19 @@ const sendDefaults = {
   sendDegraded: true,
 };
 
-// FIXME: Add your production URL
-const productionURL = 'https://react-saas.com';
+// TODO: Add your production URL when deployed
+const productionURL = 'https://markm8.app';
 
 const emailChannel = new EmailAlertChannel('email-channel-1', {
-  // FIXME: add your own email address, Checkly will send you an email notification if a check fails
-  address: 'contact@creativedesignsguru.com',
+  // TODO: Add your own email address for monitoring alerts
+  address: 'alerts@markm8.app',
   ...sendDefaults,
 });
 
 export const config = defineConfig({
-  // FIXME: Add your own project name, logical ID, and repository URL
-  projectName: 'SaaS Boilerplate',
-  logicalId: 'saas-boilerplate',
-  repoUrl: 'https://github.com/ixartz/Next-js-Boilerplate',
+  projectName: 'MarkM8',
+  logicalId: 'markm8-v3',
+  repoUrl: 'https://github.com/yourusername/markm8-v3',
   checks: {
     locations: ['us-east-1', 'eu-central-1'],
     tags: ['website'],
