@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/acambitsis/markm8-v3/compare/v1.0.0...v1.0.1) (2025-12-21)
+
+
+### Bug Fixes
+
+* **ci:** skip env validation in CI environments ([31f17d9](https://github.com/acambitsis/markm8-v3/commit/31f17d9c8b4299eee19bfac3e37d5bfdab4a0e24))
+
 # 1.0.0 (2025-12-21)
 
 
