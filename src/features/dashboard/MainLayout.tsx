@@ -1,22 +1,11 @@
-import { getTranslations } from 'next-intl/server';
+'use client';
+
+import { useTranslations } from 'next-intl';
 
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
 
-export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
-  const { locale } = await props.params;
-  const t = await getTranslations({
-    locale,
-    namespace: 'Dashboard',
-  });
-
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
-}
-
-export default async function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = await getTranslations('DashboardLayout');
+export function MainLayout({ children }: { children: React.ReactNode }) {
+  const t = useTranslations('DashboardLayout');
 
   return (
     <>
@@ -47,11 +36,9 @@ export default async function DashboardLayout(props: { children: React.ReactNode
 
       <div className="min-h-[calc(100vh-72px)] bg-muted">
         <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
-          {props.children}
+          {children}
         </div>
       </div>
     </>
   );
 }
-
-export const dynamic = 'force-dynamic';

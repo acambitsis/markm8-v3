@@ -17,7 +17,7 @@
 | **Database** | Neon PostgreSQL + Drizzle | Serverless, branching (dev/prod/test), cost-effective, type-safe ORM |
 | **Deployment** | Railway | Long-running processes, auto-scaling, GitHub integration, supports background workers |
 | **Async Jobs** | PostgreSQL LISTEN/NOTIFY + Railway Worker | Event-driven job processing with backup polling, no HTTP overhead, cost-effective |
-| **Real-time** | Server-Sent Events (SSE) | Native browser support, simpler than WebSockets, perfect for one-way updates |
+| **Real-time** | Adaptive Polling | Simple HTTP polling with variable intervals |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming support, provider-agnostic, built-in error handling |
 | **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, cost-effective (~$0.10-0.15/essay) |
 | **OCR/Document AI** | Mistral Document AI | Image-to-markdown conversion for instructions/rubrics, 99%+ accuracy, multilingual |
@@ -235,7 +235,7 @@ src/
 │       │   └── generate-title/     # Auto-generate title endpoint
 │       ├── ocr/
 │       │   └── process/            # Image-to-markdown OCR endpoint
-│       ├── grades/[id]/stream/      # SSE endpoint
+│       ├── grades/[id]/             # Grade status endpoint (polling)
 │       └── payments/
 │           └── create-checkout/    # Stripe checkout session creation
 ├── worker/                          # Background worker (Railway service)
@@ -256,7 +256,7 @@ src/
 ├── models/
 │   └── Schema.ts                    # Database schema (single source of truth)
 ├── hooks/
-│   └── useGradeStatus.ts            # SSE client hook
+│   └── useGradeStatus.ts            # Adaptive polling hook
 ├── utils/                           # Utilities (from boilerplate)
 │   ├── Helpers.ts
 │   └── documentParser.ts            # Document parsing utilities (Mistral OCR)
@@ -830,7 +830,7 @@ export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
 
 ---
 
-## Async Grading (PostgreSQL LISTEN/NOTIFY + Railway Worker + SSE)
+## Async Grading (PostgreSQL LISTEN/NOTIFY + Railway Worker + Adaptive Polling)
 
 ### Why Async?
 
@@ -845,7 +845,7 @@ export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
 - ✅ Submit essay → Instant response (<500ms)
 - ✅ Event-driven job trigger → PostgreSQL NOTIFY sends instant notification to worker
 - ✅ Background processing → Railway worker handles grading (with custom retry logic)
-- ✅ Real-time updates → SSE streams status to client
+- ✅ Status updates → Adaptive polling from client
 - ✅ User experience → Can navigate away, come back later
 - ✅ Cost-effective → No constant polling, Neon can scale to zero
 
@@ -1019,31 +1019,75 @@ const includedScores = outlier !== null ? scores.filter(s => s !== outlier) : sc
 - **User messaging:** Instead of "refunded", use: "Grading failed. You were not charged. Please try again."
 - **Exception:** Manual admin refunds for verified errors (creates a `refund` transaction type for audit purposes)
 
-### SSE Endpoint (Real-Time Status)
-
-**GET /api/grades/[id]/stream:**
-- Return `ReadableStream` with SSE headers
-- Poll grade status every 2 seconds
-- Send updates: `data: ${JSON.stringify({ status, updatedAt })}\n\n`
-- Close stream on terminal state (`complete` or `failed`)
-- Handle client disconnect: Clean up interval on `request.signal.abort`
-
 ### Client Hook (useGradeStatus)
 
 **Implementation (`src/hooks/useGradeStatus.ts`):**
-- Connect to `/api/grades/${gradeId}/stream` via `EventSource`
-- **On connect/reconnect (CRITICAL):** Immediately fetch current state from `/api/grades/[id]` to sync with database truth:
-  ```typescript
-  eventSource.onopen = async () => {
-    const response = await fetch(`/api/grades/${gradeId}`);
-    const data = await response.json();
-    setStatus(data.status); // Sync with DB truth
-  };
-  ```
-  This prevents stale status after page refresh or network interruption.
-- **On message:** Update status from SSE event
-- **On error:** Auto-reconnect with exponential backoff: `Math.min(3000 * Math.pow(2, attempts), 12000)` (3s, 6s, 12s max)
-- **Cleanup:** Close `EventSource` and clear timeouts on unmount
+
+Adaptive polling approach with variable intervals based on grade status:
+
+```typescript
+function useGradeStatus(gradeId: string) {
+  const [grade, setGrade] = useState<Grade | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+    let cancelled = false;
+
+    async function poll() {
+      try {
+        const response = await fetch(`/api/grades/${gradeId}`);
+        if (!response.ok) throw new Error('Failed to fetch grade');
+        const data = await response.json();
+        if (cancelled) return;
+
+        setGrade(data);
+        setError(null);
+
+        // Adaptive polling intervals
+        const interval = getPollingInterval(data.status);
+        if (interval > 0) {
+          timeoutId = setTimeout(poll, interval);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        setError(err as Error);
+        // Retry on error with backoff
+        timeoutId = setTimeout(poll, 5000);
+      }
+    }
+
+    poll(); // Immediate fetch on mount
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [gradeId]);
+
+  return { grade, error, isLoading: !grade && !error };
+}
+
+function getPollingInterval(status: string): number {
+  switch (status) {
+    case 'queued':
+    case 'processing':
+      return 2000; // Fast polling (2s) while active
+    case 'complete':
+    case 'failed':
+      return 0; // Stop polling on terminal state
+    default:
+      return 5000;
+  }
+}
+```
+
+**Key behaviors:**
+- **Immediate fetch on mount:** Syncs with database truth instantly
+- **Fast polling (2s):** While status is `queued` or `processing`
+- **Stop polling:** On terminal states (`complete` or `failed`)
+- **Error recovery:** Retry with 5s backoff on fetch errors
+- **Cleanup:** Cancel pending requests and timeouts on unmount
 
 ---
 
@@ -1069,7 +1113,7 @@ Use Clerk for auth only, not Organizations.
 
 ### 3. Background AI Grading
 
-AI calls run async via Railway worker (slow, need retries, real-time status via SSE).
+AI calls run async via Railway worker (slow, need retries, status updates via adaptive polling).
 
 **When NOT to use Railway worker:**
 - Stripe webhooks (synchronous)
@@ -1260,10 +1304,10 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] Mock grade data with different statuses for testing
   - [ ] Status: `queued`
     - [ ] Show "Queued" badge
-    - [ ] Mock: Show alert: "Backend would: Connect to SSE stream, poll status every 2s"
+    - [ ] Mock: Show alert: "Backend would: Start polling /api/grades/[id] every 2s"
   - [ ] Status: `processing`
     - [ ] Show "Processing" badge with progress indicator
-    - [ ] Mock: Simulate status updates, show alert: "Backend would: Receive SSE updates, show real-time progress"
+    - [ ] Mock: Simulate status updates, show alert: "Backend would: Poll for status updates, show progress"
   - [ ] Status: `complete`
     - [ ] Display full results:
       - [ ] Grade range (percentage and letter) - convert to user's preferred scale
@@ -1389,7 +1433,7 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 ### Phase 5: Grading System
 
-**Goal:** Implement Railway worker, AI grading, and SSE status updates.
+**Goal:** Implement Railway worker, AI grading, and grade status polling.
 
 - [ ] Railway worker setup
   - [ ] Create `src/worker/index.ts` (LISTEN/NOTIFY + backup polling)
@@ -1405,15 +1449,14 @@ NEXT_PUBLIC_URL=http://localhost:3000
 - [ ] Update submission endpoint
   - [ ] Replace mock NOTIFY with real PostgreSQL NOTIFY
   - [ ] Send `NOTIFY new_grade, ${gradeId}`
-- [ ] SSE endpoint (`/api/grades/[id]/stream`)
-  - [ ] Poll grade status every 2s
-  - [ ] Stream updates to client
-  - [ ] Handle client disconnect
+- [ ] Grade status endpoint (`/api/grades/[id]`)
+  - [ ] Return grade status and results
+  - [ ] Used by client for adaptive polling
 - [ ] Grade API endpoints
   - [ ] GET `/api/grades/[id]`: Get grade status and results
-- [ ] Replace grade status UI mocks with real SSE connection
+- [ ] Replace grade status UI mocks with real polling hook
 - [ ] Replace grade results UI with real data
-- [ ] Test: Submit essay, verify worker processes grade, verify SSE updates, verify results display
+- [ ] Test: Submit essay, verify worker processes grade, verify polling updates, verify results display
 
 ---
 

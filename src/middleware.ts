@@ -16,8 +16,16 @@ const intlMiddleware = createMiddleware({
 const isProtectedRoute = createRouteMatcher([
   '/dashboard(.*)',
   '/:locale/dashboard(.*)',
+  '/submit(.*)',
+  '/:locale/submit(.*)',
+  '/grades(.*)',
+  '/:locale/grades(.*)',
+  '/history(.*)',
+  '/:locale/history(.*)',
   '/onboarding(.*)',
   '/:locale/onboarding(.*)',
+  '/settings(.*)',
+  '/:locale/settings(.*)',
   '/api(.*)',
   '/:locale/api(.*)',
 ]);
@@ -26,6 +34,13 @@ export default function middleware(
   request: NextRequest,
   event: NextFetchEvent,
 ) {
+  // Skip intl middleware for API routes - they don't need locale handling
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    return clerkMiddleware(async (auth) => {
+      await auth.protect();
+    })(request, event);
+  }
+
   if (
     request.nextUrl.pathname.includes('/sign-in')
     || request.nextUrl.pathname.includes('/sign-up')

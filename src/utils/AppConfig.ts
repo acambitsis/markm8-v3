@@ -1,8 +1,6 @@
-import type { LocalePrefix } from 'node_modules/next-intl/dist/types/src/routing/types';
-
 import type { CreditPackage } from '@/types/Subscription';
 
-const localePrefix: LocalePrefix = 'as-needed';
+const localePrefix = 'as-needed' as const;
 
 // MarkM8 Application Configuration
 export const AppConfig = {

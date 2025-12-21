@@ -21,7 +21,7 @@
 | **Database** | Neon PostgreSQL + Drizzle | Serverless, branching (dev/test/prod) |
 | **Deployment** | Railway | Long-running processes, auto-scaling, GitHub integration |
 | **Async Jobs** | PostgreSQL LISTEN/NOTIFY + Railway Worker | Event-driven job processing, backup polling for reliability |
-| **Real-time** | SSE | Grade status updates |
+| **Real-time** | Adaptive Polling | Grade status updates |
 | **UI** | Shadcn UI | Component library |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming, provider-agnostic |
 | **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, less than $0.30/essay |
@@ -33,7 +33,7 @@
 
 1. **User-Scoped Resources** - All data belongs to a user (no organizations)
 2. **Avoid Vendor Lock-In** - Clerk for auth only, custom logic in our database
-3. **Background AI Grading** - AI calls run async via Railway worker (slow, need retries, real-time status via SSE)
+3. **Background AI Grading** - AI calls run async via Railway worker (slow, need retries, status updates via adaptive polling)
 4. **Own Your Data** - All business logic in our database
 5. **Cost-Conscious** - Stay on free tiers, 68% profit margin
 
@@ -90,18 +90,14 @@ grades; // userId, essayId, status (queued→processing→complete/failed) - 1-t
    → Save grade (atomic transaction)
    → Mark status: 'complete' or 'failed'
 
-3. SSE stream (/api/grades/[id]/stream)
-   → Poll grade status every 2s
-   → Send updates to client
-   → Close on terminal state (complete/failed)
-
-4. Client (useGradeStatus hook)
-   → Real-time status updates via SSE
-   → On connect/reconnect: Fetch current state immediately (sync with DB truth)
-   → Auto-reconnect with exponential backoff on error (3s, 6s, 12s max)
+3. Client (useGradeStatus hook)
+   → Adaptive polling via GET /api/grades/[id]
+   → Fast polling (2s) while queued/processing
+   → Slow polling (30s) or stop after complete/failed
+   → Immediate fetch on mount (sync with DB truth)
    → Show queued → processing → complete/failed
 
-5. Regrading (future feature)
+4. Regrading (future feature)
    → User clicks "Regrade" on completed essay
    → Find existing essay (has all data: brief, rubric, content)
    → Create NEW grade record (status: 'queued')
@@ -127,7 +123,7 @@ src/
 │   │   └── (unauth)/            # Public routes (landing)
 │   └── api/
 │       ├── webhooks/            # Clerk + Stripe
-│       └── grades/[id]/stream/  # SSE endpoint
+│       └── grades/[id]/         # Grade status endpoint (polling)
 ├── worker/                      # Background worker (Railway service)
 │   ├── index.ts                 # Worker entry point (LISTEN + polling)
 │   └── processGrade.ts          # Grading logic (3x AI, retry, consensus)
@@ -143,7 +139,7 @@ src/
 ├── models/
 │   └── Schema.ts                # Database schema
 └── hooks/
-    └── useGradeStatus.ts        # SSE client hook
+    └── useGradeStatus.ts        # Adaptive polling hook
 ```
 
 ---
@@ -158,15 +154,23 @@ src/
 - i18n infrastructure
 - Tailwind 4 + Shadcn UI
 
+**Phase 2 (Complete):**
+- Database schema (users, credits, creditTransactions, essays, grades, platformSettings)
+- Clerk webhook for user sync (signup bonus)
+- API routes (credits, profile, essays, grades)
+- Essay submission (3-tab form with autosave)
+- Grade status page (with mock grading)
+- History page (paginated table)
+- Onboarding page (grading scale preferences)
+- Credits display in header (SWR)
+
 **Pending Implementation:**
 | Module | Phase | Status |
 |--------|-------|--------|
-| `src/features/*` | Phase 2 | Not started |
-| `src/libs/Stripe.ts` | Phase 6 | Not started |
-| `src/libs/AI.ts` | Phase 5 | Not started |
+| `src/libs/Stripe.ts` | Phase 3 | Not started |
 | `src/libs/Mistral.ts` | Phase 4 | Not started |
+| `src/libs/AI.ts` | Phase 5 | Not started |
 | `src/worker/*` | Phase 5 | Not started |
-| Database schema | Phase 3 | Not started |
 
 ---
 
@@ -210,7 +214,8 @@ bun --bun run dev  # Uses Turbopack + Bun runtime (explicit Bun flag)
 
 **Database migrations:**
 ```bash
-bun run db:push  # Push schema changes
+bun run db:generate  # Generate migrations from schema changes
+bun run db:migrate   # Apply migrations to production database
 ```
 
 **Test Stripe webhooks locally:**
@@ -282,7 +287,7 @@ where: eq(table.userId, userId)
 - ✅ Keep resources user-scoped (`userId` foreign key)
 - ✅ Use Railway worker for all AI grading (never synchronous)
 - ✅ Use Vercel AI SDK for all AI calls (type-safe, provider-agnostic)
-- ✅ Use SSE for real-time updates
+- ✅ Use adaptive polling for grade status updates
 - ✅ Deduct credits AFTER grading completes
 - ✅ Use atomic transactions for credit operations
 - ✅ Use React 19 form actions (not manual state management)
@@ -293,6 +298,6 @@ where: eq(table.userId, userId)
 - ❌ Add organization tables (future feature, see PHASE_2_MIGRATION.md)
 - ❌ Run AI grading synchronously (use Railway worker)
 - ❌ Deduct credits at submission (wait for completion)
-- ❌ Use WebSockets (use SSE instead)
+- ❌ Use WebSockets (use adaptive polling instead)
 - ❌ Use React 18 patterns (forwardRef, manual loading states)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)

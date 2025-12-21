@@ -82,10 +82,28 @@
   "DashboardLayout": {
     "home": "Home",
     "profile": "Profile",
+    "submit": "Submit",
+    "history": "History",
     "todos": "Todos",
     "members": "Members",
     "billing": "Billing",
     "settings": "Settings"
+  },
+  "Submit": {
+    "meta_title": "Submit Essay",
+    "meta_description": "Submit your essay for AI-powered grading and feedback"
+  },
+  "Grades": {
+    "meta_title": "Grade Results",
+    "meta_description": "View your essay grading results and feedback"
+  },
+  "History": {
+    "meta_title": "Essay History",
+    "meta_description": "View all your past essay submissions and grades"
+  },
+  "Onboarding": {
+    "meta_title": "Welcome to MarkM8",
+    "meta_description": "Set up your preferences to get started"
   },
   "Dashboard": {
     "meta_title": "SaaS Template Dashboard",
