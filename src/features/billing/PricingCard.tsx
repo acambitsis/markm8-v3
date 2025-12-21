@@ -29,7 +29,7 @@ export const PricingCard = (props: {
       )}
 
       <div className="text-lg font-semibold">
-        {t(`${props.packageId}_package_name`, { credits: props.credits })}
+        {t(`${props.packageId}_package_name` as any, { credits: props.credits })}
       </div>
 
       <div className="mt-3 flex items-center justify-center">

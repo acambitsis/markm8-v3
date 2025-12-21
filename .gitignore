@@ -41,7 +41,9 @@ pnpm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# env files (use .env.example and .env.production.example as templates)
+.env
+.env.production
 .env*.local
 
 # local folder
