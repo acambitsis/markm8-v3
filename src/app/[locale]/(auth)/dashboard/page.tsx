@@ -1,6 +1,10 @@
+import { FileText, PenLine } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
-import { MessageState } from '@/features/dashboard/MessageState';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RecentEssays } from '@/features/dashboard/RecentEssays';
 import { TitleBar } from '@/features/dashboard/TitleBar';
 
 const DashboardIndexPage = () => {
@@ -13,23 +17,60 @@ const DashboardIndexPage = () => {
         description={t('title_bar_description')}
       />
 
-      <MessageState
-        icon={(
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M0 0h24v24H0z" stroke="none" />
-            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-          </svg>
-        )}
-        title="Welcome to MarkM8"
-        description="Your AI-powered essay grading platform. Submit your first essay to get started."
-        button={null}
-      />
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Submit CTA Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PenLine className="size-5" />
+              Submit an Essay
+            </CardTitle>
+            <CardDescription>
+              Get AI-powered feedback on your essay with detailed grades and improvement suggestions.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/submit">
+                Start New Submission
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* History Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="size-5" />
+              Essay History
+            </CardTitle>
+            <CardDescription>
+              View all your past submissions and their grades.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild variant="outline" className="w-full">
+              <Link href="/history">
+                View All Essays
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Essays */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Recent Essays</CardTitle>
+          <CardDescription>
+            Your most recent essay submissions
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <RecentEssays />
+        </CardContent>
+      </Card>
     </>
   );
 };

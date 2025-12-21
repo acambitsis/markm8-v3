@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import { CreditsDisplay } from '@/features/dashboard/CreditsDisplay';
 import { Logo } from '@/templates/Logo';
 import { getI18nPath } from '@/utils/Helpers';
 
@@ -63,6 +64,14 @@ export const DashboardHeader = (props: {
           </li>
 
           {/* PRO: Dark mode toggle button */}
+
+          <li>
+            <CreditsDisplay />
+          </li>
+
+          <li>
+            <Separator orientation="vertical" className="h-4" />
+          </li>
 
           <li data-fade>
             <LocaleSwitcher />

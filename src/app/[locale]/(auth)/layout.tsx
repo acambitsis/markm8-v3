@@ -44,3 +44,5 @@ export default async function AuthLayout(props: {
     </ClerkProvider>
   );
 }
+
+export const dynamic = 'force-dynamic';

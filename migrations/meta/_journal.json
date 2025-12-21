@@ -8,6 +8,13 @@
       "when": 1766305747961,
       "tag": "0000_omniscient_reaper",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1734800000000,
+      "tag": "0001_seed_platform_settings",
+      "breakpoints": true
     }
   ]
 }

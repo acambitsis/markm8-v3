@@ -154,15 +154,23 @@ src/
 - i18n infrastructure
 - Tailwind 4 + Shadcn UI
 
+**Phase 2 (Complete):**
+- Database schema (users, credits, creditTransactions, essays, grades, platformSettings)
+- Clerk webhook for user sync (signup bonus)
+- API routes (credits, profile, essays, grades)
+- Essay submission (3-tab form with autosave)
+- Grade status page (with mock grading)
+- History page (paginated table)
+- Onboarding page (grading scale preferences)
+- Credits display in header (SWR)
+
 **Pending Implementation:**
 | Module | Phase | Status |
 |--------|-------|--------|
-| `src/features/*` | Phase 2 | Not started |
-| `src/libs/Stripe.ts` | Phase 6 | Not started |
-| `src/libs/AI.ts` | Phase 5 | Not started |
+| `src/libs/Stripe.ts` | Phase 3 | Not started |
 | `src/libs/Mistral.ts` | Phase 4 | Not started |
+| `src/libs/AI.ts` | Phase 5 | Not started |
 | `src/worker/*` | Phase 5 | Not started |
-| Database schema | Phase 3 | Not started |
 
 ---
 
