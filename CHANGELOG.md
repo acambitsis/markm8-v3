@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/acambitsis/markm8-v3/compare/v1.0.2...v1.1.0) (2025-12-21)
+
+
+### Features
+
+* Phase 2 - Core Product Features ([#4](https://github.com/acambitsis/markm8-v3/issues/4)) ([a3fb10d](https://github.com/acambitsis/markm8-v3/commit/a3fb10d5bec8f143c211a7f0fa19c06e962cde16))
+
 ## [1.0.2](https://github.com/acambitsis/markm8-v3/compare/v1.0.1...v1.0.2) (2025-12-21)
 
 
