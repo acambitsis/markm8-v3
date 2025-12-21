@@ -1,8 +1,8 @@
 import { getTranslations } from 'next-intl/server';
 
+import { TitleBar } from '@/components/TitleBar';
 import { Card, CardContent } from '@/components/ui/card';
 import { MainLayout } from '@/features/dashboard/MainLayout';
-import { TitleBar } from '@/features/dashboard/TitleBar';
 import { SubmitForm } from '@/features/essays/SubmitForm';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {

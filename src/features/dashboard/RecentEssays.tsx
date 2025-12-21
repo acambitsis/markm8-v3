@@ -4,7 +4,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 import useSWR from 'swr';
 
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/StatusBadge';
 import type { AssignmentBrief } from '@/models/Schema';
 
 type Essay = {
@@ -19,21 +19,6 @@ type Essay = {
 };
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case 'complete':
-      return <Badge variant="default">Complete</Badge>;
-    case 'processing':
-      return <Badge variant="secondary">Processing</Badge>;
-    case 'queued':
-      return <Badge variant="outline">Queued</Badge>;
-    case 'failed':
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return null;
-  }
-}
 
 export function RecentEssays() {
   const { data, isLoading } = useSWR<{ essays: Essay[] }>(

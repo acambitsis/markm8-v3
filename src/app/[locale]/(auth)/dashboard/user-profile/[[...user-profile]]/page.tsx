@@ -1,7 +1,7 @@
 import { UserProfile } from '@clerk/nextjs';
 import { getTranslations } from 'next-intl/server';
 
-import { TitleBar } from '@/features/dashboard/TitleBar';
+import { TitleBar } from '@/components/TitleBar';
 import { getI18nPath } from '@/utils/Helpers';
 
 const UserProfilePage = async (props: { params: Promise<{ locale: string }> }) => {

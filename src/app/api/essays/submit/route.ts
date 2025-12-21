@@ -179,76 +179,83 @@ export async function POST() {
   }
 
   try {
-    // 4. Reserve credit (balance - 1.00, reserved + 1.00)
-    await db
-      .update(credits)
-      .set({
-        balance: sql`${credits.balance} - ${GRADING_COST}`,
-        reserved: sql`${credits.reserved} + ${GRADING_COST}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(credits.userId, userId));
+    // Wrap all operations in a transaction for atomicity
+    const result = await db.transaction(async (tx) => {
+      // 4. Reserve credit (balance - 1.00, reserved + 1.00)
+      await tx
+        .update(credits)
+        .set({
+          balance: sql`${credits.balance} - ${GRADING_COST}`,
+          reserved: sql`${credits.reserved} + ${GRADING_COST}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(credits.userId, userId));
 
-    // 5. Update essay status to 'submitted'
-    await db
-      .update(essays)
-      .set({
-        status: 'submitted',
-        submittedAt: new Date(),
-        updatedAt: new Date(),
-        wordCount,
-      })
-      .where(eq(essays.id, draft.id));
+      // 5. Update essay status to 'submitted'
+      await tx
+        .update(essays)
+        .set({
+          status: 'submitted',
+          submittedAt: new Date(),
+          updatedAt: new Date(),
+          wordCount,
+        })
+        .where(eq(essays.id, draft.id));
 
-    // 6. Create grade record
-    const gradeInsert = await db
-      .insert(grades)
-      .values({
+      // 6. Create grade record
+      const gradeInsert = await tx
+        .insert(grades)
+        .values({
+          userId,
+          essayId: draft.id,
+          status: 'queued',
+          queuedAt: new Date(),
+        })
+        .returning();
+
+      const gradeId = gradeInsert[0]!.id;
+
+      // 7. MOCK GRADING: Immediately simulate completion
+      // This will be removed when the worker is implemented
+      const mockGrade = generateMockGrade();
+
+      await tx
+        .update(grades)
+        .set({
+          status: 'complete',
+          letterGradeRange: mockGrade.letterGradeRange,
+          percentageRange: mockGrade.percentageRange,
+          feedback: mockGrade.feedback,
+          modelResults: mockGrade.modelResults,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(eq(grades.id, gradeId));
+
+      // 8. Clear reservation (reserved - 1.00)
+      // Credit was already deducted from balance, just clear the reservation
+      await tx
+        .update(credits)
+        .set({
+          reserved: sql`${credits.reserved} - ${GRADING_COST}`,
+          updatedAt: new Date(),
+        })
+        .where(eq(credits.userId, userId));
+
+      // 9. Record the transaction
+      await tx.insert(creditTransactions).values({
         userId,
-        essayId: draft.id,
-        status: 'queued',
-        queuedAt: new Date(),
-      })
-      .returning();
+        amount: `-${GRADING_COST}`,
+        transactionType: 'grading',
+        description: `Grading for essay: ${assignmentBrief?.title}`,
+        gradeId,
+      });
 
-    const gradeId = gradeInsert[0]!.id;
-
-    // 7. MOCK GRADING: Immediately simulate completion
-    // This will be removed when the worker is implemented
-    const mockGrade = generateMockGrade();
-
-    await db
-      .update(grades)
-      .set({
-        status: 'complete',
-        letterGradeRange: mockGrade.letterGradeRange,
-        percentageRange: mockGrade.percentageRange,
-        feedback: mockGrade.feedback,
-        modelResults: mockGrade.modelResults,
-        startedAt: new Date(),
-        completedAt: new Date(),
-        updatedAt: new Date(),
-      })
-      .where(eq(grades.id, gradeId));
-
-    // 8. Clear reservation (reserved - 1.00)
-    // Credit was already deducted from balance, just clear the reservation
-    await db
-      .update(credits)
-      .set({
-        reserved: sql`${credits.reserved} - ${GRADING_COST}`,
-        updatedAt: new Date(),
-      })
-      .where(eq(credits.userId, userId));
-
-    // 9. Record the transaction
-    await db.insert(creditTransactions).values({
-      userId,
-      amount: `-${GRADING_COST}`,
-      transactionType: 'grading',
-      description: `Grading for essay: ${assignmentBrief?.title}`,
-      gradeId,
+      return gradeId;
     });
+
+    const gradeId = result;
 
     logger.info('Essay submitted and graded (mock)', {
       userId,
@@ -263,20 +270,6 @@ export async function POST() {
     });
   } catch (err) {
     logger.error('Error during essay submission', { error: err, userId });
-
-    // Attempt to refund the reservation if something went wrong
-    try {
-      await db
-        .update(credits)
-        .set({
-          balance: sql`${credits.balance} + ${GRADING_COST}`,
-          reserved: sql`${credits.reserved} - ${GRADING_COST}`,
-          updatedAt: new Date(),
-        })
-        .where(eq(credits.userId, userId));
-    } catch (refundErr) {
-      logger.error('Failed to refund credits after error', { error: refundErr, userId });
-    }
 
     return NextResponse.json(
       { error: 'Failed to submit essay. Please try again.' },

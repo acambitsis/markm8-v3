@@ -16,7 +16,11 @@ export async function GET(req: Request) {
 
   const url = new URL(req.url);
   const page = Math.max(1, Number.parseInt(url.searchParams.get('page') ?? '1'));
-  const search = url.searchParams.get('search') ?? '';
+  const rawSearch = url.searchParams.get('search') ?? '';
+
+  // Sanitize search parameter: escape LIKE wildcards (% and _)
+  // Replace % with \% and _ with \_ to prevent unintended broad matches
+  const search = rawSearch.replace(/[%_]/g, match => `\\${match}`);
 
   // Build base conditions
   const conditions = [

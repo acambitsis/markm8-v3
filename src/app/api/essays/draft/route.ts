@@ -94,11 +94,11 @@ export async function POST(req: Request) {
       })
       .where(eq(essays.id, draftId));
 
-    // Return updated draft
+    // Return updated draft (with userId check for defense-in-depth)
     const updated = await db
       .select()
       .from(essays)
-      .where(eq(essays.id, draftId))
+      .where(and(eq(essays.id, draftId), eq(essays.userId, userId)))
       .limit(1);
 
     return NextResponse.json(updated[0]);

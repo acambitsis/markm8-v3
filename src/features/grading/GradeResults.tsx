@@ -11,6 +11,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import type { GradeFeedback, ModelResult, PercentageRange } from '@/models/Schema';
+import { cn } from '@/utils/Helpers';
 
 type Props = {
   letterGradeRange: string;
@@ -42,7 +43,7 @@ export function GradeResults({ letterGradeRange, percentageRange, feedback, mode
           <Collapsible open={showModelDetails} onOpenChange={setShowModelDetails}>
             <CollapsibleTrigger className="flex w-full items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground">
               <span>View model scores</span>
-              <ChevronDown className={`size-4 transition-transform ${showModelDetails ? 'rotate-180' : ''}`} />
+              <ChevronDown className={cn('size-4 transition-transform', showModelDetails && 'rotate-180')} />
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
               <div className="space-y-2">

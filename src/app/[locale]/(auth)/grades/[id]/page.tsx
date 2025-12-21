@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
+import { TitleBar } from '@/components/TitleBar';
 import { MainLayout } from '@/features/dashboard/MainLayout';
-import { TitleBar } from '@/features/dashboard/TitleBar';
 import { GradeStatusDisplay } from '@/features/grading/GradeStatusDisplay';
 
 type Props = {

@@ -2,10 +2,10 @@ import { FileText, PenLine } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import { TitleBar } from '@/components/TitleBar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RecentEssays } from '@/features/dashboard/RecentEssays';
-import { TitleBar } from '@/features/dashboard/TitleBar';
 
 const DashboardIndexPage = () => {
   const t = useTranslations('DashboardIndex');

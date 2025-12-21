@@ -74,34 +74,34 @@ export async function POST(req: Request) {
       const signupBonusAmount = settings[0]?.signupBonusAmount ?? '1.00';
       const bonusAsNumber = Number.parseFloat(signupBonusAmount);
 
-      // Create user, credits, and transaction in a single operation
-      // Note: For true atomicity, this would need a transaction wrapper
-
-      // 1. Create user record
-      await db.insert(users).values({
-        id,
-        clerkId: id,
-        email,
-        name,
-        imageUrl: image_url,
-      });
-
-      // 2. Create credits record with signup bonus
-      await db.insert(credits).values({
-        userId: id,
-        balance: signupBonusAmount,
-        reserved: '0.00',
-      });
-
-      // 3. Create credit transaction if bonus > 0
-      if (bonusAsNumber > 0) {
-        await db.insert(creditTransactions).values({
-          userId: id,
-          amount: signupBonusAmount,
-          transactionType: 'signup_bonus',
-          description: 'Welcome bonus for new signup',
+      // Create user, credits, and transaction atomically
+      await db.transaction(async (tx) => {
+        // 1. Create user record
+        await tx.insert(users).values({
+          id,
+          clerkId: id,
+          email,
+          name,
+          imageUrl: image_url,
         });
-      }
+
+        // 2. Create credits record with signup bonus
+        await tx.insert(credits).values({
+          userId: id,
+          balance: signupBonusAmount,
+          reserved: '0.00',
+        });
+
+        // 3. Create credit transaction if bonus > 0
+        if (bonusAsNumber > 0) {
+          await tx.insert(creditTransactions).values({
+            userId: id,
+            amount: signupBonusAmount,
+            transactionType: 'signup_bonus',
+            description: 'Welcome bonus for new signup',
+          });
+        }
+      });
 
       logger.info('User created successfully', {
         userId: id,

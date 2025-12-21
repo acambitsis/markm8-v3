@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useCallback, useState } from 'react';
 import useSWR from 'swr';
 
-import { Badge } from '@/components/ui/badge';
+import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -42,21 +42,6 @@ type PaginatedResponse = {
 };
 
 const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-function StatusBadge({ status }: { status: string }) {
-  switch (status) {
-    case 'complete':
-      return <Badge variant="default">Complete</Badge>;
-    case 'processing':
-      return <Badge variant="secondary">Processing</Badge>;
-    case 'queued':
-      return <Badge variant="outline">Queued</Badge>;
-    case 'failed':
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return null;
-  }
-}
 
 export function EssayHistoryTable() {
   const [page, setPage] = useState(1);
