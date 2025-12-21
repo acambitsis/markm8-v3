@@ -52,7 +52,7 @@ jobs:
 
       - if: github.event_name == 'pull_request'
         name: Validate all commits from PR
-        run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
+        run: bunx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
       - name: Linter
         run: bun run lint
@@ -67,7 +67,7 @@ jobs:
         uses: codecov/codecov-action@v4
 
       - name: Install Playwright (used for Storybook and E2E tests)
-        run: npx playwright install --with-deps
+        run: bunx playwright install --with-deps
 
       - name: Run storybook tests
         run: bun run test-storybook:ci
