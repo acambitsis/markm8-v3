@@ -27,27 +27,6 @@ export const SponsorLogos = () => (
     </a>
 
     <a
-      href="https://l.crowdin.com/next-js"
-      target="_blank"
-      rel="noopener"
-    >
-      <Image
-        src="/assets/images/crowdin-dark.png"
-        alt="Crowdin logo dark"
-        className="dark:hidden"
-        width="128"
-        height="26"
-      />
-      <Image
-        src="/assets/images/crowdin-white.png"
-        alt="Crowdin logo light"
-        className="hidden dark:block"
-        width="128"
-        height="26"
-      />
-    </a>
-
-    <a
       href="https://sentry.io/for/nextjs/?utm_source=github&utm_medium=paid-community&utm_campaign=general-fy25q1-nextjs&utm_content=github-banner-nextjsboilerplate-logo"
       target="_blank"
       rel="noopener"
