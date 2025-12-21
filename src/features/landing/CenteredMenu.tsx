@@ -3,7 +3,7 @@
 import Link from 'next/link';
 
 import { ToggleMenuButton } from '@/components/ToggleMenuButton';
-import { useMenu } from '@/hooks/UseMenu';
+import { useMenu } from '@/hooks/useMenu';
 import { cn } from '@/utils/Helpers';
 
 export const CenteredMenu = (props: {

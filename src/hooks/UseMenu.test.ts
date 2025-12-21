@@ -1,8 +1,8 @@
 import { act, renderHook } from '@testing-library/react';
 
-import { useMenu } from './UseMenu';
+import { useMenu } from './useMenu';
 
-describe('UseMenu', () => {
+describe('useMenu', () => {
   describe('Render hook', () => {
     it('shouldn\'t show the menu by default', async () => {
       const { result } = renderHook(() => useMenu());

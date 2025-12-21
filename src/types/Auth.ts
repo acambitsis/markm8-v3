@@ -1,14 +1,12 @@
-import type { EnumValues } from './Enum';
+// MarkM8 v3 Auth Types
+// Currently minimal - organizations will be added in v3.1+
+// See PHASE_2_MIGRATION.md for organization migration plan
 
-export const ORG_ROLE = {
-  ADMIN: 'org:admin',
-  MEMBER: 'org:member',
-} as const;
-
-export type OrgRole = EnumValues<typeof ORG_ROLE>;
-
-export const ORG_PERMISSION = {
-  // Add Organization Permissions here
-} as const;
-
-export type OrgPermission = EnumValues<typeof ORG_PERMISSION>;
+// FUTURE (v3.1+): Organization roles for custom org system
+// export const ORG_ROLE = {
+//   OWNER: 'owner',
+//   ADMIN: 'admin',
+//   MEMBER: 'member',
+// } as const;
+//
+// export type OrgRole = EnumValues<typeof ORG_ROLE>;
