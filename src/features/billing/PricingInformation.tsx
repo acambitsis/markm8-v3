@@ -15,8 +15,6 @@ export const PricingInformation = (props: {
           credits={pkg.credits}
           price={pkg.price}
           pricePerCredit={pkg.pricePerCredit}
-          savings={pkg.savings}
-          popular={pkg.popular}
           button={props.buttonList[pkg.id]}
         />
       ))}

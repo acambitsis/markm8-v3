@@ -32,8 +32,7 @@ export const CREDIT_PACKAGE_ID = {
   MEGA: 'mega',
 } as const;
 
-// Credit packages with volume discounts
-// Base price: $1.00 per essay
+// Credit packages - fixed rate: $1.00 per credit (no discounts)
 export const CreditPackageList: Record<string, CreditPackage> = {
   [CREDIT_PACKAGE_ID.SINGLE]: {
     id: CREDIT_PACKAGE_ID.SINGLE,
@@ -44,31 +43,26 @@ export const CreditPackageList: Record<string, CreditPackage> = {
   [CREDIT_PACKAGE_ID.STARTER]: {
     id: CREDIT_PACKAGE_ID.STARTER,
     credits: 5,
-    price: 4.50,
-    pricePerCredit: 0.90,
-    savings: 'Save 10%',
+    price: 5.00,
+    pricePerCredit: 1.00,
   },
   [CREDIT_PACKAGE_ID.STANDARD]: {
     id: CREDIT_PACKAGE_ID.STANDARD,
     credits: 10,
-    price: 8.00,
-    pricePerCredit: 0.80,
-    savings: 'Save 20%',
-    popular: true,
+    price: 10.00,
+    pricePerCredit: 1.00,
   },
   [CREDIT_PACKAGE_ID.BULK]: {
     id: CREDIT_PACKAGE_ID.BULK,
     credits: 25,
-    price: 18.75,
-    pricePerCredit: 0.75,
-    savings: 'Save 25%',
+    price: 25.00,
+    pricePerCredit: 1.00,
   },
   [CREDIT_PACKAGE_ID.MEGA]: {
     id: CREDIT_PACKAGE_ID.MEGA,
     credits: 50,
-    price: 35.00,
-    pricePerCredit: 0.70,
-    savings: 'Save 30%',
+    price: 50.00,
+    pricePerCredit: 1.00,
   },
 };
 

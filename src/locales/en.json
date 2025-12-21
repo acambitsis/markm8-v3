@@ -41,20 +41,13 @@
     "button_text": "Get Started"
   },
   "PricingPlan": {
-    "free_plan_name": "Free",
-    "premium_plan_name": "Premium",
-    "enterprise_plan_name": "Enterprise",
-    "free_plan_description": "For individuals",
-    "premium_plan_description": "For small teams",
-    "enterprise_plan_description": "For industry leaders",
-    "feature_team_member": "{number} Team Members",
-    "feature_website": "{number} Websites",
-    "feature_storage": "{number} GB Storage",
-    "feature_transfer": "{number} TB Transfer",
-    "feature_email_support": "Email Support",
-    "plan_interval_month": "month",
-    "plan_interval_year": "year",
-    "next_renew_date": "Your subscription renews on {date}"
+    "most_popular": "Most Popular",
+    "price_per_credit": "${price}/credit",
+    "single_package_name": "{credits} Credit",
+    "starter_package_name": "{credits} Credits",
+    "standard_package_name": "{credits} Credits",
+    "bulk_package_name": "{credits} Credits",
+    "mega_package_name": "{credits} Credits"
   },
   "FAQ": {
     "question": "Lorem ipsum dolor sit amet, consectetur adipiscing elit?",

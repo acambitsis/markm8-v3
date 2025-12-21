@@ -22,9 +22,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
-      - run: npm run build
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - run: bun install
+      - run: bun run build
 
   test:
     strategy:
@@ -42,12 +43,14 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: ${{ matrix.node-version }}
-          cache: npm
-      - run: npm ci
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+      - run: bun install
 
       - name: Build Next.js for E2E tests
-        run: npm run build
+        run: bun run build
         env:
+          # Required for Sentry source maps upload during build
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
       - if: github.event_name == 'pull_request'
@@ -55,29 +58,32 @@ jobs:
         run: npx commitlint --from ${{ github.event.pull_request.base.sha }} --to ${{ github.event.pull_request.head.sha }} --verbose
 
       - name: Linter
-        run: npm run lint
+        run: bun run lint
 
       - name: Type checking
-        run: npm run check-types
+        run: bun run check-types
 
       - name: Run unit tests
-        run: npm run test -- --coverage
+        run: bun run test -- --coverage
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v4
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        with:
+          # Required for Codecov coverage uploads
+          token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: Install Playwright (used for Storybook and E2E tests)
         run: npx playwright install --with-deps
 
       - name: Run storybook tests
-        run: npm run test-storybook:ci
+        run: bun run test-storybook:ci
 
       - name: Run E2E tests
-        run: npx percy exec -- npm run test:e2e
+        run: npx percy exec -- bun run test:e2e
         env:
+          # Required for Percy visual regression testing
           PERCY_TOKEN: ${{ secrets.PERCY_TOKEN }}
+          # Required for Clerk authentication in E2E tests
           CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
 
       - uses: actions/upload-artifact@v4
@@ -86,30 +92,3 @@ jobs:
           name: test-results
           path: test-results/
           retention-days: 7
-
-  synchronize-with-crowdin:
-    name: GitHub PR synchronize with Crowdin
-    runs-on: ubuntu-latest
-
-    needs: [build, test]
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }} # Crowdin Actions needs to push commits to the PR branch, checkout HEAD commit instead of merge commit
-          fetch-depth: 0
-
-      - name: crowdin action
-        uses: crowdin/github-action@v2
-        with:
-          upload_sources: true
-          upload_translations: true
-          download_translations: true
-          create_pull_request: false
-          localization_branch_name: ${{ github.head_ref || github.ref_name }} # explanation here: https://stackoverflow.com/a/71158878
-          commit_message: 'chore: new Crowdin translations by GitHub Action'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CROWDIN_PROJECT_ID: ${{ secrets.CROWDIN_PROJECT_ID }}
-          CROWDIN_PERSONAL_TOKEN: ${{ secrets.CROWDIN_PERSONAL_TOKEN }}

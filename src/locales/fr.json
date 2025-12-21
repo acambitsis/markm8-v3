@@ -41,20 +41,13 @@
     "button_text": "Démarrer"
   },
   "PricingPlan": {
-    "free_plan_name": "Gratuit",
-    "premium_plan_name": "Premium",
-    "enterprise_plan_name": "Enterprise",
-    "free_plan_description": "Pour les particuliers",
-    "premium_plan_description": "Pour les petites équipes",
-    "enterprise_plan_description": "Pour les leaders de l'industrie",
-    "feature_team_member": "{number} membres",
-    "feature_website": "{number} sites internet",
-    "feature_storage": "{number} Go de stockage",
-    "feature_transfer": "{number} TB de transfert",
-    "feature_email_support": "Support par e-mail",
-    "plan_interval_month": "mois",
-    "plan_interval_year": "année",
-    "next_renew_date": "Votre abonnement sera renouvelé le {date}"
+    "most_popular": "Le plus populaire",
+    "price_per_credit": "{price} $/crédit",
+    "single_package_name": "{credits} Crédit",
+    "starter_package_name": "{credits} Crédits",
+    "standard_package_name": "{credits} Crédits",
+    "bulk_package_name": "{credits} Crédits",
+    "mega_package_name": "{credits} Crédits"
   },
   "FAQ": {
     "question": "Lorem ipsum dolor sit amet, consectetur adipiscing elit?",

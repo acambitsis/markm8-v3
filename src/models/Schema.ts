@@ -155,7 +155,7 @@ export const grades = pgTable('grades', {
   errorMessage: text('error_message'),
 
   // Timing
-  queuedAt: timestamp('queued_at').notNull(),
+  queuedAt: timestamp('queued_at').defaultNow().notNull(),
   startedAt: timestamp('started_at'),
   completedAt: timestamp('completed_at'),
 

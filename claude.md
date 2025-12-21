@@ -148,6 +148,28 @@ src/
 
 ---
 
+## Implementation Status
+
+**Phase 1 (Complete):**
+- Clerk authentication
+- Drizzle + PGlite/PostgreSQL dual-mode
+- Logging (Pino + Better Stack)
+- Sentry error monitoring (client)
+- i18n infrastructure
+- Tailwind 4 + Shadcn UI
+
+**Pending Implementation:**
+| Module | Phase | Status |
+|--------|-------|--------|
+| `src/features/*` | Phase 2 | Not started |
+| `src/libs/Stripe.ts` | Phase 6 | Not started |
+| `src/libs/AI.ts` | Phase 5 | Not started |
+| `src/libs/Mistral.ts` | Phase 4 | Not started |
+| `src/worker/*` | Phase 5 | Not started |
+| Database schema | Phase 3 | Not started |
+
+---
+
 ## Key Next.js 15 / React 19 Patterns
 
 **Async Request APIs:**

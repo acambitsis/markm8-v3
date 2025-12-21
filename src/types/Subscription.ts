@@ -22,9 +22,7 @@ export type CreditPackage = {
   id: CreditPackageId;
   credits: number;
   price: number; // USD
-  pricePerCredit: number; // For display (e.g., "$0.90/credit")
-  savings?: string; // For display (e.g., "Save 10%")
-  popular?: boolean; // Highlight on pricing page
+  pricePerCredit: number; // For display (e.g., "$1.00/credit")
 };
 
 // User's credit balance state
