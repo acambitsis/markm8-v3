@@ -1,3 +1,24 @@
+# 1.0.0 (2025-12-21)
+
+
+### Bug Fixes
+
+* add Bash tool to all PR validation agents ([e085b54](https://github.com/acambitsis/markm8-v3/commit/e085b545609c47b7a08a04aaa5cdaa822be1b5a0))
+* async component bug and apply project-wide linting fixes ([#3](https://github.com/acambitsis/markm8-v3/issues/3)) ([f6da0d3](https://github.com/acambitsis/markm8-v3/commit/f6da0d3d94c406513bb5fdec0ff3701845b0c447))
+* convert ToggleMenuButton from forwardRef to React 19 ref-as-prop pattern ([8b51550](https://github.com/acambitsis/markm8-v3/commit/8b51550b4c7c55cbb7ba798a7e655974aac03053))
+* railway build errors - remove stale npm lockfile and force bun ([dfbd7e1](https://github.com/acambitsis/markm8-v3/commit/dfbd7e19020e6f94353c6715abe2b3ba45d9ce68))
+* regenerate migrations and secure environment files ([ca4278a](https://github.com/acambitsis/markm8-v3/commit/ca4278a0d0bf57c82a65e08e144d91019ac92222))
+* resolve deployment failures (GitHub Actions + Railway) ([53df147](https://github.com/acambitsis/markm8-v3/commit/53df147a6489a5a3f45c6fe8d9383ce2546c1664))
+
+
+### Features
+
+* add /review-pr slash command for parallel PR validation ([243e0f1](https://github.com/acambitsis/markm8-v3/commit/243e0f14e5ac5cc81865bf44dbc6e58b8a0bbdcf))
+* add principle-based PR validation agents and update CLAUDE.md ([5997dea](https://github.com/acambitsis/markm8-v3/commit/5997deae8961edcaf403f1bf62e4dd58ac1e2dbc))
+* add scripts for concatenating specifications and document findings to address later ([feec0e2](https://github.com/acambitsis/markm8-v3/commit/feec0e2330ddba88483926477deb9d4ae7f43db2))
+* complete phase 1 upgrade to next.js 15, react 19, and tailwind 4 ([7b8c366](https://github.com/acambitsis/markm8-v3/commit/7b8c366f2ab9d771245ab61b7adf0b0e458f025f))
+* implement phase 2 modern patterns - suspense, error boundaries, and typography ([59fdf5d](https://github.com/acambitsis/markm8-v3/commit/59fdf5d942f04bd781087b5b278d3a16b9b1e386))
+
 ## [1.7.7](https://github.com/ixartz/SaaS-Boilerplate/compare/v1.7.6...v1.7.7) (2025-12-12)
 
 
