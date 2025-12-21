@@ -1,4 +1,3 @@
-import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
@@ -16,8 +15,8 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   };
 }
 
-export default function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = useTranslations('DashboardLayout');
+export default async function DashboardLayout(props: { children: React.ReactNode }) {
+  const t = await getTranslations('DashboardLayout');
 
   return (
     <>
