@@ -1,3 +1,10 @@
+## [1.0.2](https://github.com/acambitsis/markm8-v3/compare/v1.0.1...v1.0.2) (2025-12-21)
+
+
+### Bug Fixes
+
+* **e2e:** fix playwright config and remove missing sponsor images ([23a9478](https://github.com/acambitsis/markm8-v3/commit/23a9478f65e0722f6d289ead8e44ff2f4be2e62f))
+
 ## [1.0.1](https://github.com/acambitsis/markm8-v3/compare/v1.0.0...v1.0.1) (2025-12-21)
 
 
