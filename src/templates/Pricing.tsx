@@ -30,6 +30,7 @@ export const Pricing = () => {
 
   return (
     <Section
+      id="pricing"
       subtitle={t('section_subtitle')}
       title={t('section_title')}
       description={t('section_description')}

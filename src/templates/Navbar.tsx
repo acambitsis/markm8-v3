@@ -17,7 +17,6 @@ export const Navbar = () => {
         logo={<Logo />}
         rightMenu={(
           <>
-            {/* PRO: Dark mode toggle button */}
             <li data-fade>
               <LocaleSwitcher />
             </li>
@@ -33,23 +32,19 @@ export const Navbar = () => {
         )}
       >
         <li>
-          <Link href="/sign-up">{t('product')}</Link>
+          <a href="#features">{t('features')}</a>
         </li>
 
         <li>
-          <Link href="/sign-up">{t('docs')}</Link>
+          <a href="#how-it-works">{t('how_it_works')}</a>
         </li>
 
         <li>
-          <Link href="/sign-up">{t('blog')}</Link>
+          <a href="#pricing">{t('pricing')}</a>
         </li>
 
         <li>
-          <Link href="/sign-up">{t('community')}</Link>
-        </li>
-
-        <li>
-          <Link href="/sign-up">{t('company')}</Link>
+          <a href="#faq">{t('faq')}</a>
         </li>
       </CenteredMenu>
     </Section>
