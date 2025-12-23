@@ -1,3 +1,5 @@
+'use client';
+
 import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -40,11 +42,12 @@ export const Testimonials = () => {
             className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
           >
             {/* Stars */}
-            <div className="flex gap-0.5">
+            <div className="flex gap-0.5" role="img" aria-label={`${testimonial.rating} out of 5 stars`}>
               {[...Array(testimonial.rating)].map((_, i) => (
                 <Star
                   key={i}
                   className="size-4 fill-amber-400 text-amber-400"
+                  aria-hidden="true"
                 />
               ))}
             </div>

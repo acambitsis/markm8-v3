@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, Brain, Check, FileText, MessageSquare } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';

@@ -1,10 +1,14 @@
+'use client';
+
 import { useTranslations } from 'next-intl';
 import React from 'react';
 
 import { cn } from '@/utils/Helpers';
 
+type PackageId = 'single' | 'starter' | 'standard' | 'bulk' | 'mega';
+
 export const PricingCard = (props: {
-  packageId: string;
+  packageId: PackageId;
   credits: number;
   price: number;
   pricePerCredit: number;
@@ -29,7 +33,7 @@ export const PricingCard = (props: {
       )}
 
       <div className="text-lg font-semibold">
-        {t(`${props.packageId}_package_name` as any, { credits: props.credits })}
+        {t(`${props.packageId}_package_name`, { credits: props.credits })}
       </div>
 
       <div className="mt-3 flex items-center justify-center">

@@ -1,3 +1,5 @@
+'use client';
+
 import { Clock, GraduationCap, Shield, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 

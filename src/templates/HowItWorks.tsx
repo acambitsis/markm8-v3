@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, CheckCircle2, FileText, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 

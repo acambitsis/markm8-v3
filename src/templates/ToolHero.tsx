@@ -1,3 +1,5 @@
+'use client';
+
 import { ArrowRight, Lock, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -13,11 +15,12 @@ export const ToolHero = () => {
       <div className="mx-auto max-w-4xl">
         {/* Trust Badge */}
         <div className="mb-6 flex items-center justify-center gap-1.5">
-          <div className="flex">
+          <div className="flex" role="img" aria-label="5 out of 5 stars">
             {[...Array(5)].map((_, i) => (
               <Star
                 key={i}
                 className="size-4 fill-amber-400 text-amber-400"
+                aria-hidden="true"
               />
             ))}
           </div>
