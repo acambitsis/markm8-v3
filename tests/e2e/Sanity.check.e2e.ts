@@ -17,7 +17,7 @@ test.describe('Sanity', () => {
     test('should display the homepage', async ({ page, baseURL }) => {
       await page.goto(`${baseURL}/`);
 
-      await expect(page.getByText('Get Your Essay')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Get Your Essay Graded by AI' })).toBeVisible();
     });
   });
 });

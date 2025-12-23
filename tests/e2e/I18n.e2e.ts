@@ -5,12 +5,12 @@ test.describe('I18n', () => {
     test('should switch language from English to French using dropdown and verify text on the homepage', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByText('Get Your Essay')).toBeVisible();
+      await expect(page.getByRole('heading', { name: 'Get Your Essay Graded by AI' })).toBeVisible();
 
       await page.getByRole('button', { name: 'lang-switcher' }).click();
       await page.getByText('Français').click();
 
-      await expect(page.getByText('Faites')).toBeVisible();
+      await expect(page.getByRole('heading', { name: /corriger votre essai par IA/i })).toBeVisible();
     });
 
     test('should switch language from English to French using URL and verify text on the sign-in page', async ({ page }) => {
