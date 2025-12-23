@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/acambitsis/markm8-v3/compare/v1.2.1...v1.2.2) (2025-12-23)
+
+
+### Bug Fixes
+
+* update E2E tests to match new landing page content ([39790a3](https://github.com/acambitsis/markm8-v3/commit/39790a3b16dd03dc29780d951d1000e8abf6dd71))
+
 ## [1.2.1](https://github.com/acambitsis/markm8-v3/compare/v1.2.0...v1.2.1) (2025-12-23)
 
 
