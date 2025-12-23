@@ -200,70 +200,16 @@
 }
 
 /* ============================================
-   Dark Mode
-   ============================================ */
-@media (prefers-color-scheme: dark) {
-  @theme {
-    /* Primary - Violet 400 in dark mode */
-    --primary: 258 90% 76%;
-    --primary-foreground: 243 47% 20%;
-
-    /* Secondary */
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-
-    /* Background & Foreground */
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-
-    /* Card */
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
-
-    /* Popover */
-    --popover: 217 33% 17%;
-    --popover-foreground: 210 40% 98%;
-
-    /* Muted */
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    /* Accent */
-    --accent: 43 96% 56%;
-    --accent-foreground: 243 47% 20%;
-
-    /* Destructive */
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-
-    /* Success */
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
-
-    /* Warning */
-    --warning: 43 96% 56%;
-    --warning-foreground: 243 47% 20%;
-
-    /* Border & Input */
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-
-    /* Focus Ring */
-    --ring: 258 90% 76%;
-  }
-}
-
-/* ============================================
    Base Layer
    ============================================ */
 @layer base {
   * {
-    border-color: hsl(var(--border));
+    border-color: #e2e8f0; /* slate-200 */
   }
 
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    background-color: #ffffff;
+    color: #1e293b; /* slate-800 */
   }
 }
 

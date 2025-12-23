@@ -11,7 +11,7 @@ export const Navbar = () => {
   const t = useTranslations('Navbar');
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center">
@@ -22,27 +22,27 @@ export const Navbar = () => {
         <nav className="hidden items-center gap-6 md:flex">
           <Link
             href="#how-it-works"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
           >
-            How It Works
+            {t('how_it_works')}
           </Link>
           <Link
             href="#features"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
           >
-            Features
+            {t('features')}
           </Link>
           <Link
             href="#pricing"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
           >
-            Pricing
+            {t('pricing')}
           </Link>
           <Link
             href="#faq"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
           >
-            FAQ
+            {t('faq')}
           </Link>
         </nav>
 
@@ -52,7 +52,7 @@ export const Navbar = () => {
 
           <Link
             href="/sign-in"
-            className="hidden text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline"
+            className="hidden text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 sm:inline"
           >
             {t('sign_in')}
           </Link>

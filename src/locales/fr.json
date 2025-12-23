@@ -1,136 +1,216 @@
 {
   "Index": {
-    "meta_title": "SaaS Template - Le template SaaS parfait pour construire et mettre à l'échelle votre entreprise en toute simplicité.",
-    "meta_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec React, TypeScript, Shadcn UI et Tailwind CSS."
+    "meta_title": "MarkM8 - Correction d'essais par IA pour étudiants universitaires",
+    "meta_description": "Obtenez des commentaires instantanés sur vos essais par IA, alignés sur les standards universitaires. Trois modèles IA. Une note complète. Seulement 1$ par essai."
   },
   "Navbar": {
-    "sign_in": "Se connecter",
-    "sign_up": "S'inscrire",
-    "product": "Produit",
-    "docs": "Docs",
-    "blog": "Blog",
-    "community": "Communauté",
-    "company": "Entreprise"
+    "how_it_works": "Comment ça marche",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "sign_in": "Connexion",
+    "sign_up": "Commencer"
   },
   "Hero": {
-    "follow_twitter": "Suivez @Ixartz sur Twitter",
-    "title": "Le parfait <important>SaaS template</important> pour construire et mettre à l'échelle votre entreprise en toute simplicité.",
-    "description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec React, TypeScript, Shadcn UI et Tailwind CSS.",
-    "primary_button": "Démarrer",
-    "secondary_button": "Mettez une étoile sur GitHub"
+    "trust_badge_rating": "4.9/5",
+    "trust_badge_count": "de plus de 2 000 étudiants",
+    "title": "Faites <gradient>corriger votre essai par IA</gradient> en moins de 5 minutes",
+    "description": "Commentaires instantanés alignés sur les standards universitaires. Trois modèles IA. Une note complète. Seulement 1$ par essai.",
+    "primary_button": "Corriger mon essai",
+    "secondary_button": "Connexion",
+    "privacy_note": "Votre essai n'est jamais stocké ni partagé"
   },
-  "Sponsors": {
-    "title": "Sponsorisé par"
+  "TrustStrip": {
+    "university_grade": "Commentaires de niveau universitaire",
+    "privacy": "100% Privé et Sécurisé",
+    "speed": "Résultats en ~3 minutes",
+    "ai_models": "3 modèles IA pour plus de précision"
+  },
+  "HowItWorks": {
+    "section_subtitle": "Processus simple",
+    "section_title": "Comment ça marche",
+    "section_description": "Faites corriger votre essai en trois étapes simples",
+    "step1_title": "Soumettez votre essai",
+    "step1_description": "Collez votre essai avec les consignes et la grille d'évaluation. Notre système accepte tous les formats.",
+    "step2_title": "Analyse IA",
+    "step2_description": "Trois modèles IA indépendants corrigent votre essai en parallèle, garantissant des commentaires équilibrés et précis.",
+    "step3_title": "Obtenez vos résultats",
+    "step3_description": "Recevez une fourchette de notes détaillée, une analyse des points forts et des suggestions d'amélioration spécifiques."
   },
   "Features": {
-    "section_subtitle": "Fonctionnalités",
-    "section_title": "Débloquer le plein potentiel du SaaS Template",
-    "section_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec React, TypeScript, Shadcn UI et Tailwind CSS.",
-    "feature1_title": "Node.js",
-    "feature2_title": "React",
-    "feature3_title": "Tailwind CSS",
-    "feature4_title": "TypeScript",
-    "feature5_title": "Shadcn UI",
-    "feature6_title": "ESLint",
-    "feature_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec React, TypeScript, Shadcn UI et Tailwind CSS."
+    "section_subtitle": "Pourquoi MarkM8",
+    "section_title": "Tout ce qu'il vous faut pour de meilleures notes",
+    "section_description": "Des commentaires instantanés et précis pour vous améliorer avant de soumettre",
+    "feature1_title": "Consensus Triple IA",
+    "feature1_description": "Trois modèles IA indépendants corrigent votre essai en parallèle. Les valeurs aberrantes sont détectées et exclues pour plus de précision.",
+    "feature2_title": "Commentaires détaillés",
+    "feature2_description": "Obtenez une fourchette de notes, pas un seul chiffre. Voyez exactement où votre essai excelle et où il doit être amélioré.",
+    "feature3_title": "Aligné sur la grille",
+    "feature3_description": "Téléchargez votre grille d'évaluation et notre IA corrige en fonction, comme le ferait votre professeur.",
+    "feature4_title": "Résultats rapides",
+    "feature4_description": "Plus d'attente. Obtenez des commentaires complets en moins de 5 minutes, à tout moment.",
+    "feature5_title": "Paiement par essai",
+    "feature5_description": "Pas d'abonnement. Achetez des crédits quand vous en avez besoin. Un crédit = un essai corrigé.",
+    "feature6_title": "Privé et sécurisé",
+    "feature6_description": "Vos essais ne sont jamais stockés, partagés ou utilisés pour l'entraînement. Corrigez en toute confiance."
   },
-  "Pricing": {
-    "section_subtitle": "Fonctionnalités",
-    "section_title": "Débloquer le plein potentiel du SaaS Template",
-    "section_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec React, TypeScript, Shadcn UI et Tailwind CSS.",
-    "button_text": "Démarrer"
+  "Testimonials": {
+    "section_subtitle": "Avis des étudiants",
+    "section_title": "La confiance de milliers d'étudiants",
+    "section_description": "Découvrez ce que les étudiants disent de MarkM8",
+    "testimonial1_quote": "MarkM8 m'a aidé à comprendre exactement où mon essai était faible. Les commentaires étaient spécifiques et exploitables.",
+    "testimonial1_author": "Sarah M.",
+    "testimonial1_role": "Étudiante en psychologie, UCLA",
+    "testimonial2_quote": "J'avais l'habitude de stresser pour savoir si mes essais étaient assez bons. Maintenant j'obtiens des commentaires instantanés avant de soumettre.",
+    "testimonial2_author": "James K.",
+    "testimonial2_role": "Étudiant en commerce, NYU",
+    "testimonial3_quote": "L'approche avec trois modèles IA me donne confiance dans la précision de la note. Ça m'a fait gagner tellement de temps.",
+    "testimonial3_author": "Emily R.",
+    "testimonial3_role": "Étudiante en littérature anglaise, Oxford"
   },
   "PricingPlan": {
     "most_popular": "Le plus populaire",
-    "price_per_credit": "{price} $/crédit",
+    "price_per_credit": "{price}$/essai",
     "single_package_name": "{credits} Crédit",
     "starter_package_name": "{credits} Crédits",
     "standard_package_name": "{credits} Crédits",
     "bulk_package_name": "{credits} Crédits",
     "mega_package_name": "{credits} Crédits"
   },
+  "Pricing": {
+    "section_subtitle": "Tarification simple",
+    "section_title": "Payez par essai, pas par mois",
+    "section_description": "Pas d'abonnement. Achetez des crédits quand vous en avez besoin. Un crédit = un essai corrigé.",
+    "price_label": "Par essai",
+    "price_value": "1$",
+    "price_cents": ",00",
+    "price_note": "Pas d'abonnement. Payez seulement quand vous en avez besoin.",
+    "included_title": "Ce qui est inclus :",
+    "included_ai_models": "Analyse par 3 modèles IA",
+    "included_breakdown": "Détail complet de la note",
+    "included_feedback": "Commentaires exploitables",
+    "included_rubric": "Score d'alignement sur la grille",
+    "cta_button": "Commencer gratuitement",
+    "cta_note": "1 crédit gratuit à l'inscription",
+    "trust_no_expiry": "Les crédits n'expirent jamais",
+    "trust_secure": "Paiement sécurisé via Stripe",
+    "trust_fast": "Résultats en moins de 5 minutes"
+  },
   "FAQ": {
-    "question": "Lorem ipsum dolor sit amet, consectetur adipiscing elit?",
-    "answer": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam aliquam enim dui, id consequat turpis ullamcorper ac. Mauris id quam dolor. Nullam eu egestas turpis. Proin risus elit, sollicitudin in mi a, accumsan euismod turpis. In euismod mi sed diam tristique hendrerit."
+    "section_subtitle": "Questions fréquentes",
+    "section_title": "Foire aux questions",
+    "section_description": "Tout ce que vous devez savoir sur MarkM8",
+    "question1": "Comment fonctionne la correction par IA ?",
+    "answer1": "MarkM8 utilise trois modèles IA indépendants pour corriger votre essai en parallèle. Chaque modèle évalue votre travail selon votre grille, puis nous utilisons un score de consensus pour fournir une fourchette de notes précise. Les valeurs aberrantes sont automatiquement détectées et exclues.",
+    "question2": "Mon essai est-il stocké ou partagé ?",
+    "answer2": "Non. Votre essai est traité en temps réel et immédiatement supprimé après la correction. Nous ne stockons, partageons ou utilisons jamais vos essais pour l'entraînement de l'IA. Votre travail académique reste totalement privé.",
+    "question3": "Quelle est la précision de la correction ?",
+    "answer3": "Notre approche de consensus triple IA fournit des notes qui s'alignent étroitement sur les standards universitaires. En utilisant trois modèles et en excluant les valeurs aberrantes, nous obtenons des résultats plus fiables que les systèmes à modèle unique.",
+    "question4": "Quels types d'essais puis-je soumettre ?",
+    "answer4": "MarkM8 fonctionne avec tout type d'essai académique - argumentatif, analytique, mémoires de recherche, revues de littérature, et plus encore. Collez simplement votre essai, les consignes et la grille pour les meilleurs résultats.",
+    "question5": "Combien de temps prend la correction ?",
+    "answer5": "La plupart des essais sont corrigés en moins de 3 minutes. Les essais complexes ou plus longs peuvent prendre jusqu'à 5 minutes. Vous verrez des mises à jour en temps réel pendant l'analyse de votre essai.",
+    "question6": "Que faire si je ne suis pas d'accord avec la note ?",
+    "answer6": "Vous pouvez recorriger n'importe quel essai en utilisant un autre crédit. Chaque correction est indépendante, vous pouvez donc obtenir des commentaires légèrement différents. La fourchette de notes que nous fournissons tient compte de la variation naturelle dans l'évaluation."
   },
   "CTA": {
-    "title": "Vous êtes prêt?",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "button_text": "Mettez une étoile sur GitHub"
+    "title": "Prêt à améliorer vos essais ?",
+    "description": "Rejoignez des milliers d'étudiants qui obtiennent de meilleures notes grâce aux commentaires instantanés par IA. Commencez avec un crédit gratuit.",
+    "primary_button": "Commencer gratuitement",
+    "secondary_button": "Connexion",
+    "note": "Pas de carte de crédit requise. 1 crédit gratuit à l'inscription."
   },
   "Footer": {
-    "product": "Produit",
-    "docs": "Docs",
-    "blog": "Blog",
-    "community": "Communauté",
-    "company": "Entreprise",
-    "terms_of_service": "Conditions d'utilisation",
-    "privacy_policy": "Politique de confidentialité",
-    "designed_by": "Designé by <author></author>."
+    "how_it_works": "Comment ça marche",
+    "features": "Fonctionnalités",
+    "pricing": "Tarifs",
+    "faq": "FAQ",
+    "terms": "Conditions",
+    "privacy": "Confidentialité",
+    "all_rights_reserved": "Tous droits réservés.",
+    "designed_by": "Créé avec <author></author>"
   },
   "ProtectFallback": {
     "not_enough_permission": "Vous n'avez pas les permissions pour effectuer cette action"
   },
   "SignIn": {
-    "meta_title": "Se connecter",
-    "meta_description": "Connectez-vous à votre compte avec facilité."
+    "meta_title": "Connexion - MarkM8",
+    "meta_description": "Connectez-vous à votre compte MarkM8 pour corriger vos essais."
   },
   "SignUp": {
-    "meta_title": "S'inscrire",
-    "meta_description": "Créez un compte sans effort grâce à notre processus d'inscription intuitif."
+    "meta_title": "Inscription - MarkM8",
+    "meta_description": "Créez votre compte MarkM8 et obtenez 1 crédit gratuit pour corriger votre premier essai."
   },
   "DashboardLayout": {
-    "home": "Accueil",
+    "home": "Tableau de bord",
     "profile": "Profil",
-    "todos": "Todos",
+    "submit": "Corriger un essai",
+    "history": "Historique",
+    "todos": "Tâches",
     "members": "Membres",
-    "billing": "Facturation",
-    "settings": "Réglages"
+    "billing": "Acheter des crédits",
+    "settings": "Paramètres"
+  },
+  "Submit": {
+    "meta_title": "Corriger un essai - MarkM8",
+    "meta_description": "Soumettez votre essai pour une correction et des commentaires par IA"
+  },
+  "Grades": {
+    "meta_title": "Résultats de correction - MarkM8",
+    "meta_description": "Consultez les résultats et commentaires de votre essai"
+  },
+  "History": {
+    "meta_title": "Historique des essais - MarkM8",
+    "meta_description": "Consultez toutes vos soumissions et notes passées"
+  },
+  "Onboarding": {
+    "meta_title": "Bienvenue sur MarkM8",
+    "meta_description": "Configurez vos préférences pour commencer"
   },
   "Dashboard": {
-    "meta_title": "Tableau de bord du SaaS Template",
-    "meta_description": "Un template gratuit et open-source de landing page pour votre entreprise SaaS, construit avec Next.js, TypeScript, Shadcn UI et Tailwind CSS."
+    "meta_title": "Tableau de bord - MarkM8",
+    "meta_description": "Gérez vos essais et consultez votre historique de corrections"
   },
   "DashboardIndex": {
     "title_bar": "Tableau de bord",
-    "title_bar_description": "Bienvenue sur votre tableau de bord",
-    "message_state_title": "C'est parti",
-    "message_state_description": "Vous pouvez personnaliser cette page en modifiant le fichier dans <code>dashboard/page.tsx</code>",
-    "message_state_button": "Mettez une étoile sur GitHub",
-    "message_state_alternative": "Vous voulez plus de fonctionnalités et les dernières nouveautés de Next.js 16 ? Essayez <url></url>."
+    "title_bar_description": "Bienvenue sur MarkM8",
+    "message_state_title": "Prêt à faire corriger votre essai ?",
+    "message_state_description": "Soumettez votre essai, les consignes et la grille d'évaluation pour obtenir des commentaires IA instantanés.",
+    "message_state_button": "Corriger un essai",
+    "message_state_alternative": "Il vous reste <credits></credits> crédits."
   },
   "UserProfile": {
-    "title_bar": "Profil utilisateur",
-    "title_bar_description": "Afficher et gérer votre profil utilisateur"
+    "title_bar": "Profil",
+    "title_bar_description": "Gérez les paramètres de votre compte"
   },
   "OrganizationProfile": {
-    "title_bar": "Gestion de l’organisation",
-    "title_bar_description": "Gérer votre organisation"
+    "title_bar": "Gestion de l'organisation",
+    "title_bar_description": "Gérez votre organisation"
   },
   "Billing": {
-    "title_bar": "Facturation",
-    "title_bar_description": "Gérer votre facturation et votre abonnement",
-    "current_section_title": "Plan actuel",
-    "current_section_description": "Ajuster votre plan de paiement pour le mieux répondre à vos besoins",
-    "manage_subscription_button": "Gérer l'abonnement"
+    "title_bar": "Acheter des crédits",
+    "title_bar_description": "Achetez des crédits pour corriger plus d'essais",
+    "current_section_title": "Vos crédits",
+    "current_section_description": "Achetez plus de crédits pour continuer à corriger des essais",
+    "manage_subscription_button": "Voir l'historique des achats"
   },
   "BillingOptions": {
-    "current_plan": "Plan actuel",
-    "upgrade_plan": "Démarrer"
+    "current_plan": "Solde actuel",
+    "upgrade_plan": "Acheter des crédits"
   },
   "CheckoutConfirmation": {
-    "title_bar": "Confirmation du paiement",
-    "message_state_title": "Paiement accepté",
-    "message_state_description": "Votre paiement a été traité avec succès. Merci pour votre achat !",
-    "message_state_button": "Revenir à la facturation"
+    "title_bar": "Paiement confirmé",
+    "message_state_title": "Crédits ajoutés !",
+    "message_state_description": "Vos crédits ont été ajoutés à votre compte. Vous êtes prêt à corriger plus d'essais !",
+    "message_state_button": "Corriger un essai"
   },
   "DataTable": {
-    "no_results": "Aucun résultat."
+    "no_results": "Aucun essai trouvé."
   },
   "Todos": {
-    "title_bar": "Liste de Todos",
-    "title_bar_description": "Afficher et gérer votre liste de todos",
-    "add_todo_button": "Nouveau todo"
+    "title_bar": "Liste de tâches",
+    "title_bar_description": "Consultez et gérez votre liste de tâches",
+    "add_todo_button": "Nouvelle tâche"
   },
   "TodoTableColumns": {
     "open_menu": "Ouvrir le menu",
@@ -141,20 +221,20 @@
     "created_at_header": "Créé le"
   },
   "AddTodo": {
-    "title_bar": "Ajouter une todo",
-    "add_todo_section_title": "Créer une nouvelle todo",
-    "add_todo_section_description": "Remplissez le formulaire ci-dessous pour créer une nouvelle todo"
+    "title_bar": "Ajouter une tâche",
+    "add_todo_section_title": "Créer une nouvelle tâche",
+    "add_todo_section_description": "Remplissez le formulaire ci-dessous pour créer une nouvelle tâche"
   },
   "EditTodo": {
-    "title_bar": "Editer le todo",
-    "edit_todo_section_title": "Modifier le todo",
-    "edit_todo_section_description": "Remplissez le formulaire ci-dessous pour modifier la todo"
+    "title_bar": "Modifier la tâche",
+    "edit_todo_section_title": "Modifier la tâche",
+    "edit_todo_section_description": "Remplissez le formulaire ci-dessous pour modifier la tâche"
   },
   "TodoForm": {
     "title_label": "Titre",
-    "title_description": "Entrez un titre descriptif pour votre todo.",
+    "title_description": "Entrez un titre descriptif pour votre tâche.",
     "message_title": "Message",
-    "message_description": "Entrez un message détaillé pour votre todo.",
+    "message_description": "Entrez un message détaillé pour votre tâche.",
     "submit_button": "Envoyer"
   }
 }

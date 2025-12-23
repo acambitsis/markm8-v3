@@ -1,17 +1,72 @@
 {
   "Index": {
     "meta_title": "MarkM8 - AI Essay Grading for University Students",
-    "meta_description": "Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $2 per essay."
+    "meta_description": "Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay."
   },
   "Navbar": {
+    "how_it_works": "How It Works",
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
     "sign_in": "Sign In",
     "sign_up": "Get Started"
   },
-  "Pricing": {
-    "section_subtitle": "Simple Pricing",
-    "section_title": "Pay Per Essay, Not Per Month",
-    "section_description": "No subscriptions. Buy credits when you need them. One credit = one essay graded.",
-    "button_text": "Buy Credits"
+  "Hero": {
+    "trust_badge_rating": "4.9/5",
+    "trust_badge_count": "from 2,000+ students",
+    "title": "Get Your Essay <gradient>Graded by AI</gradient> in Under 5 Minutes",
+    "description": "Instant feedback aligned with university grading standards. Three AI models. One comprehensive grade. Just $1 per essay.",
+    "primary_button": "Grade My Essay",
+    "secondary_button": "Sign In",
+    "privacy_note": "Your essay is never stored or shared"
+  },
+  "TrustStrip": {
+    "university_grade": "University-grade feedback",
+    "privacy": "100% Private & Secure",
+    "speed": "Results in ~3 minutes",
+    "ai_models": "3 AI models for accuracy"
+  },
+  "HowItWorks": {
+    "section_subtitle": "Simple Process",
+    "section_title": "How It Works",
+    "section_description": "Get your essay graded in three easy steps",
+    "step1_title": "Submit Your Essay",
+    "step1_description": "Paste your essay along with the assignment brief and rubric. Our system accepts any essay format.",
+    "step2_title": "AI Analysis",
+    "step2_description": "Three independent AI models grade your essay in parallel, ensuring balanced and accurate feedback.",
+    "step3_title": "Get Your Results",
+    "step3_description": "Receive a detailed grade range, strengths analysis, and specific improvement suggestions."
+  },
+  "Features": {
+    "section_subtitle": "Why MarkM8",
+    "section_title": "Everything You Need for Better Grades",
+    "section_description": "Instant, accurate feedback that helps you improve before you submit",
+    "feature1_title": "Triple AI Consensus",
+    "feature1_description": "Three independent AI models grade your essay in parallel. Outliers are detected and excluded for accuracy.",
+    "feature2_title": "Detailed Feedback",
+    "feature2_description": "Get a grade range, not just a single number. See exactly where your essay excels and where it needs work.",
+    "feature3_title": "Rubric-Aligned",
+    "feature3_description": "Upload your assignment rubric and our AI grades against it, just like your professor would.",
+    "feature4_title": "Fast Results",
+    "feature4_description": "No more waiting. Get comprehensive feedback in under 5 minutes, any time of day.",
+    "feature5_title": "Pay Per Essay",
+    "feature5_description": "No subscriptions. Just buy credits when you need them. One credit = one essay graded.",
+    "feature6_title": "Private & Secure",
+    "feature6_description": "Your essays are never stored, shared, or used for training. Grade with confidence."
+  },
+  "Testimonials": {
+    "section_subtitle": "Student Reviews",
+    "section_title": "Trusted by Thousands of Students",
+    "section_description": "See what students are saying about MarkM8",
+    "testimonial1_quote": "MarkM8 helped me understand exactly where my essay was weak. The feedback was specific and actionable.",
+    "testimonial1_author": "Sarah M.",
+    "testimonial1_role": "Psychology Student, UCLA",
+    "testimonial2_quote": "I used to stress about whether my essays were good enough. Now I get instant feedback before submitting.",
+    "testimonial2_author": "James K.",
+    "testimonial2_role": "Business Major, NYU",
+    "testimonial3_quote": "The three AI models approach gives me confidence the grade is accurate. Saved me so much time.",
+    "testimonial3_author": "Emily R.",
+    "testimonial3_role": "English Lit Student, Oxford"
   },
   "PricingPlan": {
     "most_popular": "Most Popular",
@@ -21,6 +76,59 @@
     "standard_package_name": "{credits} Credits",
     "bulk_package_name": "{credits} Credits",
     "mega_package_name": "{credits} Credits"
+  },
+  "Pricing": {
+    "section_subtitle": "Simple Pricing",
+    "section_title": "Pay Per Essay, Not Per Month",
+    "section_description": "No subscriptions. Buy credits when you need them. One credit = one essay graded.",
+    "price_label": "Per Essay",
+    "price_value": "$1",
+    "price_cents": ".00",
+    "price_note": "No subscription. Pay only when you need it.",
+    "included_title": "What's included:",
+    "included_ai_models": "Analysis by 3 AI models",
+    "included_breakdown": "Detailed grade breakdown",
+    "included_feedback": "Actionable feedback",
+    "included_rubric": "Rubric alignment scoring",
+    "cta_button": "Get Started Free",
+    "cta_note": "1 free credit on signup",
+    "trust_no_expiry": "Credits never expire",
+    "trust_secure": "Secure payment via Stripe",
+    "trust_fast": "Results in under 5 minutes"
+  },
+  "FAQ": {
+    "section_subtitle": "Common Questions",
+    "section_title": "Frequently Asked Questions",
+    "section_description": "Everything you need to know about MarkM8",
+    "question1": "How does the AI grading work?",
+    "answer1": "MarkM8 uses three independent AI models to grade your essay in parallel. Each model evaluates your work against your rubric, then we use consensus scoring to provide an accurate grade range. Outliers are automatically detected and excluded.",
+    "question2": "Is my essay stored or shared?",
+    "answer2": "No. Your essay is processed in real-time and immediately deleted after grading. We never store, share, or use your essays for AI training. Your academic work remains completely private.",
+    "question3": "How accurate is the grading?",
+    "answer3": "Our triple AI consensus approach provides grades that closely align with university standards. By using three models and excluding outliers, we achieve more reliable results than single-model systems.",
+    "question4": "What types of essays can I submit?",
+    "answer4": "MarkM8 works with any type of academic essay - argumentative, analytical, research papers, literature reviews, and more. Just paste your essay, assignment brief, and rubric for the most accurate results.",
+    "question5": "How long does grading take?",
+    "answer5": "Most essays are graded in under 3 minutes. Complex or longer essays may take up to 5 minutes. You'll see real-time status updates while your essay is being analyzed.",
+    "question6": "What if I disagree with the grade?",
+    "answer6": "You can regrade any essay using another credit. Each grading is independent, so you may get slightly different feedback. The grade range we provide accounts for natural variation in assessment."
+  },
+  "CTA": {
+    "title": "Ready to Improve Your Essays?",
+    "description": "Join thousands of students getting better grades with instant AI feedback. Start with a free credit.",
+    "primary_button": "Get Started Free",
+    "secondary_button": "Sign In",
+    "note": "No credit card required. 1 free credit on signup."
+  },
+  "Footer": {
+    "how_it_works": "How It Works",
+    "features": "Features",
+    "pricing": "Pricing",
+    "faq": "FAQ",
+    "terms": "Terms",
+    "privacy": "Privacy",
+    "all_rights_reserved": "All rights reserved.",
+    "designed_by": "Built with <author></author>"
   },
   "ProtectFallback": {
     "not_enough_permission": "You do not have the permissions to perform this action"
@@ -128,46 +236,5 @@
     "message_title": "Message",
     "message_description": "Enter a detailed message for your todo.",
     "submit_button": "Submit"
-  },
-  "Footer": {
-    "product": "Product",
-    "docs": "Docs",
-    "blog": "Blog",
-    "community": "Community",
-    "company": "Company",
-    "terms_of_service": "Terms of Service",
-    "privacy_policy": "Privacy Policy",
-    "designed_by": "Built with AI"
-  },
-  "Hero": {
-    "follow_twitter": "AI-Powered Grading",
-    "title": "Get Your Essay <important>Graded by AI</important> in Under 5 Minutes",
-    "description": "Instant feedback aligned with university grading standards. Three AI models, one comprehensive grade.",
-    "primary_button": "Get Started",
-    "secondary_button": "Sign In"
-  },
-  "Sponsors": {
-    "title": "Trusted by students at"
-  },
-  "Features": {
-    "section_subtitle": "Why MarkM8",
-    "section_title": "Everything You Need for Better Grades",
-    "section_description": "Instant, accurate feedback that helps you improve before you submit",
-    "feature1_title": "Triple AI Consensus",
-    "feature2_title": "Detailed Feedback",
-    "feature3_title": "Rubric-Aligned",
-    "feature4_title": "Fast Results",
-    "feature5_title": "Pay Per Essay",
-    "feature6_title": "Private & Secure",
-    "feature_description": "Our AI ensures accurate, reliable grading every time."
-  },
-  "FAQ": {
-    "question": "How does the AI grading work?",
-    "answer": "MarkM8 uses three independent AI models to grade your essay in parallel for accurate, reliable feedback."
-  },
-  "CTA": {
-    "title": "Ready to Improve Your Essays?",
-    "description": "Join thousands of students getting better grades with instant AI feedback.",
-    "button_text": "Get Started Free"
   }
 }

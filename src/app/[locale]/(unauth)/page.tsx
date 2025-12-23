@@ -1,15 +1,15 @@
 import { getTranslations, unstable_setRequestLocale } from 'next-intl/server';
 
-import { CTASection } from '@/features/landing/CTASection';
-import { FAQSection } from '@/features/landing/FAQSection';
-import { FeaturesGrid } from '@/features/landing/FeaturesGrid';
-import { HowItWorks } from '@/features/landing/HowItWorks';
-import { Testimonials } from '@/features/landing/Testimonials';
-import { ToolHero } from '@/features/landing/ToolHero';
-import { TrustStrip } from '@/features/landing/TrustStrip';
+import { CTASection } from '@/templates/CTASection';
+import { FAQSection } from '@/templates/FAQSection';
+import { FeaturesGrid } from '@/templates/FeaturesGrid';
 import { Footer } from '@/templates/Footer';
+import { HowItWorks } from '@/templates/HowItWorks';
 import { Navbar } from '@/templates/Navbar';
 import { Pricing } from '@/templates/Pricing';
+import { Testimonials } from '@/templates/Testimonials';
+import { ToolHero } from '@/templates/ToolHero';
+import { TrustStrip } from '@/templates/TrustStrip';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -44,7 +44,7 @@ const IndexPage = async (props: { params: Promise<{ locale: string }> }) => {
       </div>
 
       {/* Features */}
-      <div id="features" className="bg-slate-50 dark:bg-slate-900/50">
+      <div id="features" className="bg-violet-50/50">
         <FeaturesGrid />
       </div>
 

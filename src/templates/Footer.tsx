@@ -1,26 +1,30 @@
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 import { AppConfig } from '@/utils/AppConfig';
 
 import { Logo } from './Logo';
 
 export const Footer = () => {
+  const t = useTranslations('Footer');
   const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-border bg-slate-50 dark:bg-slate-900/50">
+    <footer className="border-t border-slate-200 bg-slate-50">
       <div className="mx-auto max-w-6xl px-4 py-12">
         <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
           {/* Logo & Copyright */}
           <div className="flex flex-col items-center gap-4 md:items-start">
             <Logo />
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-slate-500">
               &copy;
               {' '}
               {currentYear}
               {' '}
               {AppConfig.name}
-              . All rights reserved.
+              .
+              {' '}
+              {t('all_rights_reserved')}
             </p>
           </div>
 
@@ -28,27 +32,27 @@ export const Footer = () => {
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-4 text-sm">
             <Link
               href="#how-it-works"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-slate-900"
             >
-              How It Works
+              {t('how_it_works')}
             </Link>
             <Link
               href="#features"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-slate-900"
             >
-              Features
+              {t('features')}
             </Link>
             <Link
               href="#pricing"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-slate-900"
             >
-              Pricing
+              {t('pricing')}
             </Link>
             <Link
               href="#faq"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-slate-900"
             >
-              FAQ
+              {t('faq')}
             </Link>
           </div>
 
@@ -56,15 +60,15 @@ export const Footer = () => {
           <div className="flex gap-6 text-sm">
             <Link
               href="/terms"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-slate-900"
             >
-              Terms
+              {t('terms')}
             </Link>
             <Link
               href="/privacy"
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className="text-slate-500 transition-colors hover:text-slate-900"
             >
-              Privacy
+              {t('privacy')}
             </Link>
           </div>
         </div>
