@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/acambitsis/markm8-v3/compare/v1.2.0...v1.2.1) (2025-12-23)
+
+
+### Bug Fixes
+
+* correct Prettier formatting in global.css keyframe ([7c63882](https://github.com/acambitsis/markm8-v3/commit/7c6388204774e58deddba158c6dcc7b8acdabdc5))
+
 # [1.2.0](https://github.com/acambitsis/markm8-v3/compare/v1.1.0...v1.2.0) (2025-12-23)
 
 
