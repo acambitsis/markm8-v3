@@ -1,14 +1,15 @@
 import { getTranslations, unstable_setRequestLocale } from 'next-intl/server';
 
-import { CTA } from '@/templates/CTA';
-import { DemoBanner } from '@/templates/DemoBanner';
-import { FAQ } from '@/templates/FAQ';
-import { Features } from '@/templates/Features';
+import { CTASection } from '@/templates/CTASection';
+import { FAQSection } from '@/templates/FAQSection';
+import { FeaturesGrid } from '@/templates/FeaturesGrid';
 import { Footer } from '@/templates/Footer';
-import { Hero } from '@/templates/Hero';
+import { HowItWorks } from '@/templates/HowItWorks';
 import { Navbar } from '@/templates/Navbar';
 import { Pricing } from '@/templates/Pricing';
-import { Sponsors } from '@/templates/Sponsors';
+import { Testimonials } from '@/templates/Testimonials';
+import { ToolHero } from '@/templates/ToolHero';
+import { TrustStrip } from '@/templates/TrustStrip';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -29,14 +30,39 @@ const IndexPage = async (props: { params: Promise<{ locale: string }> }) => {
 
   return (
     <>
-      <DemoBanner />
       <Navbar />
-      <Hero />
-      <Sponsors />
-      <Features />
+
+      {/* Hero with Tool Preview */}
+      <ToolHero />
+
+      {/* Trust Signals */}
+      <TrustStrip />
+
+      {/* How It Works */}
+      <div id="how-it-works">
+        <HowItWorks />
+      </div>
+
+      {/* Features */}
+      <div id="features" className="bg-violet-50/50">
+        <FeaturesGrid />
+      </div>
+
+      {/* Testimonials */}
+      <Testimonials />
+
+      {/* Pricing */}
       <Pricing />
-      <FAQ />
-      <CTA />
+
+      {/* FAQ */}
+      <div id="faq">
+        <FAQSection />
+      </div>
+
+      {/* Final CTA */}
+      <CTASection />
+
+      {/* Footer */}
       <Footer />
     </>
   );
