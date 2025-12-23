@@ -1,3 +1,16 @@
+# [1.2.0](https://github.com/acambitsis/markm8-v3/compare/v1.1.0...v1.2.0) (2025-12-23)
+
+
+### Bug Fixes
+
+* update next-intl to use requestLocale API (3.22+ compatibility) ([13cd831](https://github.com/acambitsis/markm8-v3/commit/13cd8310e99c7979b4689b568f67e33473a71e46))
+
+
+### Features
+
+* implement full i18n for landing page with ixartz pattern compliance ([f9f5a57](https://github.com/acambitsis/markm8-v3/commit/f9f5a57fecbbfbf1a478af75ec15a74932c6c140))
+* implement MarkM8 design system with Scribbr-inspired landing page ([b3c8b5b](https://github.com/acambitsis/markm8-v3/commit/b3c8b5b84dbb00718110779e47ac040e3eaf96e5)), closes [#1e1b4](https://github.com/acambitsis/markm8-v3/issues/1e1b4) [#7c3](https://github.com/acambitsis/markm8-v3/issues/7c3) [#a78](https://github.com/acambitsis/markm8-v3/issues/a78) [#f5c38](https://github.com/acambitsis/markm8-v3/issues/f5c38)
+
 # [1.1.0](https://github.com/acambitsis/markm8-v3/compare/v1.0.2...v1.1.0) (2025-12-21)
 
 
