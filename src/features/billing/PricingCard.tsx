@@ -18,12 +18,12 @@ export const PricingCard = (props: {
   return (
     <div
       className={cn(
-        'relative rounded-xl border border-border px-6 py-8 text-center',
-        props.popular && 'border-primary ring-2 ring-primary',
+        'relative rounded-2xl border-2 border-border bg-card px-6 py-8 text-center transition-shadow hover:shadow-md',
+        props.popular && 'border-violet-500 shadow-purple',
       )}
     >
       {props.popular && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-violet-500 px-4 py-1 text-xs font-semibold text-white">
           {t('most_popular')}
         </div>
       )}

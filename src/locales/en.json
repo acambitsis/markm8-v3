@@ -1,104 +1,58 @@
 {
   "Index": {
-    "meta_title": "SaaS Template - The perfect SaaS template to build and scale your business with ease.",
-    "meta_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS."
+    "meta_title": "MarkM8 - AI Essay Grading for University Students",
+    "meta_description": "Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $2 per essay."
   },
   "Navbar": {
     "sign_in": "Sign In",
-    "sign_up": "Sign Up",
-    "product": "Product",
-    "docs": "Docs",
-    "blog": "Blog",
-    "community": "Community",
-    "company": "Company"
-  },
-  "Hero": {
-    "follow_twitter": "Follow @Ixartz on Twitter",
-    "title": "The perfect <important>SaaS template</important> to build and scale your business with ease.",
-    "description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "primary_button": "Get Started",
-    "secondary_button": "Star on GitHub"
-  },
-  "Sponsors": {
-    "title": "Sponsored by"
-  },
-  "Features": {
-    "section_subtitle": "Features",
-    "section_title": "Unlock the Full Potential of the SaaS Template",
-    "section_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "feature1_title": "Node.js",
-    "feature2_title": "React",
-    "feature3_title": "Tailwind CSS",
-    "feature4_title": "TypeScript",
-    "feature5_title": "Shadcn UI",
-    "feature6_title": "ESLint",
-    "feature_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS."
+    "sign_up": "Get Started"
   },
   "Pricing": {
-    "section_subtitle": "Features",
-    "section_title": "Unlock the Full Potential of the SaaS Template",
-    "section_description": "A free and open-source landing page template for your SaaS business, built with React, TypeScript, Shadcn UI, and Tailwind CSS.",
-    "button_text": "Get Started"
+    "section_subtitle": "Simple Pricing",
+    "section_title": "Pay Per Essay, Not Per Month",
+    "section_description": "No subscriptions. Buy credits when you need them. One credit = one essay graded.",
+    "button_text": "Buy Credits"
   },
   "PricingPlan": {
     "most_popular": "Most Popular",
-    "price_per_credit": "${price}/credit",
+    "price_per_credit": "${price}/essay",
     "single_package_name": "{credits} Credit",
     "starter_package_name": "{credits} Credits",
     "standard_package_name": "{credits} Credits",
     "bulk_package_name": "{credits} Credits",
     "mega_package_name": "{credits} Credits"
   },
-  "FAQ": {
-    "question": "Lorem ipsum dolor sit amet, consectetur adipiscing elit?",
-    "answer": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam aliquam enim dui, id consequat turpis ullamcorper ac. Mauris id quam dolor. Nullam eu egestas turpis. Proin risus elit, sollicitudin in mi a, accumsan euismod turpis. In euismod mi sed diam tristique hendrerit."
-  },
-  "CTA": {
-    "title": "You are ready?",
-    "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-    "button_text": "Star on GitHub"
-  },
-  "Footer": {
-    "product": "Product",
-    "docs": "Docs",
-    "blog": "Blog",
-    "community": "Community",
-    "company": "Company",
-    "terms_of_service": "Terms Of Service",
-    "privacy_policy": "Privacy Policy",
-    "designed_by": "Designed by <author></author>."
-  },
   "ProtectFallback": {
     "not_enough_permission": "You do not have the permissions to perform this action"
   },
   "SignIn": {
-    "meta_title": "Sign in",
-    "meta_description": "Seamlessly sign in to your account with our user-friendly login process."
+    "meta_title": "Sign In - MarkM8",
+    "meta_description": "Sign in to your MarkM8 account to grade your essays."
   },
   "SignUp": {
-    "meta_title": "Sign up",
-    "meta_description": "Effortlessly create an account through our intuitive sign-up process."
+    "meta_title": "Sign Up - MarkM8",
+    "meta_description": "Create your MarkM8 account and get 1 free credit to grade your first essay."
   },
   "DashboardLayout": {
-    "home": "Home",
+    "home": "Dashboard",
     "profile": "Profile",
-    "submit": "Submit",
+    "submit": "Grade Essay",
     "history": "History",
     "todos": "Todos",
     "members": "Members",
-    "billing": "Billing",
+    "billing": "Buy Credits",
     "settings": "Settings"
   },
   "Submit": {
-    "meta_title": "Submit Essay",
+    "meta_title": "Grade Essay - MarkM8",
     "meta_description": "Submit your essay for AI-powered grading and feedback"
   },
   "Grades": {
-    "meta_title": "Grade Results",
+    "meta_title": "Grade Results - MarkM8",
     "meta_description": "View your essay grading results and feedback"
   },
   "History": {
-    "meta_title": "Essay History",
+    "meta_title": "Essay History - MarkM8",
     "meta_description": "View all your past essay submissions and grades"
   },
   "Onboarding": {
@@ -106,44 +60,44 @@
     "meta_description": "Set up your preferences to get started"
   },
   "Dashboard": {
-    "meta_title": "SaaS Template Dashboard",
-    "meta_description": "A free and open-source landing page template for your SaaS business, built with Next.js, TypeScript, Shadcn UI, and Tailwind CSS."
+    "meta_title": "Dashboard - MarkM8",
+    "meta_description": "Manage your essays and view your grading history"
   },
   "DashboardIndex": {
     "title_bar": "Dashboard",
-    "title_bar_description": "Welcome to your dashboard",
-    "message_state_title": "Let's get started",
-    "message_state_description": "You can customize this page by editing the file at <code>dashboard/page.tsx</code>",
-    "message_state_button": "Star on GitHub",
-    "message_state_alternative": "Want more features and the latest updates from Next.js 16? Try <url></url>."
+    "title_bar_description": "Welcome to MarkM8",
+    "message_state_title": "Ready to grade your essay?",
+    "message_state_description": "Submit your essay, assignment brief, and rubric to get instant AI feedback.",
+    "message_state_button": "Grade an Essay",
+    "message_state_alternative": "You have <credits></credits> credits remaining."
   },
   "UserProfile": {
-    "title_bar": "User Profile",
-    "title_bar_description": "View and manage your user profile"
+    "title_bar": "Profile",
+    "title_bar_description": "Manage your account settings"
   },
   "OrganizationProfile": {
     "title_bar": "Organization Management",
     "title_bar_description": "Manage your organization"
   },
   "Billing": {
-    "title_bar": "Billing",
-    "title_bar_description": "Manage your billing and subscription",
-    "current_section_title": "Current Plan",
-    "current_section_description": "Adjust your payment plan to best suit your requirements",
-    "manage_subscription_button": "Manage Subscription"
+    "title_bar": "Buy Credits",
+    "title_bar_description": "Purchase credits to grade more essays",
+    "current_section_title": "Your Credits",
+    "current_section_description": "Buy more credits to continue grading essays",
+    "manage_subscription_button": "View Purchase History"
   },
   "BillingOptions": {
-    "current_plan": "Current Plan",
-    "upgrade_plan": "Get Started"
+    "current_plan": "Current Balance",
+    "upgrade_plan": "Buy Credits"
   },
   "CheckoutConfirmation": {
-    "title_bar": "Payment Confirmation",
-    "message_state_title": "Payment successful",
-    "message_state_description": "Your payment has been successfully processed. Thank you for your purchase!",
-    "message_state_button": "Go back to Billing"
+    "title_bar": "Payment Confirmed",
+    "message_state_title": "Credits Added!",
+    "message_state_description": "Your credits have been added to your account. You're ready to grade more essays!",
+    "message_state_button": "Grade an Essay"
   },
   "DataTable": {
-    "no_results": "No results."
+    "no_results": "No essays found."
   },
   "Todos": {
     "title_bar": "Todo List",
@@ -174,5 +128,46 @@
     "message_title": "Message",
     "message_description": "Enter a detailed message for your todo.",
     "submit_button": "Submit"
+  },
+  "Footer": {
+    "product": "Product",
+    "docs": "Docs",
+    "blog": "Blog",
+    "community": "Community",
+    "company": "Company",
+    "terms_of_service": "Terms of Service",
+    "privacy_policy": "Privacy Policy",
+    "designed_by": "Built with AI"
+  },
+  "Hero": {
+    "follow_twitter": "AI-Powered Grading",
+    "title": "Get Your Essay <important>Graded by AI</important> in Under 5 Minutes",
+    "description": "Instant feedback aligned with university grading standards. Three AI models, one comprehensive grade.",
+    "primary_button": "Get Started",
+    "secondary_button": "Sign In"
+  },
+  "Sponsors": {
+    "title": "Trusted by students at"
+  },
+  "Features": {
+    "section_subtitle": "Why MarkM8",
+    "section_title": "Everything You Need for Better Grades",
+    "section_description": "Instant, accurate feedback that helps you improve before you submit",
+    "feature1_title": "Triple AI Consensus",
+    "feature2_title": "Detailed Feedback",
+    "feature3_title": "Rubric-Aligned",
+    "feature4_title": "Fast Results",
+    "feature5_title": "Pay Per Essay",
+    "feature6_title": "Private & Secure",
+    "feature_description": "Our AI ensures accurate, reliable grading every time."
+  },
+  "FAQ": {
+    "question": "How does the AI grading work?",
+    "answer": "MarkM8 uses three independent AI models to grade your essay in parallel for accurate, reliable feedback."
+  },
+  "CTA": {
+    "title": "Ready to Improve Your Essays?",
+    "description": "Join thousands of students getting better grades with instant AI feedback.",
+    "button_text": "Get Started Free"
   }
 }
