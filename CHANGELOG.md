@@ -1,3 +1,10 @@
+## [1.2.3](https://github.com/acambitsis/markm8-v3/compare/v1.2.2...v1.2.3) (2025-12-23)
+
+
+### Bug Fixes
+
+* use specific heading selectors in E2E tests ([9c35388](https://github.com/acambitsis/markm8-v3/commit/9c35388ddda6c62b6ff2524795838549021418db))
+
 ## [1.2.2](https://github.com/acambitsis/markm8-v3/compare/v1.2.1...v1.2.2) (2025-12-23)
 
 
