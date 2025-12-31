@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable react/no-array-index-key */
 import { ArrowRight, Lock, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
@@ -18,7 +19,7 @@ export const ToolHero = () => {
           <div className="flex" role="img" aria-label="5 out of 5 stars">
             {[...Array(5)].map((_, i) => (
               <Star
-                key={i}
+                key={`hero-star-${i}`}
                 className="size-4 fill-amber-400 text-amber-400"
                 aria-hidden="true"
               />

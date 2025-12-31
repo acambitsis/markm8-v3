@@ -1,28 +1,20 @@
-import useSWR from 'swr';
+'use client';
 
-type CreditsData = {
-  balance: string;
-  reserved: string;
-  available: string;
-};
+import { useQuery } from 'convex/react';
 
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { api } from '../../convex/_generated/api';
 
+/**
+ * Hook to get the current user's credit balance
+ * Uses Convex real-time subscription - no polling needed!
+ */
 export function useCredits() {
-  const { data, error, isLoading, mutate } = useSWR<CreditsData>(
-    '/api/user/credits',
-    fetcher,
-    {
-      refreshInterval: 0, // Don't auto-refresh
-      revalidateOnFocus: true, // Refresh when tab becomes active
-    },
-  );
+  const credits = useQuery(api.credits.getBalance);
 
   return {
-    credits: data,
-    isLoading,
-    isError: !!error,
-    error,
-    refresh: mutate, // Call this after purchases or submissions
+    credits,
+    isLoading: credits === undefined,
+    isError: credits === null,
+    // No refresh needed - Convex subscriptions auto-update
   };
 }

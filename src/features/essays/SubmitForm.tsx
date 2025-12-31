@@ -1,5 +1,6 @@
 'use client';
 
+import { useMutation, useQuery } from 'convex/react';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -12,7 +13,9 @@ import { EssayContentTab } from '@/features/essays/EssayContentTab';
 import { FocusAreasTab } from '@/features/essays/FocusAreasTab';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useCredits } from '@/hooks/useCredits';
-import type { AssignmentBrief, Rubric } from '@/models/Schema';
+
+import { api } from '../../../convex/_generated/api';
+import type { AcademicLevel, AssignmentBrief, Rubric } from '../../../convex/schema';
 
 export type DraftData = {
   assignmentBrief: Partial<AssignmentBrief> | null;
@@ -23,11 +26,18 @@ export type DraftData = {
 
 export function SubmitForm() {
   const router = useRouter();
-  const { credits, refresh: refreshCredits } = useCredits();
+  const { credits } = useCredits();
 
   const [activeTab, setActiveTab] = useState('brief');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Convex mutations
+  const saveDraft = useMutation(api.essays.saveDraft);
+  const submitEssay = useMutation(api.essays.submit);
+
+  // Load existing draft from Convex
+  const existingDraft = useQuery(api.essays.getDraft);
 
   // Form state
   const [draft, setDraft] = useState<DraftData>({
@@ -37,46 +47,53 @@ export function SubmitForm() {
     focusAreas: null,
   });
 
-  // Load existing draft on mount
+  // Sync draft from Convex when it loads
   useEffect(() => {
-    async function loadDraft() {
-      try {
-        const res = await fetch('/api/essays/draft');
-        const data = await res.json();
-        if (data) {
-          setDraft({
-            assignmentBrief: data.assignmentBrief,
-            rubric: data.rubric,
-            content: data.content,
-            focusAreas: data.focusAreas,
-          });
-        }
-      } catch {
-        // Ignore errors loading draft
-      }
+    if (existingDraft) {
+      setDraft({
+        assignmentBrief: existingDraft.assignmentBrief ?? null,
+        rubric: existingDraft.rubric ?? null,
+        content: existingDraft.content ?? null,
+        focusAreas: existingDraft.focusAreas ?? null,
+      });
     }
-    loadDraft();
-  }, []);
+  }, [existingDraft]);
 
-  // Autosave hook
+  // Autosave hook - now uses Convex mutation
   const { status: saveStatus } = useAutosave({
     data: draft,
     onSave: async (data) => {
-      await fetch('/api/essays/draft', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+      await saveDraft({
+        assignmentBrief: data.assignmentBrief
+          ? {
+              title: data.assignmentBrief.title,
+              instructions: data.assignmentBrief.instructions,
+              subject: data.assignmentBrief.subject,
+              academicLevel: data.assignmentBrief.academicLevel as AcademicLevel,
+            }
+          : undefined,
+        rubric: data.rubric
+          ? {
+              customCriteria: data.rubric.customCriteria,
+              focusAreas: data.rubric.focusAreas,
+            }
+          : undefined,
+        content: data.content ?? undefined,
+        focusAreas: data.focusAreas ?? undefined,
       });
     },
   });
 
   // Update handlers
-  const updateAssignmentBrief = useCallback((updates: Partial<AssignmentBrief>) => {
-    setDraft(prev => ({
-      ...prev,
-      assignmentBrief: { ...prev.assignmentBrief, ...updates },
-    }));
-  }, []);
+  const updateAssignmentBrief = useCallback(
+    (updates: Partial<AssignmentBrief>) => {
+      setDraft(prev => ({
+        ...prev,
+        assignmentBrief: { ...prev.assignmentBrief, ...updates },
+      }));
+    },
+    [],
+  );
 
   const updateRubric = useCallback((updates: Partial<Rubric>) => {
     setDraft(prev => ({
@@ -94,7 +111,8 @@ export function SubmitForm() {
   }, []);
 
   // Word count calculation
-  const wordCount = draft.content?.trim().split(/\s+/).filter(Boolean).length ?? 0;
+  const wordCount
+    = draft.content?.trim().split(/\s+/).filter(Boolean).length ?? 0;
 
   // Validation
   const isValid = Boolean(
@@ -109,7 +127,7 @@ export function SubmitForm() {
   const availableCredits = Number.parseFloat(credits?.available ?? '0');
   const hasEnoughCredits = availableCredits >= 1.0;
 
-  // Submit handler
+  // Submit handler - now uses Convex mutation
   const handleSubmit = async () => {
     if (!isValid || !hasEnoughCredits) {
       return;
@@ -119,21 +137,15 @@ export function SubmitForm() {
     setSubmitError(null);
 
     try {
-      const res = await fetch('/api/essays/submit', {
-        method: 'POST',
-      });
+      const result = await submitEssay({});
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to submit essay');
-      }
-
-      // Refresh credits and redirect to grade page
-      await refreshCredits();
-      router.push(`/grades/${data.gradeId}`);
+      // No need to refresh credits - Convex subscription auto-updates!
+      // Redirect to grade page
+      router.push(`/grades/${result.gradeId}`);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Failed to submit essay');
+      setSubmitError(
+        err instanceof Error ? err.message : 'Failed to submit essay',
+      );
       setIsSubmitting(false);
     }
   };

@@ -100,54 +100,82 @@ A component/hook/utility is "feature-specific" if:
 
 ## Principle 3: Third-Party Integration Location
 
-**Core Principle:** Third-party service integrations belong in `src/libs/` with consistent structure.
+**Core Principle:** Third-party service integrations in Next.js belong in `src/libs/`. Convex has its own patterns.
 
-### Detection Pattern
+### Detection Pattern (Next.js Client-Side)
 
 ```typescript
-// DEFINITE VIOLATION — Service client created in feature/route
-// File: src/app/api/payments/route.ts
+// DEFINITE VIOLATION — Service client created in component
+// File: src/features/payments/components/CheckoutButton.tsx
 import Stripe from 'stripe';
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);  // Wrong!
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);  // Wrong! Client-side exposure!
 
-// CORRECT — Client in libs, imported where needed
+// CORRECT — Client in libs for Next.js code
 // File: src/libs/Stripe.ts
 import Stripe from 'stripe';
 import { Env } from './Env';
 export const stripe = new Stripe(Env.STRIPE_SECRET_KEY, { ... });
+```
 
-// File: src/app/api/payments/route.ts
-import { stripe } from '@/libs/Stripe';  // Correct!
+### Detection Pattern (Convex Functions)
+
+```typescript
+// CORRECT — External services in Convex actions
+// File: convex/grading.ts
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    // OK: External API call in action
+    const response = await fetch('https://api.openrouter.ai/...', {
+      headers: { 'Authorization': `Bearer ${process.env.OPENROUTER_API_KEY}` },
+    });
+  },
+});
+
+// LIKELY VIOLATION — External API in query/mutation
+// File: convex/essays.ts
+export const submit = mutation({
+  handler: async (ctx, args) => {
+    await fetch('https://external-api.com/...');  // Should be in action!
+  },
+});
 ```
 
 ### Detection Heuristic
 
-1. Find `new ServiceClient()` patterns outside `src/libs/`
-2. Common patterns: `new Stripe()`, `new OpenAI()`, `createClient()` for external services
-3. Each external service should have ONE client instance in libs
+1. In `src/` files: Find `new ServiceClient()` outside `src/libs/` → DEFINITE violation
+2. In `convex/` files: External API calls should be in `action`/`internalAction`, not queries/mutations
+3. Each external service in Next.js should have ONE client instance in libs
 
 ---
 
-## Principle 4: Schema Centralization
+## Principle 4: Convex Schema Centralization
 
-**Core Principle:** Database schema lives in a single source of truth.
+**Core Principle:** All Convex schema definitions must be in `convex/schema.ts`.
 
 ### Detection Pattern
 
 ```typescript
 // DEFINITE VIOLATION — Schema outside designated file
-// File: src/features/essays/schema.ts
-export const essays = pgTable('essays', { ... });
+// File: convex/essays.ts
+import { defineTable } from 'convex/server';
+const essays = defineTable({ ... });  // Wrong location!
 
 // CORRECT — All schema in one file
-// File: src/models/Schema.ts (as defined in CLAUDE.md)
+// File: convex/schema.ts
+import { defineSchema, defineTable } from 'convex/server';
+
+export default defineSchema({
+  users: defineTable({ ... }),
+  essays: defineTable({ ... }),
+  grades: defineTable({ ... }),
+});
 ```
 
 ### Detection Heuristic
 
-Search for `pgTable(`, `pgEnum(` patterns:
-- If found outside the designated schema file → DEFINITE violation
-- Check CLAUDE.md for the canonical schema location
+Search for `defineTable(`, `defineSchema(` patterns:
+- If `defineTable(` found outside `convex/schema.ts` → DEFINITE violation
+- `defineSchema(` should only exist in `convex/schema.ts`
 
 ---
 
@@ -171,65 +199,107 @@ import { LocalComponent } from './LocalComponent';
 import { FeatureUtil } from '../utils/FeatureUtil';
 ```
 
+### Convex Import Patterns
+
+```typescript
+// CORRECT — Convex generated imports
+import { api, internal } from './_generated/api';
+import { query, mutation, internalAction } from './_generated/server';
+import type { Doc, Id } from './_generated/dataModel';
+
+// CORRECT — Convex lib imports (within convex/)
+import { requireAuth } from './lib/auth';
+import { subtractDecimal } from './lib/decimal';
+
+// DEFINITE VIOLATION — Importing from src/ in Convex
+// File: convex/essays.ts
+import { formatDate } from '@/utils/formatDate';  // Can't import from Next.js!
+```
+
 ### Detection Heuristic
 
-1. Find imports with 3+ levels of `../`
-2. Any match is a DEFINITE violation — should use `@/` alias
-3. Relative imports within same feature (1-2 levels) are acceptable
+1. In `src/` files: Find imports with 3+ levels of `../` → DEFINITE violation
+2. In `convex/` files: Find imports from `@/` or `src/` → DEFINITE violation (Convex is isolated)
+3. Relative imports within same directory tree (1-2 levels) are acceptable
 
 ---
 
 ## Principle 6: Environment Variable Access
 
-**Core Principle:** Environment variables must be accessed through the validated Env wrapper.
+**Core Principle:** Environment variables have different access patterns for Next.js vs Convex.
 
-### Detection Pattern
+### Next.js Pattern
 
 ```typescript
-// DEFINITE VIOLATION — Direct process.env access
-const dbUrl = process.env.DATABASE_URL;
-const apiKey = process.env.STRIPE_SECRET_KEY;
+// DEFINITE VIOLATION — Direct process.env in Next.js source
+// File: src/features/payments/CheckoutButton.tsx
+const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;  // Wrong!
 
 // CORRECT — Through Env wrapper (provides validation + typing)
 import { Env } from '@/libs/Env';
-const dbUrl = Env.DATABASE_URL;
-const apiKey = Env.STRIPE_SECRET_KEY;
+const publishableKey = Env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
+```
+
+### Convex Pattern
+
+```typescript
+// CORRECT — Direct process.env in Convex functions
+// File: convex/grading.ts
+export const processGrade = internalAction({
+  handler: async (ctx) => {
+    const apiKey = process.env.OPENROUTER_API_KEY;  // OK in Convex!
+    // ...
+  },
+});
 ```
 
 ### Detection Heuristic
 
-1. Search for `process.env.` in source files
-2. Exceptions:
+1. In `src/` files: Search for `process.env.` → DEFINITE violation (except in allowed files)
+2. In `convex/` files: `process.env.` is allowed (server-side only)
+3. Exceptions for Next.js:
    - `src/libs/Env.ts` itself (defines the wrapper)
-   - Config files at project root
-   - `next.config.ts` / `next.config.js`
+   - Config files at project root (`next.config.ts`, etc.)
 
 ---
 
-## Principle 7: Logging Consistency
+## Principle 7: Logging Patterns
 
-**Core Principle:** Use the project's logger, not console methods in production code.
+**Core Principle:** Use appropriate logging for each context.
 
-### Detection Pattern
+### Next.js Pattern
 
 ```typescript
-// LIKELY VIOLATION — Console in production code
-console.log('Processing essay', essayId);
-console.error('Failed to process', error);
+// LIKELY VIOLATION — Console in Next.js production code
+// File: src/features/essays/SubmitForm.tsx
+console.log('Submitting essay', essayId);
 
-// CORRECT — Structured logger
+// CORRECT — Structured logger in Next.js
 import { logger } from '@/libs/Logger';
-logger.info('Processing essay', { essayId });
-logger.error('Failed to process', { error });
+logger.info('Submitting essay', { essayId });
+```
+
+### Convex Pattern
+
+```typescript
+// CORRECT — Console is standard in Convex (logs to dashboard)
+// File: convex/grading.ts
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    console.log('Processing grade:', gradeId);  // OK! Goes to Convex logs
+    // ...
+    console.error('Grade processing failed:', error);  // OK!
+  },
+});
 ```
 
 ### Detection Heuristic
 
-1. Find `console.log`, `console.error`, `console.warn` in `src/` files
-2. Exceptions (flag as POSSIBLE, not LIKELY):
+1. In `src/` files: `console.log`, `console.error` → LIKELY violation
+2. In `convex/` files: `console.*` is acceptable (Convex logging convention)
+3. Exceptions for Next.js:
    - Test files (`*.test.ts`, `*.spec.ts`)
    - Development-only code (wrapped in `if (process.env.NODE_ENV === 'development')`)
-   - CLI scripts in `scripts/` directory
 
 ---
 
@@ -245,7 +315,8 @@ logger.error('Failed to process', { error });
 | Hooks | camelCase with `use` prefix | `useGradeStatus.ts` |
 | Utilities | camelCase | `formatDate.ts` |
 | Libs (service wrappers) | PascalCase | `Stripe.ts`, `Logger.ts` |
-| API routes | `route.ts` in path | `src/app/api/essays/route.ts` |
+| Convex functions | camelCase | `convex/essays.ts`, `convex/grades.ts` |
+| Convex lib helpers | camelCase | `convex/lib/auth.ts`, `convex/lib/decimal.ts` |
 | Constants | SCREAMING_SNAKE or PascalCase | `MAX_RETRIES` or `DefaultConfig` |
 
 ### Detection Pattern
@@ -259,6 +330,9 @@ logger.error('Failed to process', { error });
 
 // LIKELY VIOLATION — Hook without 'use' prefix
 // File: src/hooks/gradeStatus.ts  // Should be useGradeStatus.ts
+
+// LIKELY VIOLATION — PascalCase for Convex function file
+// File: convex/Essays.ts  // Should be essays.ts
 ```
 
 ### Detection Heuristic
@@ -266,6 +340,7 @@ logger.error('Failed to process', { error });
 1. For files in `src/components/`, `src/features/**/components/` → expect PascalCase
 2. For files in `src/hooks/`, `src/features/**/hooks/` → expect `use` prefix
 3. For files in `src/libs/` → expect PascalCase
+4. For files in `convex/` (except `_generated/`) → expect camelCase
 
 ---
 
@@ -276,7 +351,7 @@ logger.error('Failed to process', { error });
 ### Detection Pattern
 
 ```typescript
-// LIKELY VIOLATION — Default export for non-page
+// LIKELY VIOLATION — Default export for non-page utility
 // File: src/utils/formatDate.ts
 export default function formatDate() { ... }
 
@@ -286,14 +361,16 @@ export function formatDate() { ... }
 // EXCEPTION — Default export required
 // Page components: src/app/**/page.tsx (Next.js requirement)
 // Layout components: src/app/**/layout.tsx (Next.js requirement)
+// Convex schema: convex/schema.ts (Convex requirement)
+// Convex http: convex/http.ts (Convex requirement)
 export default function Page() { ... }
 ```
 
 ### Detection Heuristic
 
-1. Find `export default` in non-page/layout files
-2. Flag as LIKELY — some libraries require default exports
-3. Pages, layouts, and loading states are exempt (Next.js convention)
+1. Find `export default` in non-page/layout/config files
+2. Flag as LIKELY — some patterns require default exports
+3. Exempt files: pages, layouts, `convex/schema.ts`, `convex/http.ts`, `convex/auth.config.ts`
 
 ---
 
@@ -320,9 +397,75 @@ export default function Page() { ... }
 ### Detection Heuristic
 
 This requires understanding page intent:
-1. Pages that fetch user-specific data → should be in `(auth)`
+1. Pages using `useQuery(api.*)` for user data → should be in `(auth)`
 2. Pages that are marketing/public → should be in `(unauth)`
 3. Flag mismatches as LIKELY — may be intentional hybrid
+
+---
+
+## Principle 11: Convex Function Organization
+
+**Core Principle:** Convex functions follow consistent organization patterns.
+
+### File Structure
+
+```
+convex/
+├── _generated/          # Auto-generated (never edit)
+├── lib/                 # Shared helpers
+│   ├── auth.ts         # requireAuth() helper
+│   └── decimal.ts      # Credit arithmetic
+├── schema.ts           # Schema definition (single file)
+├── auth.config.ts      # Clerk integration config
+├── http.ts             # HTTP endpoints (webhooks)
+├── users.ts            # User queries/mutations
+├── credits.ts          # Credit queries/mutations
+├── essays.ts           # Essay queries/mutations
+├── grades.ts           # Grade queries/mutations
+└── grading.ts          # AI grading action
+```
+
+### Detection Pattern
+
+```typescript
+// LIKELY VIOLATION — Mixed concerns in single file
+// File: convex/essays.ts
+export const processGrade = internalAction({ ... });  // Should be in grading.ts
+export const addCredits = mutation({ ... });  // Should be in credits.ts
+
+// CORRECT — Domain-organized functions
+// File: convex/essays.ts — Only essay-related functions
+// File: convex/grades.ts — Only grade-related functions
+// File: convex/grading.ts — AI processing action
+```
+
+### Internal vs Public Functions
+
+```typescript
+// CORRECT — Public function (called from client)
+export const getDraft = query({
+  args: { ... },
+  handler: async (ctx, args) => { ... },
+});
+
+// CORRECT — Internal function (called only by other Convex functions)
+export const createFromClerk = internalMutation({
+  args: { ... },
+  handler: async (ctx, args) => { ... },
+});
+
+// LIKELY VIOLATION — Internal function without internal prefix
+// If only called by actions/webhooks, should be internalMutation/internalQuery
+export const processGradeResult = mutation({  // Should be internalMutation
+  handler: async (ctx, args) => { ... },
+});
+```
+
+### Detection Heuristic
+
+1. Check if Convex files contain functions from multiple domains
+2. Check if functions called only by other Convex functions use `internal*` variants
+3. Verify `convex/lib/` contains only helper functions, not queries/mutations
 
 ---
 
@@ -332,12 +475,14 @@ This requires understanding page intent:
 ## Structure Validation Results
 
 ### DEFINITE Violations
-- `src/app/api/payments/route.ts` — [PRINCIPLE 3] Stripe client instantiated in route, should use @/libs/Stripe
-- `src/features/essays/utils.ts` — [PRINCIPLE 5] Import uses '../../../libs/DB', should use '@/libs/DB'
+- `convex/essays.ts:15` — [PRINCIPLE 4] defineTable() outside schema.ts
+- `src/features/essays/utils.ts:3` — [PRINCIPLE 5] Import uses '../../../libs/Logger', should use '@/libs/Logger'
+- `convex/grades.ts:42` — [PRINCIPLE 5] Importing from '@/utils/helpers' - Convex cannot import from src/
 
 ### LIKELY Violations
 - `src/components/EssayCard.tsx` — [PRINCIPLE 1] Only imported by essays feature, consider moving to src/features/essays/components/
-- `src/libs/stripe.ts` — [PRINCIPLE 8] Filename should be PascalCase: Stripe.ts
+- `convex/Essays.ts` — [PRINCIPLE 8] Filename should be camelCase: essays.ts
+- `convex/essays.ts:67` — [PRINCIPLE 11] processGrade action should be in grading.ts
 
 ### POSSIBLE Violations
 - `src/features/grading/utils/formatDate.ts` — [PRINCIPLE 2] Imported by 2 features, may belong in src/utils/
@@ -360,6 +505,7 @@ X files checked
 - File structure reorganized → Update principle examples to match
 - New route groups added → Update Principle 10
 - New naming conventions adopted → Update Principle 8
+- New Convex patterns → Update Principle 11
 
 **This agent should NOT contain:**
 - Hardcoded file paths (reference CLAUDE.md for current structure)

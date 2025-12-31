@@ -10,7 +10,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import type { AssignmentBrief, Rubric } from '@/models/Schema';
+
+import type { AssignmentBrief, Rubric } from '../../../convex/schema';
 
 type Props = {
   assignmentBrief: Partial<AssignmentBrief> | null;

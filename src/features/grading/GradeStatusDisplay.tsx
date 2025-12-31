@@ -9,7 +9,8 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { GradeResults } from '@/features/grading/GradeResults';
 import { useGradeStatus } from '@/hooks/useGradeStatus';
-import type { AssignmentBrief, GradeFeedback, ModelResult, PercentageRange } from '@/models/Schema';
+
+import type { AssignmentBrief, GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
 
 type Props = {
   gradeId: string;

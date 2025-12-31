@@ -222,3 +222,4 @@ Quick customization by searching for `FIXME:` in the codebase. Key files:
 The ixartz SaaS Boilerplate is licensed under the MIT License.
 
 Made with ♥ by [CreativeDesignsGuru](https://creativedesignsguru.com)
+

@@ -1,5 +1,6 @@
 'use client';
 
+/* eslint-disable react/no-array-index-key */
 import { Star } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 
@@ -45,7 +46,7 @@ export const Testimonials = () => {
             <div className="flex gap-0.5" role="img" aria-label={`${testimonial.rating} out of 5 stars`}>
               {[...Array(testimonial.rating)].map((_, i) => (
                 <Star
-                  key={i}
+                  key={`star-${testimonial.authorKey}-${i}`}
                   className="size-4 fill-amber-400 text-amber-400"
                   aria-hidden="true"
                 />

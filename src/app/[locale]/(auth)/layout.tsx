@@ -1,6 +1,6 @@
 import { enUS, frFR } from '@clerk/localizations';
-import { ClerkProvider } from '@clerk/nextjs';
 
+import { ConvexClientProvider } from '@/components/ConvexClientProvider';
 import { AppConfig } from '@/utils/AppConfig';
 
 export default async function AuthLayout(props: {
@@ -28,20 +28,18 @@ export default async function AuthLayout(props: {
     afterSignOutUrl = `/${locale}${afterSignOutUrl}`;
   }
 
-  // ClerkProvider can be used in Server Components - it creates a client boundary automatically
-  // Server Component children passed as props are properly handled by Next.js
+  // ConvexClientProvider wraps ClerkProvider and ConvexProviderWithClerk
+  // This provides both authentication and real-time database access
   return (
-    <ClerkProvider
-      // PRO: Dark mode support for Clerk
-      localization={clerkLocale}
+    <ConvexClientProvider
+      clerkLocale={clerkLocale}
       signInUrl={signInUrl}
       signUpUrl={signUpUrl}
-      signInFallbackRedirectUrl={dashboardUrl}
-      signUpFallbackRedirectUrl={dashboardUrl}
+      dashboardUrl={dashboardUrl}
       afterSignOutUrl={afterSignOutUrl}
     >
       {props.children}
-    </ClerkProvider>
+    </ConvexClientProvider>
   );
 }
 

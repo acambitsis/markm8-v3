@@ -24,7 +24,7 @@ Code can be annotated to suppress specific checks with justification:
 
 ```typescript
 // @pr-check-ignore: no-userid-filter — Admin endpoint, requires admin role check instead
-const allUsers = await db.query.users.findMany();
+const allUsers = await ctx.db.query('users').collect();
 ```
 
 Validators should verify the justification is legitimate.
@@ -41,222 +41,301 @@ Validators should verify the justification is legitimate.
 
 ---
 
-## Principle 1: User-Scoped Data Access
+## Principle 1: User-Scoped Data Access (Convex)
 
-**Core Principle:** Queries returning user-owned data must filter by the authenticated user's ID.
+**Core Principle:** Queries returning user-owned data must filter by the authenticated user's ID using `requireAuth()`.
 
 ### Detection Pattern
 
 ```typescript
 // DEFINITE VIOLATION — Query on user-owned table without userId filter
-// How to detect: Table has userId column (check Schema.ts) but query has no eq(table.userId, userId)
-await db.query.essays.findMany({
-  where: eq(essays.status, 'submitted'),  // Missing userId filter!
+// How to detect: Document has userId field (check schema.ts) but query has no userId in index/filter
+export const listEssays = query({
+  handler: async (ctx) => {
+    return await ctx.db.query('essays')
+      .filter(q => q.eq(q.field('status'), 'submitted'))  // Missing userId!
+      .collect();
+  },
 });
 
-// DEFINITE VIOLATION — userId from untrusted source
-// How to detect: userId value comes from request body/params, not auth()
-await db.query.essays.findMany({
-  where: eq(essays.userId, body.userId),  // Spoofable!
+// DEFINITE VIOLATION — Using ctx.auth directly without proper validation
+// How to detect: identity.subject used without user lookup or validation
+export const getEssays = query({
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    // Using identity.subject directly is risky — user may not exist in DB yet
+    return await ctx.db.query('essays')
+      .filter(q => q.eq(q.field('userId'), identity?.subject))
+      .collect();
+  },
 });
 
-// CORRECT — userId from authenticated session
-const { userId } = await auth();
-await db.query.essays.findMany({
-  where: eq(essays.userId, userId),
+// CORRECT — Using requireAuth() helper (validates user exists)
+import { requireAuth } from './lib/auth';
+
+export const listEssays = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);  // Throws if not authenticated or user not found
+    return await ctx.db.query('essays')
+      .withIndex('by_user_status', q => q.eq('userId', userId).eq('status', 'submitted'))
+      .collect();
+  },
 });
 ```
 
-### How to Identify User-Owned Tables
+### How to Identify User-Owned Documents
 
 Rather than maintaining a hardcoded list, detect from schema:
 
 ```typescript
-// In Schema.ts, user-owned tables have:
-userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull()
+// In convex/schema.ts, user-owned documents have:
+userId: v.id('users'),  // Reference to users table
 
-// Tables WITHOUT userId column are lookup/config tables — exempt from this rule
+// Documents WITHOUT userId field are lookup/config documents — exempt from this rule
 ```
 
 ### Valid Exceptions (require annotation)
 
 - Admin endpoints with explicit role verification
+- Internal queries (`internalQuery`) called only by other Convex functions
 - Webhook handlers processing external events (use signature verification instead)
-- Public read-only endpoints (must be explicitly documented)
 
 ---
 
-## Principle 2: Authentication Before Data Access
+## Principle 2: Authentication Before Data Access (Convex)
 
-**Core Principle:** Protected endpoints must verify authentication before any data access or mutation.
+**Core Principle:** Public queries and mutations must verify authentication before any data access.
 
 ### Detection Pattern
 
 ```typescript
 // DEFINITE VIOLATION — Data access before auth check
-export async function POST(request: Request) {
-  const data = await db.query.essays.findMany();  // Too late!
-  const { userId } = await auth();  // Auth check after data access
-}
+export const getDraft = query({
+  handler: async (ctx) => {
+    const draft = await ctx.db.query('essays').first();  // Too late!
+    const identity = await ctx.auth.getUserIdentity();  // Auth check after data access
+    // ...
+  },
+});
 
-// DEFINITE VIOLATION — No auth check at all
-export async function POST(request: Request) {
-  const body = await request.json();
-  await db.insert(essays).values(body);  // No auth!
-}
+// DEFINITE VIOLATION — No auth check at all in public query
+export const getUserCredits = query({
+  handler: async (ctx) => {
+    // No authentication!
+    return await ctx.db.query('credits').first();
+  },
+});
 
-// CORRECT — Auth check first
-export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-  // ... rest of handler
-}
+// CORRECT — Auth check first using requireAuth()
+export const getDraft = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);  // Throws if not authenticated
+    return await ctx.db.query('essays')
+      .withIndex('by_user_status', q => q.eq('userId', userId).eq('status', 'draft'))
+      .first();
+  },
+});
 ```
 
 ### Detection Heuristic
 
-In API route files (`src/app/api/**/route.ts`):
-1. Find the first `await auth()` call
-2. Check if any `db.` calls occur before it
-3. If auth() is missing entirely, DEFINITE violation
+In Convex function files (`convex/*.ts`):
+1. Find `query()` and `mutation()` exports (public functions)
+2. Check if `requireAuth(ctx)` or `ctx.auth.getUserIdentity()` is called first
+3. If any `ctx.db` call occurs before auth → DEFINITE violation
+4. If auth check is missing entirely → DEFINITE violation
 
 ### Valid Exceptions (require annotation)
 
-- Webhook routes (`/api/webhooks/*`) — use signature verification instead
-- Explicitly public endpoints — must be documented in route file
+- `internalQuery` / `internalMutation` — Only called by other Convex functions
+- Explicitly public data (e.g., platform settings) — must be annotated
 
 ---
 
-## Principle 3: Webhook Signature Verification
+## Principle 3: Webhook Signature Verification (HTTP Actions)
 
-**Core Principle:** Webhook endpoints must cryptographically verify the request origin before processing.
+**Core Principle:** HTTP webhook endpoints must cryptographically verify the request origin before processing.
 
 ### Detection Pattern
 
 ```typescript
 // DEFINITE VIOLATION — Processing webhook without signature check
-export async function POST(request: Request) {
-  const body = await request.json();
-  await processWebhookEvent(body);  // Trusting unverified payload!
-}
+// In convex/http.ts
+http.route({
+  path: '/clerk-webhook',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const body = await request.json();
+    await ctx.runMutation(internal.users.createFromClerk, body);  // Trusting unverified!
+  }),
+});
 
-// CORRECT — Verify before processing
-export async function POST(request: Request) {
-  const body = await request.text();
-  const signature = request.headers.get('stripe-signature');
+// CORRECT — Verify Svix signature before processing
+http.route({
+  path: '/clerk-webhook',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
+    const svixId = request.headers.get('svix-id');
+    const svixTimestamp = request.headers.get('svix-timestamp');
+    const svixSignature = request.headers.get('svix-signature');
 
-  let event;
-  try {
-    event = stripe.webhooks.constructEvent(body, signature, Env.STRIPE_WEBHOOK_SECRET);
-  } catch (err) {
-    return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
-  }
-  // Now safe to process
-}
+    if (!svixId || !svixTimestamp || !svixSignature) {
+      return new Response('Missing headers', { status: 400 });
+    }
+
+    const body = await request.text();
+    const wh = new Webhook(webhookSecret);
+
+    let evt;
+    try {
+      evt = wh.verify(body, {
+        'svix-id': svixId,
+        'svix-timestamp': svixTimestamp,
+        'svix-signature': svixSignature,
+      });
+    } catch (err) {
+      return new Response('Invalid signature', { status: 400 });
+    }
+
+    // Now safe to process evt
+  }),
+});
 ```
 
 ### Detection Heuristic
 
-In webhook route files (`src/app/api/webhooks/**/route.ts`):
-1. Look for signature verification (constructEvent, webhook.verify, etc.)
-2. Verify it happens BEFORE any database mutations
-3. Verify failure returns early (doesn't continue processing)
+In `convex/http.ts`:
+1. Find `http.route()` definitions for webhook endpoints
+2. Look for signature verification (Svix, Stripe `constructEvent`, etc.)
+3. Verify it happens BEFORE any `ctx.runMutation()` or `ctx.runQuery()` calls
+4. Verify failure returns early (doesn't continue processing)
 
 ---
 
-## Principle 4: Input Validation Before Use
+## Principle 4: Input Validation via Convex Validators
 
-**Core Principle:** External input must be validated with a schema before use in queries or business logic.
+**Core Principle:** All public function arguments must be validated with Convex validators (`v.*`).
 
 ### Detection Pattern
 
 ```typescript
-// DEFINITE VIOLATION — Unvalidated input used directly
-const body = await request.json();
-await db.insert(essays).values({ title: body.title });  // Unvalidated!
+// DEFINITE VIOLATION — Missing argument validators
+export const createEssay = mutation({
+  handler: async (ctx, args) => {
+    // args is untyped/unvalidated!
+    await ctx.db.insert('essays', args);
+  },
+});
 
-// DEFINITE VIOLATION — Type assertion instead of validation
-const body = await request.json() as EssayInput;  // Not actual validation!
+// DEFINITE VIOLATION — Partial validation (some fields missing)
+export const createEssay = mutation({
+  args: {
+    title: v.string(),
+    // content not validated!
+  },
+  handler: async (ctx, { title, content }) => {
+    await ctx.db.insert('essays', { title, content });  // content bypasses validation
+  },
+});
 
-// CORRECT — Schema validation
-const body = await request.json();
-const result = EssaySchema.safeParse(body);
-if (!result.success) {
-  return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
-}
-await db.insert(essays).values(result.data);  // Validated data
+// CORRECT — Full argument validation
+export const createEssay = mutation({
+  args: {
+    title: v.string(),
+    content: v.string(),
+    academicLevel: v.union(
+      v.literal('high_school'),
+      v.literal('undergraduate'),
+      v.literal('postgraduate'),
+    ),
+  },
+  handler: async (ctx, args) => {
+    const userId = await requireAuth(ctx);
+    await ctx.db.insert('essays', { ...args, userId });
+  },
+});
 ```
 
 ### Detection Heuristic
 
-In API routes:
-1. Find `request.json()` or `request.formData()` calls
-2. Check if result passes through `.safeParse()` or `.parse()` before use
-3. Type assertions (`as Type`) do NOT count as validation
+In Convex functions:
+1. Find `query()`, `mutation()`, `action()` exports (public functions)
+2. Check if `args:` property is defined with validators
+3. If `args` is missing or empty for functions that take input → DEFINITE violation
+4. Check all used argument properties are validated
+
+### Validator Best Practices
+
+```typescript
+// Use v.optional() for optional fields
+args: {
+  title: v.string(),
+  description: v.optional(v.string()),
+}
+
+// Use v.union() for finite value sets
+args: {
+  status: v.union(v.literal('draft'), v.literal('submitted')),
+}
+
+// Use v.id() for document references
+args: {
+  essayId: v.id('essays'),
+}
+```
 
 ---
 
 ## Principle 5: Secret Isolation
 
-**Core Principle:** Server-side secrets must never be exposed to client code or API responses.
+**Core Principle:** Server-side secrets must never be exposed to client code.
 
 ### Detection Pattern
 
 ```typescript
 // DEFINITE VIOLATION — Secret in client component
 'use client';
-const key = process.env.STRIPE_SECRET_KEY;  // Exposed to browser!
+const apiKey = process.env.STRIPE_SECRET_KEY;  // Exposed to browser!
 
-// DEFINITE VIOLATION — Secret in API response
-return NextResponse.json({
-  apiKey: Env.OPENROUTER_API_KEY  // Never return secrets!
+// DEFINITE VIOLATION — Secret returned from query
+export const getConfig = query({
+  handler: async () => {
+    return {
+      stripeKey: process.env.STRIPE_SECRET_KEY,  // Never return secrets!
+    };
+  },
 });
 
-// DEFINITE VIOLATION — Secret in client-visible error
-catch (err) {
-  return NextResponse.json({ error: `Failed: ${Env.DATABASE_URL}` });  // Leaking!
-}
+// CORRECT — Secrets only in Convex functions (server-side)
+// convex/payments.ts
+export const createCheckout = action({
+  handler: async (ctx) => {
+    const stripeKey = process.env.STRIPE_SECRET_KEY;  // OK - server-side only
+    // Use key for API call, never return it
+  },
+});
 ```
 
 ### Detection Heuristic
 
-Rather than maintaining a secret list:
-1. Any `Env.*` or `process.env.*` NOT prefixed with `NEXT_PUBLIC_` is a secret
+1. Any `process.env.*` NOT prefixed with `NEXT_PUBLIC_` is a secret
 2. Secrets must not appear in:
    - Files with `'use client'` directive
-   - `NextResponse.json()` response bodies
-   - Error messages returned to clients
+   - Return values of `query()` functions
+   - Error messages in responses
+
+### Convex Environment Variables
+
+In Convex, use `process.env.*` in functions. These are set in Convex Dashboard,
+never in client-side `.env` files:
+- `CLERK_WEBHOOK_SECRET`
+- `STRIPE_SECRET_KEY`
+- `OPENROUTER_API_KEY`
 
 ---
 
-## Principle 6: SQL Injection Prevention
-
-**Core Principle:** User input must never be interpolated into raw SQL strings.
-
-### Detection Pattern
-
-```typescript
-// DEFINITE VIOLATION — String interpolation in SQL
-await db.execute(sql`SELECT * FROM essays WHERE title = '${userInput}'`);
-
-// CORRECT — Parameterized (Drizzle handles this)
-await db.execute(sql`SELECT * FROM essays WHERE title = ${userInput}`);
-
-// CORRECT — Query builder (always safe)
-await db.query.essays.findMany({ where: eq(essays.title, userInput) });
-```
-
-### Detection Heuristic
-
-Search for template literals containing SQL:
-1. `sql\`` with `${...}` inside string quotes = VIOLATION
-2. `sql\`` with `${...}` as parameter value = SAFE
-
----
-
-## Principle 7: Idempotent Webhook Processing
+## Principle 6: Idempotent Webhook Processing
 
 **Core Principle:** Webhook handlers must handle duplicate deliveries safely.
 
@@ -264,25 +343,100 @@ Search for template literals containing SQL:
 
 ```typescript
 // LIKELY VIOLATION — No idempotency check before mutation
-export async function POST(request: Request) {
-  // ... signature verification ...
-  await db.update(credits).set({ balance: sql`balance + ${amount}` });  // Could double-credit!
-}
-
-// CORRECT — Check before mutating
-const existing = await db.query.creditTransactions.findFirst({
-  where: eq(creditTransactions.externalId, event.id),
+http.route({
+  path: '/stripe-webhook',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    // ... signature verification ...
+    await ctx.runMutation(internal.credits.addCredits, {
+      userId,
+      amount: '5.00',  // Could double-credit on retry!
+    });
+  }),
 });
-if (existing) return NextResponse.json({ received: true });  // Already processed
-// Now safe to mutate
+
+// CORRECT — Check for existing transaction before mutating
+http.route({
+  path: '/stripe-webhook',
+  method: 'POST',
+  handler: httpAction(async (ctx, request) => {
+    // ... signature verification ...
+    const event = JSON.parse(body);
+
+    // Check if already processed
+    const existing = await ctx.runQuery(internal.credits.getTransaction, {
+      externalId: event.id,
+    });
+    if (existing) {
+      return new Response(JSON.stringify({ received: true }), { status: 200 });
+    }
+
+    // Safe to process
+    await ctx.runMutation(internal.credits.addFromPurchase, {
+      userId,
+      amount: '5.00',
+      stripePaymentIntentId: event.id,  // Track for idempotency
+    });
+  }),
+});
 ```
 
 ### Detection Heuristic (LIKELY, not DEFINITE)
 
 In webhook handlers:
-1. Look for UPDATE/INSERT operations that modify balances or counters
+1. Look for `ctx.runMutation()` calls that modify balances or create records
 2. Check if there's a preceding "already processed" check
 3. Flag as LIKELY if missing — may have idempotency at a different layer
+
+---
+
+## Principle 7: Actions Must Not Trust External Data
+
+**Core Principle:** Convex actions that receive data from external APIs must validate before using in mutations.
+
+### Detection Pattern
+
+```typescript
+// LIKELY VIOLATION — Trusting external API response without validation
+export const processGrade = internalAction({
+  args: { gradeId: v.id('grades') },
+  handler: async (ctx, { gradeId }) => {
+    const response = await fetch('https://api.openrouter.ai/...', { ... });
+    const data = await response.json();
+
+    // Directly using external data in mutation
+    await ctx.runMutation(internal.grades.complete, {
+      gradeId,
+      feedback: data.choices[0].message.content,  // Untrusted!
+    });
+  },
+});
+
+// CORRECT — Validate and sanitize external data
+export const processGrade = internalAction({
+  args: { gradeId: v.id('grades') },
+  handler: async (ctx, { gradeId }) => {
+    const response = await fetch('https://api.openrouter.ai/...', { ... });
+    const data = await response.json();
+
+    // Validate response structure
+    if (!data.choices?.[0]?.message?.content) {
+      throw new Error('Invalid API response');
+    }
+
+    // Parse and validate the content
+    const parsed = parseGradeResponse(data.choices[0].message.content);
+    if (!isValidGradeFeedback(parsed)) {
+      throw new Error('Invalid grade feedback format');
+    }
+
+    await ctx.runMutation(internal.grades.complete, {
+      gradeId,
+      feedback: parsed,
+    });
+  },
+});
+```
 
 ---
 
@@ -292,14 +446,14 @@ In webhook handlers:
 ## Security Validation Results
 
 ### DEFINITE Violations (Must Fix)
-- `path/to/file.ts:42` — [PRINCIPLE 1] Query on user-owned table missing userId filter
-- `path/to/file.ts:15` — [PRINCIPLE 2] Auth check occurs after database access
+- `convex/essays.ts:42` — [PRINCIPLE 1] Query on user-owned document missing userId filter
+- `convex/grades.ts:15` — [PRINCIPLE 2] Auth check occurs after database access
 
 ### LIKELY Violations (Verify Intent)
-- `path/to/file.ts:67` — [PRINCIPLE 7] Webhook mutation without visible idempotency check
+- `convex/http.ts:67` — [PRINCIPLE 6] Webhook mutation without visible idempotency check
 
 ### Exceptions Found
-- `path/to/file.ts:30` — @pr-check-ignore: no-userid-filter — "Admin endpoint" ✓ Valid
+- `convex/users.ts:30` — @pr-check-ignore: no-auth — "Internal query called by webhook only" ✓ Valid
 
 ### Passed
 - [list of files that passed]
@@ -318,9 +472,9 @@ RECOMMENDATION: [BLOCK / APPROVE WITH REVIEW / APPROVE]
 **When to update this agent:**
 - New authentication patterns introduced → Update Principle 2 detection
 - New external service webhooks added → Verify Principle 3 covers their signature method
-- Schema validation library changed → Update Principle 4 detection patterns
+- New Convex validator patterns → Update Principle 4
 
 **This agent should NOT contain:**
-- Hardcoded table names (derive from schema)
+- Hardcoded document names (derive from schema)
 - Hardcoded secret names (derive from Env prefix pattern)
 - Version-specific framework patterns (reference CLAUDE.md instead)
