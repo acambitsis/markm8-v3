@@ -3,15 +3,70 @@
 
 import { v } from 'convex/values';
 
+import type { Id } from './_generated/dataModel';
+import type { MutationCtx } from './_generated/server';
 import { internalMutation, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
-import { addDecimal, isGreaterOrEqual, subtractDecimal } from './lib/decimal';
+import { addDecimal, isGreaterOrEqual, isPositive, subtractDecimal } from './lib/decimal';
 
 const DEFAULT_SIGNUP_BONUS = '1.00';
 
+// =============================================================================
+// Helper functions (for use in mutations - single source of truth)
+// =============================================================================
+
+/**
+ * Reserve credit for grading (helper function)
+ * Can be called directly from any mutation that has ctx.db access.
+ *
+ * @throws Error if no credits found or insufficient balance
+ */
+export async function reserveCreditForUser(
+  ctx: MutationCtx,
+  userId: Id<'users'>,
+  amount: string,
+): Promise<Id<'credits'>> {
+  const credits = await ctx.db
+    .query('credits')
+    .withIndex('by_user_id', q => q.eq('userId', userId))
+    .unique();
+
+  if (!credits) {
+    throw new Error('No credits found for user');
+  }
+
+  // Balance is the spendable amount
+  if (!isGreaterOrEqual(credits.balance, amount)) {
+    throw new Error(
+      `Insufficient credits. Need ${amount} but only have ${credits.balance} available.`,
+    );
+  }
+
+  // Deduct from balance, track in reserved
+  await ctx.db.patch(credits._id, {
+    balance: subtractDecimal(credits.balance, amount),
+    reserved: addDecimal(credits.reserved, amount),
+  });
+
+  return credits._id;
+}
+
+// =============================================================================
+// Queries
+// =============================================================================
+
 /**
  * Get the current user's credit balance
- * Returns balance, reserved, and available (balance - reserved)
+ *
+ * Credit semantics (Option A - "deduct at submission"):
+ * - `balance` = spendable credits (already reduced by pending operations)
+ * - `reserved` = informational only (tracks credits in pending grading)
+ * - `available` = balance (since balance is already the spendable amount)
+ *
+ * Flow:
+ * - On submit: balance -= cost, reserved += cost
+ * - On success: reserved -= cost (balance unchanged, already deducted)
+ * - On failure: balance += cost, reserved -= cost (refund)
  */
 export const getBalance = query({
   args: {},
@@ -31,12 +86,12 @@ export const getBalance = query({
       };
     }
 
-    const available = subtractDecimal(credits.balance, credits.reserved);
-
+    // Balance IS the available amount (already reduced by pending operations)
+    // Reserved is informational only
     return {
       balance: credits.balance,
       reserved: credits.reserved,
-      available,
+      available: credits.balance, // Not balance - reserved!
     };
   },
 });
@@ -71,7 +126,7 @@ export const initializeForUser = internalMutation({
     });
 
     // Record signup bonus transaction if bonus > 0
-    if (Number.parseFloat(bonus) > 0) {
+    if (isPositive(bonus)) {
       await ctx.db.insert('creditTransactions', {
         userId,
         amount: bonus,
@@ -86,7 +141,7 @@ export const initializeForUser = internalMutation({
 
 /**
  * Reserve credit for grading (internal mutation)
- * Called when an essay is submitted
+ * Wrapper around reserveCreditForUser helper for use from actions.
  */
 export const reserveCredit = internalMutation({
   args: {
@@ -94,30 +149,7 @@ export const reserveCredit = internalMutation({
     amount: v.string(),
   },
   handler: async (ctx, { userId, amount }) => {
-    const credits = await ctx.db
-      .query('credits')
-      .withIndex('by_user_id', q => q.eq('userId', userId))
-      .unique();
-
-    if (!credits) {
-      throw new Error('No credits found for user');
-    }
-
-    const available = subtractDecimal(credits.balance, credits.reserved);
-
-    if (!isGreaterOrEqual(available, amount)) {
-      throw new Error(
-        `Insufficient credits. Need ${amount} but only have ${available} available.`,
-      );
-    }
-
-    // Reserve: balance - amount, reserved + amount
-    await ctx.db.patch(credits._id, {
-      balance: subtractDecimal(credits.balance, amount),
-      reserved: addDecimal(credits.reserved, amount),
-    });
-
-    return credits._id;
+    return reserveCreditForUser(ctx, userId, amount);
   },
 });
 

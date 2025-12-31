@@ -100,10 +100,16 @@ http.route({
           imageUrl: image_url ?? undefined,
         });
 
+        // Get signup bonus from platform settings (not hardcoded)
+        const signupBonus = await ctx.runQuery(
+          internal.platformSettings.getSignupBonus,
+          {},
+        );
+
         // Initialize credits with signup bonus
         await ctx.runMutation(internal.credits.initializeForUser, {
           userId,
-          signupBonus: '1.00', // Default signup bonus
+          signupBonus,
         });
 
         console.log('User created successfully:', { userId, email });

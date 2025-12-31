@@ -57,12 +57,21 @@ platformSettings    // Singleton config
 - All resources have `userId` (indexed for queries)
 - Essays can be 'draft' (autosave, partial data) or 'submitted' (validated, complete)
 - Grades support 1-to-many with essays (multiple grades per essay for regrading)
-- Credits: balance deducted at submission, refunded on failure
 - Atomic operations via Convex mutations (no explicit transactions needed)
 
+**Credit semantics (Option A - "deduct at submission"):**
+- `balance` = spendable credits (already reduced by pending operations)
+- `reserved` = informational only (tracks credits in pending grading)
+- `available` = balance (NOT balance - reserved)
+- Flow:
+  - On submit: `balance -= cost`, `reserved += cost`
+  - On success: `reserved -= cost` (balance unchanged, already deducted)
+  - On failure: `balance += cost`, `reserved -= cost` (refund)
+
 **Decimal handling:**
-- Credit amounts stored as strings (e.g., "1.00") for precision
-- Use `convex/lib/decimal.ts` helpers: `addDecimal()`, `subtractDecimal()`, `isGreaterOrEqual()`
+- Credit amounts stored as strings (e.g., "1.00") for JSON compatibility
+- `convex/lib/decimal.ts` uses integer cents internally to avoid floating point issues
+- Use helpers: `addDecimal()`, `subtractDecimal()`, `isGreaterOrEqual()`, `isPositive()`
 
 ---
 
@@ -114,9 +123,10 @@ export const createFromClerk = internalMutation({ ... });
 
 ```
 convex/                          # Convex backend (serverless)
-├── schema.ts                    # Document schema + exported validators
+├── schema.ts                    # Document schema + exported validators (single source of truth)
 ├── http.ts                      # Webhook endpoints (Clerk, Stripe)
-├── lib/                         # Shared helpers
+├── lib/                         # Shared helpers (auth.ts, decimal.ts)
+├── platformSettings.ts          # Admin-configurable settings (signup bonus)
 └── [domain].ts                  # Function files: users, credits, essays, grades, grading
 
 src/
@@ -173,7 +183,9 @@ stripe listen --forward-to https://<project>.convex.site/stripe-webhook
 **Deploy to Vercel:**
 ```bash
 # Vercel auto-deploys from GitHub
-# Build command: npx convex deploy && bun run build
+# Production: bun run build:prod (deploys Convex + builds Next.js)
+# Preview: bun run build (frontend only, uses existing Convex backend)
+# Required env var: CONVEX_DEPLOY_KEY (from Convex Dashboard → Settings → Deploy Key)
 ```
 
 ---
@@ -252,6 +264,9 @@ const assignmentBriefValidator = v.object({
 - ✅ Store credit amounts as strings for precision
 - ✅ Use React 19 patterns (no forwardRef needed)
 - ✅ Use Tailwind 4 CSS-first config (no tailwind.config.ts)
+- ✅ Import validators from `convex/schema.ts` (single source of truth)
+- ✅ Use `internalQuery`/`internalMutation` for functions not exposed to clients
+- ✅ Implement explicit cascade delete (Convex does NOT auto-cascade)
 
 **DON'T:**
 - ❌ Use Clerk Organizations (only Clerk auth)
@@ -261,6 +276,8 @@ const assignmentBriefValidator = v.object({
 - ❌ Use direct DB access in actions (use runQuery/runMutation)
 - ❌ Use React 18 patterns (forwardRef, manual loading states)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)
+- ❌ Expose internal functions as public `query`/`mutation` (PII leakage risk)
+- ❌ Duplicate validators across files (import from schema.ts)
 
 ---
 

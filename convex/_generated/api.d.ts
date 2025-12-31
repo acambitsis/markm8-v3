@@ -15,6 +15,7 @@ import type * as grading from "../grading.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_decimal from "../lib/decimal.js";
+import type * as platformSettings from "../platformSettings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -31,6 +32,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "lib/decimal": typeof lib_decimal;
+  platformSettings: typeof platformSettings;
   users: typeof users;
 }>;
 

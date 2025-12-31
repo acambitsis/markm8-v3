@@ -5,24 +5,14 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalQuery, mutation, query } from './_generated/server';
+import { reserveCreditForUser } from './credits';
 import { requireAuth } from './lib/auth';
-import { addDecimal, isGreaterOrEqual, subtractDecimal } from './lib/decimal';
+// Import validators from schema.ts (single source of truth)
+import { academicLevelValidator, rubricValidator } from './schema';
 
 const GRADING_COST = '1.00';
 const MIN_WORD_COUNT = 50;
 const MAX_WORD_COUNT = 50000;
-
-// Validators (import shared types from schema.ts, local validators for function args only)
-const academicLevelValidator = v.union(
-  v.literal('high_school'),
-  v.literal('undergraduate'),
-  v.literal('postgraduate'),
-);
-
-const rubricValidator = v.object({
-  customCriteria: v.optional(v.string()),
-  focusAreas: v.optional(v.array(v.string())),
-});
 
 /**
  * Get the current user's draft essay
@@ -202,38 +192,18 @@ export const submit = mutation({
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
 
-    // 3. Check credit balance
-    const credits = await ctx.db
-      .query('credits')
-      .withIndex('by_user_id', q => q.eq('userId', userId))
-      .unique();
+    // 3. Reserve credit (validates balance, deducts, tracks in reserved)
+    // Uses centralized helper from credits.ts (single source of truth)
+    await reserveCreditForUser(ctx, userId, GRADING_COST);
 
-    if (!credits) {
-      throw new Error('No credits found. Please contact support.');
-    }
-
-    const available = subtractDecimal(credits.balance, credits.reserved);
-
-    if (!isGreaterOrEqual(available, GRADING_COST)) {
-      throw new Error(
-        `Insufficient credits. You need ${GRADING_COST} credits but only have ${available} available.`,
-      );
-    }
-
-    // 4. Reserve credit (balance - cost, reserved + cost)
-    await ctx.db.patch(credits._id, {
-      balance: subtractDecimal(credits.balance, GRADING_COST),
-      reserved: addDecimal(credits.reserved, GRADING_COST),
-    });
-
-    // 5. Update essay status
+    // 4. Update essay status
     await ctx.db.patch(draft._id, {
       status: 'submitted',
       submittedAt: Date.now(),
       wordCount,
     });
 
-    // 6. Create grade record
+    // 5. Create grade record
     const gradeId = await ctx.db.insert('grades', {
       userId,
       essayId: draft._id,
@@ -241,7 +211,7 @@ export const submit = mutation({
       queuedAt: Date.now(),
     });
 
-    // 7. Schedule grading action
+    // 6. Schedule grading action
     await ctx.scheduler.runAfter(0, internal.grading.processGrade, {
       gradeId,
     });

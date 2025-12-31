@@ -5,50 +5,12 @@ import { v } from 'convex/values';
 
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
-
-// Validators for grade results
-const percentageRangeValidator = v.object({
-  lower: v.number(),
-  upper: v.number(),
-});
-
-const strengthValidator = v.object({
-  title: v.string(),
-  description: v.string(),
-  evidence: v.optional(v.string()),
-});
-
-const improvementValidator = v.object({
-  title: v.string(),
-  description: v.string(),
-  suggestion: v.string(),
-  detailedSuggestions: v.optional(v.array(v.string())),
-});
-
-const languageTipValidator = v.object({
-  category: v.string(),
-  feedback: v.string(),
-});
-
-const resourceValidator = v.object({
-  title: v.string(),
-  url: v.optional(v.string()),
-  description: v.string(),
-});
-
-const feedbackValidator = v.object({
-  strengths: v.array(strengthValidator),
-  improvements: v.array(improvementValidator),
-  languageTips: v.array(languageTipValidator),
-  resources: v.optional(v.array(resourceValidator)),
-});
-
-const modelResultValidator = v.object({
-  model: v.string(),
-  percentage: v.number(),
-  included: v.boolean(),
-  reason: v.optional(v.string()),
-});
+// Import validators from schema.ts (single source of truth)
+import {
+  feedbackValidator,
+  modelResultValidator,
+  percentageRangeValidator,
+} from './schema';
 
 /**
  * Get a grade by ID with essay context

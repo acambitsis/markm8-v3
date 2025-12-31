@@ -3,7 +3,7 @@
 
 import { v } from 'convex/values';
 
-import { internalMutation, mutation, query } from './_generated/server';
+import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
 
 /**
@@ -49,9 +49,10 @@ export const updateProfile = mutation({
 });
 
 /**
- * Get user by Clerk ID (internal use)
+ * Get user by Clerk ID (internal use only)
+ * Not exposed to clients - prevents PII leakage
  */
-export const getByClerkId = query({
+export const getByClerkId = internalQuery({
   args: { clerkId: v.string() },
   handler: async (ctx, { clerkId }) => {
     return await ctx.db
@@ -133,6 +134,13 @@ export const updateFromClerk = internalMutation({
 
 /**
  * Delete user from Clerk webhook (internal mutation)
+ * Implements explicit cascade delete for all user-owned resources
+ *
+ * Note: Convex does NOT auto-cascade deletes. We must manually delete:
+ * - credits
+ * - creditTransactions
+ * - grades
+ * - essays
  */
 export const deleteFromClerk = internalMutation({
   args: { clerkId: v.string() },
@@ -142,9 +150,47 @@ export const deleteFromClerk = internalMutation({
       .withIndex('by_clerk_id', q => q.eq('clerkId', clerkId))
       .unique();
 
-    if (user) {
-      // Cascade delete will be handled by Convex
-      await ctx.db.delete(user._id);
+    if (!user) {
+      return;
     }
+
+    // 1. Delete all grades for this user
+    const grades = await ctx.db
+      .query('grades')
+      .withIndex('by_user_id', q => q.eq('userId', user._id))
+      .collect();
+    for (const grade of grades) {
+      await ctx.db.delete(grade._id);
+    }
+
+    // 2. Delete all essays for this user
+    const essays = await ctx.db
+      .query('essays')
+      .withIndex('by_user_id', q => q.eq('userId', user._id))
+      .collect();
+    for (const essay of essays) {
+      await ctx.db.delete(essay._id);
+    }
+
+    // 3. Delete all credit transactions for this user
+    const transactions = await ctx.db
+      .query('creditTransactions')
+      .withIndex('by_user_id', q => q.eq('userId', user._id))
+      .collect();
+    for (const txn of transactions) {
+      await ctx.db.delete(txn._id);
+    }
+
+    // 4. Delete credits record for this user
+    const credits = await ctx.db
+      .query('credits')
+      .withIndex('by_user_id', q => q.eq('userId', user._id))
+      .unique();
+    if (credits) {
+      await ctx.db.delete(credits._id);
+    }
+
+    // 5. Finally, delete the user
+    await ctx.db.delete(user._id);
   },
 });

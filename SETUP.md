@@ -131,7 +131,38 @@ This pushes:
 
 ---
 
-## 5. Verify Setup
+## 5. Initialize Platform Settings
+
+The `platformSettings` table stores admin-configurable values (like signup bonus). You must create the singleton document manually:
+
+### Via Convex Dashboard
+
+1. Go to [Convex Dashboard](https://dashboard.convex.dev) → Your Project → **Data**
+2. Select the `platformSettings` table
+3. Click **Add document**
+4. Enter the following document:
+
+```json
+{
+  "key": "singleton",
+  "signupBonusAmount": "1.00"
+}
+```
+
+5. Click **Save**
+
+### Configuration Options
+
+| Field | Type | Description | Default |
+|-------|------|-------------|---------|
+| `key` | `"singleton"` | Required identifier (must be exactly `"singleton"`) | - |
+| `signupBonusAmount` | string | Credits given to new users on signup (e.g., `"1.00"`, `"0.50"`, `"0.00"`) | `"1.00"` |
+
+**Note:** If this document doesn't exist, the system falls back to `"1.00"` signup bonus. Creating it allows you to change the value without code changes.
+
+---
+
+## 6. Verify Setup
 
 ### Test Locally
 
@@ -156,27 +187,50 @@ This runs:
 
 ---
 
-## 6. Deploy to Vercel
+## 7. Deploy to Vercel
 
-### 6.1 Connect Repository
+### 7.1 Connect Repository
 
 1. Import your GitHub repo to Vercel
 2. Set **Framework Preset:** Next.js
-3. Set **Build Command:** `npx convex deploy && bun run build`
+3. Set **Build Command:** (see below for preview vs production)
 4. Set **Install Command:** `bun install`
 
-### 6.2 Add Environment Variables
+### 7.2 Configure Build Commands
+
+Convex should only deploy on production builds to prevent preview branches from affecting the live backend.
+
+**In Vercel Project Settings → General → Build & Development Settings:**
+
+| Environment | Build Command | Purpose |
+|-------------|---------------|---------|
+| **Production** | `bun run build:prod` | Deploys Convex functions + builds Next.js |
+| **Preview** | `bun run build` | Builds Next.js only (uses existing Convex backend) |
+
+To set different commands per environment:
+1. Go to **Settings** → **General** → **Build & Development Settings**
+2. Override the build command
+3. Or use **Settings** → **Environment Variables** with `VERCEL_ENV` detection
+
+**Alternative:** Use environment detection in a single command:
+```bash
+if [ "$VERCEL_ENV" = "production" ]; then bun run build:prod; else bun run build; fi
+```
+
+### 7.3 Add Environment Variables
 
 In Vercel Project Settings → **Environment Variables**, add all variables from step 3.
 
-### 6.3 Update Clerk Webhook (Production)
+**Critical:** Add `CONVEX_DEPLOY_KEY` from Convex Dashboard → Settings → Deploy Key.
+
+### 7.4 Update Clerk Webhook (Production)
 
 Update Clerk webhook URL to production Convex endpoint:
 `https://<your-production-project>.convex.site/clerk-webhook`
 
 ---
 
-## 7. Stripe Setup (Phase 3)
+## 8. Stripe Setup (Phase 3)
 
 *To be completed when implementing payments.*
 
