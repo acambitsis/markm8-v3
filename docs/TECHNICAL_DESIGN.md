@@ -33,7 +33,7 @@
 
 **Our approach:**
 - ✅ Clerk for auth only (provider-agnostic)
-- ✅ Custom organization tables when needed (see PHASE_2_MIGRATION.md)
+- ✅ Custom organization tables when needed (deferred to v3.1+)
 - ✅ Full control over data model and billing
 
 ### Why Bun Instead of pnpm/npm?
@@ -285,6 +285,7 @@ Convex queries enforce the business rule that each user can only have one draft 
 ```
 convex/                              # Convex backend (serverless)
 ├── schema.ts                        # Document schema + exported validators (single source of truth)
+├── auth.config.ts                   # Convex auth configuration (Clerk integration)
 ├── http.ts                          # HTTP endpoints (Clerk webhook, Stripe webhook)
 ├── lib/                             # Shared helpers
 │   ├── auth.ts                      # requireAuth() helper
@@ -1105,7 +1106,7 @@ Use Clerk for auth only, not Organizations.
 
 **Why:**
 - Can switch auth providers later (just swap `src/libs/Clerk.ts`)
-- Custom organization logic when needed (see PHASE_2_MIGRATION.md)
+- Custom organization logic when needed (deferred to v3.1+)
 - No pricing tied to MAU growth
 
 ### 3. Background AI Grading
