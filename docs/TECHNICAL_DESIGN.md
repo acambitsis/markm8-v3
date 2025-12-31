@@ -14,10 +14,10 @@
 | **Styling** | Tailwind 4 | CSS-first config (@theme), native dark mode, container queries |
 | **UI Components** | Shadcn UI | Accessible, customizable, included in boilerplate |
 | **Auth** | Clerk (auth only) | Multi-provider (Google, Apple, Magic Link), free tier = 10k MAU, NO Organizations feature used |
-| **Database** | Neon PostgreSQL + Drizzle | Serverless, branching (dev/prod/test), cost-effective, type-safe ORM |
-| **Deployment** | Railway | Long-running processes, auto-scaling, GitHub integration, supports background workers |
-| **Async Jobs** | PostgreSQL LISTEN/NOTIFY + Railway Worker | Event-driven job processing with backup polling, no HTTP overhead, cost-effective |
-| **Real-time** | Adaptive Polling | Simple HTTP polling with variable intervals |
+| **Database** | Convex | Serverless document database, real-time subscriptions, built-in auth integration |
+| **Deployment** | Vercel | Next.js native hosting, edge functions, automatic deployments from GitHub |
+| **Async Jobs** | Convex Actions + Scheduler | Background actions for AI grading, scheduled with `ctx.scheduler.runAfter()` |
+| **Real-time** | Convex Subscriptions | Automatic UI updates via `useQuery` hooks, no polling needed |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming support, provider-agnostic, built-in error handling |
 | **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, cost-effective (~$0.10-0.15/essay) |
 | **OCR/Document AI** | Mistral Document AI | Image-to-markdown conversion for instructions/rubrics, 99%+ accuracy, multilingual |
@@ -39,7 +39,7 @@
 ### Why Bun Instead of pnpm/npm?
 
 - ✅ **2-10x faster** package installs vs pnpm/npm
-- ✅ **All dependencies compatible** (Clerk, Drizzle, Stripe)
+- ✅ **All dependencies compatible** (Clerk, Convex, Stripe)
 - ⚠️ **Use Node.js-compatible APIs** (avoid Bun-specific imports for portability)
 
 ---
@@ -52,7 +52,7 @@ We use ONE `essays` table for both drafts and submitted essays (with a `status` 
 
 1. **Regrading support:** Essays need the rubric for regrading. Splitting into two tables would either lose data or create redundancy.
 2. **Simpler schema:** One source of truth for essay data.
-3. **Performance is fine:** Autosave writes (triggered by document uploads, typing, pasting, editing, and tab blur) are trivial for PostgreSQL. Partial index `WHERE status = 'draft'` keeps queries fast.
+3. **Performance is fine:** Autosave writes (triggered by document uploads, typing, pasting, editing, and tab blur) are trivial for Convex. Index on `['userId', 'status']` keeps queries fast.
 4. **Clear lifecycle:** Draft → Submitted is just a status change + validation, not data migration.
 5. **Natural queries:** `WHERE userId = X AND status = 'submitted'` is simpler than JOINs.
 
@@ -61,161 +61,241 @@ The `grades` table supports **1-to-many** with essays (no unique constraint on `
 ### Schema Definition
 
 ```typescript
-// src/models/Schema.ts
-import { index, integer, jsonb, numeric, pgEnum, pgTable, sql, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+// convex/schema.ts (single source of truth)
+import { defineSchema, defineTable } from 'convex/server';
+import type { Infer } from 'convex/values';
+import { v } from 'convex/values';
 
-// Enums
-export const essayStatusEnum = pgEnum('essay_status', ['draft', 'submitted', 'archived']);
-export const gradeStatusEnum = pgEnum('grade_status', ['queued', 'processing', 'complete', 'failed']);
-export const transactionTypeEnum = pgEnum('transaction_type', ['signup_bonus', 'purchase', 'grading', 'refund']);
-export const gradingScaleEnum = pgEnum('grading_scale', ['percentage', 'letter', 'uk', 'gpa', 'pass_fail']);
+// =============================================================================
+// Validators for reusable types (exported for type inference)
+// =============================================================================
 
-// Users (synced from Clerk)
-export const users = pgTable('users', {
-  id: text('id').primaryKey(), // Matches Clerk user ID (e.g., 'user_2abc123def456')
-  clerkId: text('clerk_id').notNull().unique(), // Redundant with id, kept for explicit clarity
-  email: text('email').notNull(),
-  name: text('name'),
-  imageUrl: text('image_url'),
-  institution: text('institution'), // Optional: user's institution (free text)
-  course: text('course'), // Optional: user's course (free text)
-  defaultGradingScale: gradingScaleEnum('default_grading_scale'), // User's preferred grading scale (percentage, letter, uk, gpa, pass_fail)
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const gradingScaleValidator = v.union(
+  v.literal('percentage'),
+  v.literal('letter'),
+  v.literal('uk'),
+  v.literal('gpa'),
+  v.literal('pass_fail'),
+);
+
+export const essayStatusValidator = v.union(
+  v.literal('draft'),
+  v.literal('submitted'),
+  v.literal('archived'),
+);
+
+export const gradeStatusValidator = v.union(
+  v.literal('queued'),
+  v.literal('processing'),
+  v.literal('complete'),
+  v.literal('failed'),
+);
+
+export const transactionTypeValidator = v.union(
+  v.literal('signup_bonus'),
+  v.literal('purchase'),
+  v.literal('grading'),
+  v.literal('refund'),
+);
+
+export const academicLevelValidator = v.union(
+  v.literal('high_school'),
+  v.literal('undergraduate'),
+  v.literal('postgraduate'),
+);
+
+// =============================================================================
+// Complex object validators
+// =============================================================================
+
+export const assignmentBriefValidator = v.object({
+  title: v.string(),
+  instructions: v.string(),
+  subject: v.string(),
+  academicLevel: academicLevelValidator,
 });
 
-// Platform Settings (singleton table for admin-configurable values)
-export const platformSettings = pgTable('platform_settings', {
-  id: text('id').primaryKey().default('singleton'), // Only one row
-  signupBonusAmount: numeric('signup_bonus_amount', { precision: 10, scale: 2 }).default('1.00').notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  updatedBy: text('updated_by'), // Admin user ID who made the change
+export const rubricValidator = v.object({
+  customCriteria: v.optional(v.string()),
+  focusAreas: v.optional(v.array(v.string())),
 });
 
-// Credits (user-scoped)
-export const credits = pgTable('credits', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
-  balance: numeric('balance', { precision: 10, scale: 2 }).default('0.00').notNull(),
-  reserved: numeric('reserved', { precision: 10, scale: 2 }).default('0.00').notNull(), // Credits reserved for pending grading
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+export const percentageRangeValidator = v.object({
+  lower: v.number(),
+  upper: v.number(),
 });
 
-// Credit Transactions (audit log)
-export const creditTransactions = pgTable('credit_transactions', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  amount: numeric('amount', { precision: 10, scale: 2 }).notNull(),
-  transactionType: transactionTypeEnum('transaction_type').notNull(),
-  description: text('description'),
-  gradeId: uuid('grade_id'),
-  stripePaymentIntentId: text('stripe_payment_intent_id'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-}, table => ({
-  userIdIdx: index('idx_credit_transactions_user_id').on(table.userId),
-  createdAtIdx: index('idx_credit_transactions_created_at').on(table.createdAt.desc()),
-}));
+export const strengthValidator = v.object({
+  title: v.string(),
+  description: v.string(),
+  evidence: v.optional(v.string()),
+});
 
-// Essays (user-scoped, supports drafts and submitted essays)
-export const essays = pgTable('essays', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+export const improvementValidator = v.object({
+  title: v.string(),
+  description: v.string(),
+  suggestion: v.string(),
+  detailedSuggestions: v.optional(v.array(v.string())),
+});
 
-  // Essay data (nullable for drafts)
-  assignmentBrief: jsonb('assignment_brief').$type<AssignmentBrief>(), // { title, instructions, subject, academicLevel }
-  rubric: jsonb('rubric').$type<Rubric>(),
-  content: text('content'),
-  wordCount: integer('word_count'),
-  focusAreas: text('focus_areas').array(),
+export const languageTipValidator = v.object({
+  category: v.string(),
+  feedback: v.string(),
+});
 
-  // Lifecycle
-  status: essayStatusEnum('status').notNull().default('draft'),
+export const resourceValidator = v.object({
+  title: v.string(),
+  url: v.optional(v.string()),
+  description: v.string(),
+});
 
-  // Timestamps
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-  submittedAt: timestamp('submitted_at'),
-  deletedAt: timestamp('deleted_at'), // Soft delete
-}, table => ({
-  userIdIdx: index('idx_essays_user_id').on(table.userId),
-  statusIdx: index('idx_essays_status').on(table.status),
-  submittedAtIdx: index('idx_essays_submitted_at').on(table.submittedAt.desc()),
-  // Partial index for fast draft lookup
-  draftIdx: index('idx_essays_user_draft').on(table.userId, table.updatedAt).where(sql`status = 'draft'`),
-  // Unique partial index: one draft per user (enforces "overwrites previous draft" requirement)
-  // Note: Drizzle doesn't support unique() on partial indexes directly. Use raw SQL migration:
-  // CREATE UNIQUE INDEX idx_essays_user_draft_unique ON essays(user_id) WHERE status = 'draft';
-}));
+export const feedbackValidator = v.object({
+  strengths: v.array(strengthValidator),
+  improvements: v.array(improvementValidator),
+  languageTips: v.array(languageTipValidator),
+  resources: v.optional(v.array(resourceValidator)),
+});
 
-// Grades (user-scoped, 1-to-many with essays for regrading support)
-export const grades = pgTable('grades', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  essayId: uuid('essay_id').references(() => essays.id, { onDelete: 'cascade' }).notNull(), // NOT unique
+export const modelResultValidator = v.object({
+  model: v.string(),
+  percentage: v.number(),
+  included: v.boolean(),
+  reason: v.optional(v.string()),
+});
 
-  // Grading status
-  status: gradeStatusEnum('status').notNull().default('queued'),
+// =============================================================================
+// Schema Definition
+// =============================================================================
 
-  // Results (populated when status = 'complete')
-  letterGradeRange: text('letter_grade_range'), // "A" or "A-B"
-  percentageRange: jsonb('percentage_range'), // { lower: 85, upper: 92 }
-  feedback: jsonb('feedback'), // Full feedback structure
-  modelResults: jsonb('model_results'), // [{ model, percentage, included, reason }]
+export default defineSchema({
+  // Users (synced from Clerk)
+  users: defineTable({
+    clerkId: v.string(), // Clerk user ID (e.g., 'user_2abc123def456')
+    email: v.string(),
+    name: v.optional(v.string()),
+    imageUrl: v.optional(v.string()),
+    institution: v.optional(v.string()), // User's institution (free text)
+    course: v.optional(v.string()), // User's course (free text)
+    defaultGradingScale: v.optional(gradingScaleValidator), // Preferred grading scale
+  }).index('by_clerk_id', ['clerkId']),
 
-  // Cost tracking
-  totalTokens: integer('total_tokens').default(0),
-  apiCost: numeric('api_cost', { precision: 10, scale: 4 }),
+  // Credits (user-scoped balance tracking)
+  credits: defineTable({
+    userId: v.id('users'),
+    balance: v.string(), // Store as string for decimal precision (e.g., "1.00")
+    reserved: v.string(), // Credits reserved for pending grading
+  }).index('by_user_id', ['userId']),
 
-  // Error handling
-  errorMessage: text('error_message'),
+  // Credit Transactions (audit log)
+  creditTransactions: defineTable({
+    userId: v.id('users'),
+    amount: v.string(), // Can be negative for deductions
+    transactionType: transactionTypeValidator,
+    description: v.optional(v.string()),
+    gradeId: v.optional(v.id('grades')),
+    stripePaymentIntentId: v.optional(v.string()),
+  }).index('by_user_id', ['userId']),
 
-  // Timing
-  queuedAt: timestamp('queued_at').notNull(),
-  startedAt: timestamp('started_at'),
-  completedAt: timestamp('completed_at'),
+  // Essays (user-scoped, drafts and submitted)
+  essays: defineTable({
+    userId: v.id('users'),
+    authorUserId: v.optional(v.id('users')), // For future org support
 
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-}, table => ({
-  userIdIdx: index('idx_grades_user_id').on(table.userId),
-  statusIdx: index('idx_grades_status').on(table.status),
-  essayIdIdx: index('idx_grades_essay_id').on(table.essayId),
-  essayCreatedIdx: index('idx_grades_essay_created').on(table.essayId, table.createdAt.desc()),
-}));
+    // Essay data (optional for drafts)
+    assignmentBrief: v.optional(assignmentBriefValidator),
+    rubric: v.optional(rubricValidator),
+    content: v.optional(v.string()),
+    wordCount: v.optional(v.number()),
+    focusAreas: v.optional(v.array(v.string())),
 
-// Type definitions for JSONB fields
-export type AssignmentBrief = {
-  title: string;
-  instructions: string;
-  subject: string;
-  academicLevel: 'high_school' | 'undergraduate' | 'postgraduate';
-};
+    // Lifecycle
+    status: essayStatusValidator,
+    submittedAt: v.optional(v.number()), // Unix timestamp in ms
+    deletedAt: v.optional(v.number()), // Soft delete timestamp
+  })
+    .index('by_user_id', ['userId'])
+    .index('by_user_status', ['userId', 'status'])
+    .index('by_user_submitted', ['userId', 'submittedAt']),
 
-export type Rubric = {
-  customCriteria?: string;
-  focusAreas?: string[];
-};
+  // Grades (user-scoped, 1-to-many with essays for regrading support)
+  grades: defineTable({
+    userId: v.id('users'),
+    essayId: v.id('essays'), // NOT unique (supports regrading)
+
+    // Grading status
+    status: gradeStatusValidator,
+
+    // Results (populated when status = 'complete')
+    letterGradeRange: v.optional(v.string()), // "A" or "A-B"
+    percentageRange: v.optional(percentageRangeValidator),
+    feedback: v.optional(feedbackValidator),
+    modelResults: v.optional(v.array(modelResultValidator)),
+
+    // Cost tracking
+    totalTokens: v.optional(v.number()),
+    apiCost: v.optional(v.string()), // Decimal as string
+
+    // Error handling
+    errorMessage: v.optional(v.string()),
+
+    // Timing (Unix timestamps in ms)
+    queuedAt: v.number(),
+    startedAt: v.optional(v.number()),
+    completedAt: v.optional(v.number()),
+  })
+    .index('by_user_id', ['userId'])
+    .index('by_essay_id', ['essayId'])
+    .index('by_status', ['status']),
+
+  // Platform Settings (singleton for admin-configurable values)
+  platformSettings: defineTable({
+    key: v.literal('singleton'), // Only one row
+    signupBonusAmount: v.string(), // Decimal as string (e.g., "1.00")
+    updatedBy: v.optional(v.id('users')), // Admin who made the change
+  }).index('by_key', ['key']),
+});
+
+// =============================================================================
+// Inferred Types (for use in UI components - single source of truth)
+// =============================================================================
+
+export type GradingScale = Infer<typeof gradingScaleValidator>;
+export type EssayStatus = Infer<typeof essayStatusValidator>;
+export type GradeStatus = Infer<typeof gradeStatusValidator>;
+export type TransactionType = Infer<typeof transactionTypeValidator>;
+export type AcademicLevel = Infer<typeof academicLevelValidator>;
+
+export type AssignmentBrief = Infer<typeof assignmentBriefValidator>;
+export type Rubric = Infer<typeof rubricValidator>;
+export type PercentageRange = Infer<typeof percentageRangeValidator>;
+export type GradeFeedback = Infer<typeof feedbackValidator>;
+export type ModelResult = Infer<typeof modelResultValidator>;
 ```
 
 **That's it.** Simple, clean, user-scoped.
 
-### Migration Note: Draft Uniqueness Constraint
+### Draft Uniqueness Constraint
 
-The unique partial index for "one draft per user" requires a raw SQL migration since Drizzle doesn't support `unique()` on partial indexes directly:
-
-```sql
--- Run this migration after initial schema push
-CREATE UNIQUE INDEX idx_essays_user_draft_unique ON essays(user_id) WHERE status = 'draft';
-```
-
-This enforces the business rule that each user can only have one draft at a time (new drafts overwrite previous ones).
+Convex queries enforce the business rule that each user can only have one draft at a time. The `getDraft` query uses an index on `['userId', 'status']` and filters for `status = 'draft'`, returning the first result. When saving a draft, the mutation either updates the existing draft or creates a new one, effectively overwriting any previous draft.
 
 ---
 
 ## File Structure
 
 ```
+convex/                              # Convex backend (serverless)
+├── schema.ts                        # Document schema + exported validators (single source of truth)
+├── http.ts                          # HTTP endpoints (Clerk webhook, Stripe webhook)
+├── lib/                             # Shared helpers
+│   ├── auth.ts                      # requireAuth() helper
+│   └── decimal.ts                   # Credit arithmetic (integer cents internally)
+├── platformSettings.ts              # Admin-configurable settings (signup bonus)
+├── users.ts                         # User sync from Clerk
+├── credits.ts                       # Balance, reservations, transactions
+├── essays.ts                        # Drafts, submission, history
+├── grades.ts                        # Grade records and status
+└── grading.ts                       # AI grading action (background processing)
+
 src/
 ├── app/
 │   ├── [locale]/                    # i18n routing (from boilerplate)
@@ -225,42 +305,30 @@ src/
 │   │   │   ├── grades/[id]/         # Status + results
 │   │   │   ├── history/
 │   │   │   └── settings/
-│   │   └── (unauth)/                # Public routes (landing)
-│   └── api/
-│       ├── webhooks/
-│       │   ├── clerk/               # User lifecycle webhook
-│       │   └── stripe/              # Payment events webhook
-│       ├── essays/
-│       │   ├── submit/              # Essay submission endpoint
-│       │   └── generate-title/     # Auto-generate title endpoint
-│       ├── ocr/
-│       │   └── process/            # Image-to-markdown OCR endpoint
-│       ├── grades/[id]/             # Grade status endpoint (polling)
-│       └── payments/
-│           └── create-checkout/    # Stripe checkout session creation
-├── worker/                          # Background worker (Railway service)
-│   ├── index.ts                     # Worker entry point (LISTEN + polling)
-│   └── processGrade.ts              # Grading logic (3x AI, retry, consensus)
+│   │   └── (unauth)/                # Public routes (landing, pricing)
+│   └── api/                         # Minimal API routes (most logic in Convex)
+│       └── ai/                      # AI endpoints (title generation, OCR) - future
 ├── components/
-│   └── ui/                          # Shadcn components (from boilerplate)
+│   ├── ui/                          # Shadcn components (from boilerplate)
+│   └── ConvexClientProvider.tsx     # Convex + Clerk provider setup
 ├── features/                        # Feature modules (boilerplate pattern)
 │   ├── essays/                      # Submission forms, draft autosave
 │   ├── grading/                     # Results display, category scores
 │   └── credits/                     # Balance display, purchase flow
-├── libs/                            # Third-party configs (boilerplate pattern)
-│   ├── DB.ts                        # Drizzle setup
-│   ├── Clerk.ts                     # Auth helpers
-│   ├── Stripe.ts                    # Payment client
-│   ├── AI.ts                        # Vercel AI SDK client (OpenRouter)
-│   └── Mistral.ts                   # Mistral Document AI client (OCR)
-├── models/
-│   └── Schema.ts                    # Database schema (single source of truth)
 ├── hooks/
-│   └── useGradeStatus.ts            # Adaptive polling hook
+│   ├── useGradeStatus.ts            # Real-time grade status (Convex subscription)
+│   ├── useCredits.ts                # Real-time credits (Convex subscription)
+│   └── useAutosave.ts               # Draft autosave hook
+├── libs/                            # Third-party configs (boilerplate pattern)
+│   ├── Env.ts                       # Environment variables (t3-env)
+│   ├── Auth.ts                      # Auth helpers (Clerk)
+│   ├── Logger.ts                    # Pino logger
+│   ├── Stripe.ts                    # Payment client (TODO)
+│   ├── AI.ts                        # Vercel AI SDK client (TODO)
+│   └── Mistral.ts                   # Mistral Document AI client (TODO)
 ├── utils/                           # Utilities (from boilerplate)
-│   ├── Helpers.ts
-│   └── documentParser.ts            # Document parsing utilities (Mistral OCR)
-└── locales/                         # i18n (from boilerplate)
+│   └── Helpers.ts                   # cn() and other helpers
+└── locales/                         # i18n JSON files (from boilerplate)
 ```
 
 ---
@@ -327,12 +395,12 @@ We're using the FREE ixartz/SaaS-Boilerplate from GitHub ($0) instead of Pro ($3
 3. ✅ Missing features take ~7-8 hours to add (trivial vs $399)
 4. ✅ Full control over customizations
 
-### What's Included (Free)
+### What's Included (Free, upgraded)
 
-- ✅ Next.js 14 + React 18 (we'll upgrade)
-- ✅ Tailwind CSS 3 (we'll upgrade to v4)
+- ✅ Next.js 15 + React 19 (upgraded from boilerplate)
+- ✅ Tailwind CSS 4 (upgraded from boilerplate)
 - ✅ Clerk authentication
-- ✅ Drizzle ORM + PostgreSQL
+- ✅ Convex (document database + serverless functions)
 - ✅ Shadcn UI components
 - ✅ Vitest + Playwright testing
 - ✅ Sentry error monitoring
@@ -342,10 +410,9 @@ We're using the FREE ixartz/SaaS-Boilerplate from GitHub ($0) instead of Pro ($3
 
 ### What We're Adding
 
-- ✅ Vercel AI SDK (~30 min)
-- ✅ Stripe integration (~4 hours)
-- ✅ Dark mode (~1 hour)
-- ✅ Upgrades: Next.js 15, React 19, Tailwind 4
+- ✅ Vercel AI SDK (configured, AI logic TODO)
+- ⏳ Stripe integration (not started)
+- ✅ Dark mode (via Tailwind 4)
 
 ### Installation Steps
 
@@ -450,19 +517,23 @@ Use `clerkMiddleware` with route matcher for public routes (`/`, `/pricing`, `/a
 
 ### Auth Helpers
 
-Create `requireAuth()` helper that calls `await auth()` and throws if no `userId`. Use this in all protected API routes.
+Use Convex auth identity inside Convex queries/mutations:
 
-### User Profile Update API
+- In **queries/mutations**: use `requireAuth(ctx)` from `convex/lib/auth.ts` to resolve the current user’s Convex `Id<'users'>`.
+- In **actions**: you can’t access `ctx.db` directly, so use `ctx.auth.getUserIdentity()` (or `getAuthIdentity()` helper) and then call `ctx.runQuery/ctx.runMutation` to fetch/mutate data.
 
-**PATCH /api/user/profile:**
-- Validate field lengths (institution, course: max 200 chars)
-- Validate `defaultGradingScale` is one of: 'percentage', 'letter', 'uk', 'gpa', 'pass_fail'
-- Update user record with conditional spreads for partial updates
-- Return success/error
+### User Profile (Convex)
 
-**GET /api/user/profile:**
-- Fetch user by `userId` from `requireAuth()`
-- Return selected columns only (exclude sensitive data)
+**Get profile:** `api.users.getProfile` (query)
+
+**Update profile:** `api.users.updateProfile` (mutation)
+
+Client usage example (matches `src/features/onboarding/OnboardingForm.tsx`):
+
+```typescript
+const updateProfile = useMutation(api.users.updateProfile);
+await updateProfile({ defaultGradingScale, institution, course });
+```
 
 ### Grade Format Conversion
 
@@ -515,12 +586,10 @@ function formatGradeForUser(
 ### Platform Settings (Admin Configuration)
 
 **Initialization:**
-Run SQL migration after schema push to create singleton row with default `signup_bonus_amount` of `1.00` (use `ON CONFLICT DO NOTHING` for idempotency).
+Convex reads platform settings from the `platformSettings` table. If the singleton document doesn’t exist yet, `internal.platformSettings.getSignupBonus` returns a safe default (currently `"1.00"`). Optionally add an internal “ensure singleton” mutation later if you want to manage settings purely via Convex Dashboard.
 
-**Admin Settings API:**
-- **GET:** Fetch singleton row, auto-initialize with defaults if not exists
-- **PATCH:** Validate amount (0.00-1000.00 range), format to 2 decimals, update singleton row with `updatedBy` tracking
-- **TODO:** Add admin authorization check (v3.1+)
+**Admin updates:**
+- Deferred (v3.1+). For v3 launch, use Convex Dashboard for operational adjustments if needed.
 
 ---
 
@@ -547,30 +616,25 @@ Initialize Stripe client with secret key, latest API version (`2024-12-18.acacia
 
 ### Checkout Session
 
-**POST /api/payments/create-checkout:**
+**Planned (not implemented yet):** Create a Stripe Checkout Session via a **Convex action** (recommended, since it calls an external API).
+
 - Mode: `payment` (one-time, NOT subscription)
 - Line items: Dynamic `price_data` (not pre-created products)
 - Amount: Convert dollars to cents (`Math.round(amount * 100)`)
-- Metadata: Include `userId` and `credits` for webhook processing
+- Metadata: Include `clerkId` (or Convex `userId`) and `credits` for webhook processing
 - Return: `sessionId` and `url` for client redirect
 
 ### Webhook Handler
 
-**POST /api/webhooks/stripe:**
+**POST `/stripe-webhook` (Convex HTTP endpoint in `convex/http.ts`):**
 
 1. Verify webhook signature using `stripe.webhooks.constructEvent`
 2. On `checkout.session.completed`:
-   - Extract `userId` and `credits` from `session.metadata`
-   - **Idempotency check (CRITICAL):**
-     ```typescript
-     const existing = await tx.query.creditTransactions.findFirst({
-       where: eq(creditTransactions.stripePaymentIntentId, session.payment_intent as string),
-     });
-     if (existing) return; // Skip to prevent double-crediting
-     ```
-   - Update balance: `balance = balance + creditAmount` (SQL increment)
-   - Log transaction with `stripePaymentIntentId`
-3. Use atomic transaction for all operations
+   - Extract purchase metadata
+   - Resolve the target Convex user
+   - **Idempotency (TODO):** before crediting, check whether a `creditTransactions` record already exists for `stripePaymentIntentId` and skip if present
+   - Credit the user by calling `internal.credits.addFromPurchase({ userId, amount, stripePaymentIntentId })`
+3. Use atomic Convex mutations for DB updates (actions use `ctx.runMutation`)
 
 **Why Idempotency Check is Critical:**
 
@@ -600,18 +664,23 @@ bun add ai @ai-sdk/openai
 
 **Model Choice:** Uses a fast, cheap model (GPT-3.5 Turbo) instead of the grading models (Grok-4) to minimize cost and latency.
 
-**POST /api/essays/generate-title:**
+**Planned (not implemented yet):** Title generation endpoint (either a Convex action or a small Next.js route under `src/app/[locale]/api/ai/*`).
 - Input: `instructions` (assignment brief), `content` (first 500 words)
 - Validation: Require at least one field
 - Model config: `maxTokens: 20`, `temperature: 0.7`
 - Output: Trim to max 6 words
 - Cost: ~$0.001 per generation (no credit deduction, free for users)
 
-### Usage in Railway Worker
+### Usage in Convex Actions
 
 **CRITICAL: Always use `generateObject` with Zod schema validation.**
 
 Without schema validation, malformed JSON responses from AI models cause production debugging nightmares. Using `generateObject` with Zod ensures type-safety, automatic validation, clear error messages, and eliminates parsing errors.
+
+**Note:** AI calls run in Convex actions (not mutations) because:
+- Actions can call external APIs (OpenRouter)
+- Actions have 10-minute timeout (sufficient for AI grading)
+- Mutations cannot call external APIs directly
 
 **Required Zod Schema Structure:**
 ```typescript
@@ -830,99 +899,71 @@ export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
 
 ---
 
-## Async Grading (PostgreSQL LISTEN/NOTIFY + Railway Worker + Adaptive Polling)
+## Async Grading (Convex Actions + Scheduler + Real-time Subscriptions)
 
 ### Why Async?
 
 **Synchronous grading = BAD UX:**
 - ❌ User stuck waiting 30+ seconds
 - ❌ No progress indication
-- ❌ API timeout risk (Railway supports long-running, but still bad UX)
+- ❌ API timeout risk (Vercel has 10s timeout for serverless functions)
 - ❌ Can't navigate away
 - ❌ No retry on transient failures
 
 **Async workflow:**
 - ✅ Submit essay → Instant response (<500ms)
-- ✅ Event-driven job trigger → PostgreSQL NOTIFY sends instant notification to worker
-- ✅ Background processing → Railway worker handles grading (with custom retry logic)
-- ✅ Status updates → Adaptive polling from client
-- ✅ User experience → Can navigate away, come back later
-- ✅ Cost-effective → No constant polling, Neon can scale to zero
+- ✅ Scheduled action → Convex `ctx.scheduler.runAfter(0, ...)` triggers grading immediately
+- ✅ Background processing → Convex action handles grading (with retry logic)
+- ✅ Status updates → Real-time subscriptions via `useQuery` (no polling needed!)
+- ✅ User experience → Can navigate away, come back later, UI auto-updates
+- ✅ Cost-effective → Serverless, pay-per-use, no infrastructure to manage
 
-### Why LISTEN/NOTIFY Instead of Polling?
+### Why Convex Actions Instead of API Routes?
 
-**Polling problems:**
-- ❌ Keeps Neon database awake 24/7 (~$19/month for Launch plan)
-- ❌ Wastes CPU on empty queries (43,200 queries/day for 2s polling)
-- ❌ 2-second delay before jobs start
+**API route problems:**
+- ❌ Vercel serverless timeout (10s for Hobby, 60s for Pro)
+- ❌ No built-in retry mechanism
+- ❌ Requires polling for status updates
+- ❌ Complex state management
 
-**LISTEN/NOTIFY benefits:**
-- ✅ Instant job notification (no delay)
-- ✅ Database can scale to zero (Neon Free plan works!)
-- ✅ Saves ~$19/month in database costs
-- ✅ Only active during actual work
-- ✅ Native PostgreSQL feature (no additional infrastructure)
+**Convex Actions benefits:**
+- ✅ 10-minute timeout (plenty for AI grading)
+- ✅ Built-in scheduler (`ctx.scheduler.runAfter()`)
+- ✅ Real-time subscriptions (UI auto-updates)
+- ✅ Serverless, no infrastructure management
+- ✅ Type-safe function references
 
-### Submission Endpoint (Triggers Worker via NOTIFY)
+### Essay Submission (Convex Mutation)
 
-**POST /api/essays/submit:**
+**`convex/essays.ts` → `submit` mutation:**
 
-1. Auth check
-2. Rate limit: 1 submission per user per 30 seconds (in-memory Map for v3, migrate to Redis for scale)
-3. Validate essay exists and belongs to user
-4. Check sufficient credits (`balance >= 1.0`)
-5. **Atomic transaction:**
-   - Reserve credit: `balance - 1.00`, `reserved + 1.00`
+1. Auth check (via `requireAuth(ctx)`)
+2. Validate essay exists and belongs to user
+3. Check sufficient credits (`balance >= 1.0`)
+4. **Atomic mutation:**
+   - Reserve credit: `balance - 1.00`, `reserved + 1.00` (via `reserveCreditForUser` helper)
    - Update essay: `status = 'submitted'`, set `submittedAt`
    - Create grade record: `status = 'queued'`
-   - **Send PostgreSQL NOTIFY (CRITICAL):**
+   - **Schedule grading action:**
      ```typescript
-     await tx.execute(sql`NOTIFY new_grade, ${grade.id}`);
+     await ctx.scheduler.runAfter(0, internal.grading.processGrade, {
+       gradeId,
+     });
      ```
-6. Return `{ gradeId }` immediately (<500ms)
+5. Return `{ essayId, gradeId }` immediately (<500ms)
 
-### Railway Worker (Event-Driven with Backup Polling)
+### Grading Action (Convex Internal Action)
 
-**Setup (`src/worker/index.ts`):**
-- Pool config: `min: 1, max: 5` (keep connection alive for LISTEN)
-- Startup sweep: Process queued grades from before restart (LISTEN/NOTIFY misses messages during deploys)
+**`convex/grading.ts` → `processGrade` action:**
 
-**LISTEN Setup (CRITICAL):**
-```typescript
-const notificationClient = await pool.connect();
-await notificationClient.query('LISTEN new_grade');
+**Key Constraint:** Actions cannot access `ctx.db` directly - must use `ctx.runQuery()` and `ctx.runMutation()` for database access.
 
-notificationClient.on('notification', async (msg) => {
-  if (msg.channel === 'new_grade') {
-    const gradeId = msg.payload;
-    await processGrade(gradeId, db);
-  }
-});
-
-notificationClient.on('error', (err) => {
-  // Reconnect logic handled by pg library
-});
-```
-
-**Backup Polling (every 5 minutes):**
-- Find grades: `status = 'queued'` AND `queuedAt < 10 minutes ago`
-- Process up to 10 stuck grades
-- Prevents stuck jobs if LISTEN/NOTIFY fails
-
-**Graceful Shutdown:**
-- Handle `SIGTERM`: Close pool, exit cleanly
-
-### Grade Processing Logic
-
-**`processGrade(gradeId, db)` (`src/worker/processGrade.ts`):**
-
-1. Fetch grade + essay
-2. Check reserved credit exists (race condition protection)
-3. Update status: `'processing'`
-4. Run 3x AI grading in parallel with retry logic
-5. Apply outlier detection
-6. Save results + clear reservation (atomic)
-7. On error: Mark failed, refund reservation
+1. Get grade + essay (via `ctx.runQuery(internal.grades.getInternal, ...)`)
+2. Update status: `'processing'` (via `ctx.runMutation(internal.grades.startProcessing, ...)`)
+3. Run 3x AI grading in parallel with retry logic
+4. Apply outlier detection
+5. Save results + clear reservation (via `ctx.runMutation(internal.grades.complete, ...)`)
+6. On error: Mark failed, refund reservation
 
 **Retry Logic with Error Classification (CRITICAL):**
 ```typescript
@@ -1003,91 +1044,47 @@ const includedScores = outlier !== null ? scores.filter(s => s !== outlier) : sc
 - **99% of essays** graded within **120 seconds**
 
 **Timeout Configuration:**
-- **Hard timeout:** 5 minutes (300 seconds) - enforced in Railway worker
-- After timeout: Grade marked as `failed`, no credit deduction (since credits aren't deducted until completion)
+- **Convex action timeout:** 10 minutes (600 seconds) - enforced by Convex platform
+- After timeout: Grade marked as `failed`, credit refunded
 
 **Retry Strategy:**
 - **3 automatic retries** on transient failures
-- **Exponential backoff:** 5s, 15s, 45s (custom implementation in Railway worker)
+- **Exponential backoff:** 5s, 15s, 45s
 - **Error Classification:**
   - **Transient errors (retry):** Network timeouts, 503 Service Unavailable, rate limits, temporary API failures
   - **Permanent errors (fail immediately):** Invalid API key, 400 Bad Request, essay too long, malformed prompt
 
-**Credit Refund Semantics:**
-- **No-hold model:** Credits are **NOT deducted until grading completes successfully**
-- **On failure:** No credit deduction occurs, so **no refund is needed** (user never lost the credit)
-- **User messaging:** Instead of "refunded", use: "Grading failed. You were not charged. Please try again."
-- **Exception:** Manual admin refunds for verified errors (creates a `refund` transaction type for audit purposes)
+**Credit Refund Semantics (Option A - "deduct at submission"):**
+- **On submit:** Credits deducted immediately (`balance -= cost`, `reserved += cost`)
+- **On success:** Reservation cleared (`reserved -= cost`, balance unchanged)
+- **On failure:** Credit refunded (`balance += cost`, `reserved -= cost`)
 
-### Client Hook (useGradeStatus)
+### Real-time Status Updates (Convex Subscriptions)
 
 **Implementation (`src/hooks/useGradeStatus.ts`):**
 
-Adaptive polling approach with variable intervals based on grade status:
+No polling needed! Convex subscriptions automatically update the UI when the grade status changes:
 
 ```typescript
-function useGradeStatus(gradeId: string) {
-  const [grade, setGrade] = useState<Grade | null>(null);
-  const [error, setError] = useState<Error | null>(null);
+export function useGradeStatus(gradeId: string) {
+  const grade = useQuery(api.grades.getById, {
+    id: gradeId as Id<'grades'>,
+  });
 
-  useEffect(() => {
-    let timeoutId: NodeJS.Timeout;
-    let cancelled = false;
-
-    async function poll() {
-      try {
-        const response = await fetch(`/api/grades/${gradeId}`);
-        if (!response.ok) throw new Error('Failed to fetch grade');
-        const data = await response.json();
-        if (cancelled) return;
-
-        setGrade(data);
-        setError(null);
-
-        // Adaptive polling intervals
-        const interval = getPollingInterval(data.status);
-        if (interval > 0) {
-          timeoutId = setTimeout(poll, interval);
-        }
-      } catch (err) {
-        if (cancelled) return;
-        setError(err as Error);
-        // Retry on error with backoff
-        timeoutId = setTimeout(poll, 5000);
-      }
-    }
-
-    poll(); // Immediate fetch on mount
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
-    };
-  }, [gradeId]);
-
-  return { grade, error, isLoading: !grade && !error };
-}
-
-function getPollingInterval(status: string): number {
-  switch (status) {
-    case 'queued':
-    case 'processing':
-      return 2000; // Fast polling (2s) while active
-    case 'complete':
-    case 'failed':
-      return 0; // Stop polling on terminal state
-    default:
-      return 5000;
-  }
+  return {
+    grade,
+    isLoading: grade === undefined,
+    isError: grade === null,
+    // No refresh needed - Convex subscriptions auto-update
+  };
 }
 ```
 
-**Key behaviors:**
-- **Immediate fetch on mount:** Syncs with database truth instantly
-- **Fast polling (2s):** While status is `queued` or `processing`
-- **Stop polling:** On terminal states (`complete` or `failed`)
-- **Error recovery:** Retry with 5s backoff on fetch errors
-- **Cleanup:** Cancel pending requests and timeouts on unmount
+**Benefits:**
+- ✅ Instant updates when grading completes (no polling delay)
+- ✅ No wasted API calls (only updates when data changes)
+- ✅ Works offline → online seamlessly
+- ✅ Type-safe with full TypeScript support
 
 ---
 
@@ -1113,11 +1110,11 @@ Use Clerk for auth only, not Organizations.
 
 ### 3. Background AI Grading
 
-AI calls run async via Railway worker (slow, need retries, status updates via adaptive polling).
+AI calls run async via Convex actions (slow, need retries, status updates via real-time subscriptions).
 
-**When NOT to use Railway worker:**
-- Stripe webhooks (synchronous)
-- User signups (synchronous)
+**When NOT to use Convex actions:**
+- Stripe webhooks (synchronous HTTP handlers)
+- User signups (synchronous mutations)
 - Other fast operations
 
 ### 4. Own Your Data
@@ -1136,7 +1133,8 @@ Stay on free tiers where possible.
 **Free tier usage:**
 - Clerk: 10k MAU
 - Sentry: 5k events/month
-- Railway: Pay-as-you-go pricing (scales with usage)
+- Convex: Free tier available (check current limits)
+- Vercel: Free tier for Next.js hosting
 
 ---
 
@@ -1147,17 +1145,17 @@ Stay on free tiers where possible.
 | Service | Launch (10 users) | Month 2 (500 users) | Notes |
 |---------|-------------------|---------------------|-------|
 | **Clerk** | Free | Free (under 10k MAU) | Authentication |
-| **Neon** | **Free** | $69/mo (Scale tier) | **LISTEN/NOTIFY allows Free plan!** |
-| **Railway** | $5/mo | $50/mo (estimated) | Web + Worker services |
+| **Convex** | Free | ~$50/mo (estimated) | Database + serverless functions |
+| **Vercel** | Free | Free (under usage limits) | Next.js hosting |
 | **Sentry** | Free | Free (under 5k events) | Error tracking |
 | **OpenRouter** | $90/mo | $4,500/mo | AI grading (3x Grok-4) |
-| **Total** | **$95/mo** | **$4,619/mo** | |
+| **Total** | **$90/mo** | **$4,550/mo** | |
 
-**Cost Savings with LISTEN/NOTIFY:**
-- Launch phase: **Free tier on Neon works** (vs $19/mo Launch plan with polling)
-- Neon only active during submissions + grading (~7 hours/month at launch)
-- Database can scale to zero between submissions
-- Savings: **$19/month** at launch, more at scale
+**Cost Benefits:**
+- Launch phase: **Free tier on Convex works** (serverless, pay-per-use)
+- Convex only charges for actual usage (function invocations, storage)
+- No infrastructure to manage (fully serverless)
+- Real-time subscriptions included (no polling overhead)
 
 ### Revenue (@ $1.00/essay)
 
@@ -1165,8 +1163,8 @@ Stay on free tiers where possible.
 |--------|--------|---------|
 | Essays/day | 10 | 500 |
 | Revenue/month | $300 | $15,000 |
-| Infrastructure | $95 | $4,619 |
-| **Profit** | **$205** | **$10,381** |
+| Infrastructure | $90 | $4,550 |
+| **Profit** | **$210** | **$10,450** |
 
 **Margin:** ~68%
 
@@ -1180,8 +1178,9 @@ NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
 CLERK_SECRET_KEY=sk_test_...
 CLERK_WEBHOOK_SECRET=whsec_...
 
-# Neon (database)
-DATABASE_URL=postgresql://...
+# Convex (database + serverless functions)
+NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
+CONVEX_DEPLOY_KEY=prod:xxx  # For CI/CD deployment
 
 # Stripe (payments)
 STRIPE_SECRET_KEY=sk_test_...
@@ -1195,7 +1194,7 @@ OPENROUTER_API_KEY=sk-or-...
 MISTRAL_API_KEY=your_mistral_api_key_here
 
 # App
-NEXT_PUBLIC_URL=http://localhost:3000
+NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
 ---
@@ -1291,7 +1290,7 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] "Back" button → Tab 2
   - [ ] "Submit" button
     - [ ] Validation (all required fields, word count)
-    - [ ] Mock: Show alert: "Backend would: Create essay record, create grade record (queued), reserve credit, send NOTIFY to worker"
+    - [ ] Mock: Show alert: "Backend would (Convex): Submit essay, reserve credit, create grade (queued), schedule grading action"
     - [ ] Redirect to `/grades/[mock-grade-id]`
 - [ ] Draft autosave
   - [ ] Mock: Save to localStorage on document upload, typing (1-2s debounce), tab blur
@@ -1304,10 +1303,10 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] Mock grade data with different statuses for testing
   - [ ] Status: `queued`
     - [ ] Show "Queued" badge
-    - [ ] Mock: Show alert: "Backend would: Start polling /api/grades/[id] every 2s"
+    - [ ] Mock: Show alert: "Backend would: Subscribe to grade via Convex (`useQuery`) and UI auto-updates"
   - [ ] Status: `processing`
     - [ ] Show "Processing" badge with progress indicator
-    - [ ] Mock: Simulate status updates, show alert: "Backend would: Poll for status updates, show progress"
+    - [ ] Mock: Simulate status updates, show alert: "Backend would: Push real-time updates via Convex subscriptions"
   - [ ] Status: `complete`
     - [ ] Display full results:
       - [ ] Grade range (percentage and letter) - convert to user's preferred scale
@@ -1381,19 +1380,18 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 **Goal:** Replace Clerk auth mocks with real Clerk integration and user database operations.
 
-- [ ] Set up Neon database (dev branch)
-- [ ] Replace `src/models/Schema.ts` with schema from design doc
-- [ ] Run migrations: `bun run db:push`
-- [ ] Clerk webhook handler (`/api/webhooks/clerk`)
-  - [ ] Verify webhook signature
-  - [ ] On `user.created`: Create user record, initialize credits, log signup bonus transaction
-  - [ ] Use atomic transactions
-- [ ] User profile API (`/api/user/profile`)
-  - [ ] GET: Fetch user profile
-  - [ ] PATCH: Update profile (name, grading scale, institution, course)
-- [ ] Replace onboarding mocks with real API calls
-- [ ] Replace settings profile mocks with real API calls
-- [ ] Test: Sign up new user, verify database records, update profile
+- [ ] Set up Convex project + env vars (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOY_KEY`)
+- [ ] Configure Clerk → Convex JWT template (audience/application ID = `convex`)
+- [ ] Configure Clerk user lifecycle webhook to Convex endpoint: `POST /clerk-webhook` (`convex/http.ts`)
+  - [ ] Verify webhook signature (Svix)
+  - [ ] On `user.created`: create user, initialize credits, log signup bonus transaction
+  - [ ] On `user.updated`: update user
+  - [ ] On `user.deleted`: cascade delete user-owned docs
+- [ ] User profile via Convex
+  - [ ] `api.users.getProfile` (query)
+  - [ ] `api.users.updateProfile` (mutation)
+- [ ] Replace onboarding/settings mocks with Convex calls
+- [ ] Test: Sign up new user, verify Convex documents, update profile
 
 ---
 
@@ -1401,13 +1399,11 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 **Goal:** Implement essay CRUD, draft autosave, and document parsing.
 
-- [ ] Essay API endpoints
-  - [ ] POST `/api/essays/submit`: Create essay, validate, create grade (queued), reserve credit
-    - [ ] Mock NOTIFY for now (just log: "Would send NOTIFY to worker")
-  - [ ] GET `/api/essays`: List user's essays (for history)
-  - [ ] GET `/api/essays/[id]`: Get single essay
-  - [ ] PATCH `/api/essays/[id]`: Update draft (autosave)
-  - [ ] DELETE `/api/essays/[id]`: Soft delete essay
+- [ ] Essay operations via Convex
+  - [ ] Draft save/load (Convex mutation/query)
+  - [ ] Submit (Convex mutation) → reserves credit + creates grade + schedules grading action
+  - [ ] History list + search/pagination (Convex query)
+  - [ ] Soft delete (Convex mutation)
 - [ ] Draft autosave
   - [ ] Debounced save on typing (1-2s)
   - [ ] Save on tab blur
@@ -1416,12 +1412,12 @@ NEXT_PUBLIC_URL=http://localhost:3000
 - [ ] Document parsing (Mistral Document AI)
   - [ ] Add Mistral SDK: `bun add @mistralai/mistralai`
   - [ ] Set up Mistral API key
-  - [ ] OCR endpoint (`/api/ocr/process`)
+  - [ ] OCR endpoint (planned: either Convex action or Next.js route under `src/app/[locale]/api/ai/*`)
     - [ ] Validate file type and size
     - [ ] Process via Mistral Document AI
     - [ ] Return markdown
   - [ ] Replace document upload mocks with real API calls
-- [ ] Title generation API (`/api/essays/generate-title`)
+- [ ] Title generation endpoint (planned: either Convex action or Next.js route under `src/app/[locale]/api/ai/*`)
   - [ ] Add Vercel AI SDK: `bun add ai @ai-sdk/openai`
   - [ ] Set up OpenRouter API key
   - [ ] Use GPT-3.5 Turbo for fast/cheap title generation
@@ -1433,12 +1429,11 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 ### Phase 5: Grading System
 
-**Goal:** Implement Railway worker, AI grading, and grade status polling.
+**Goal:** Implement Convex action grading, AI logic, and real-time grade status via subscriptions.
 
-- [ ] Railway worker setup
-  - [ ] Create `src/worker/index.ts` (LISTEN/NOTIFY + backup polling)
-  - [ ] Create `src/worker/processGrade.ts` (grading logic)
-  - [ ] Configure Railway worker service (startup command: `bun run src/worker/index.ts`)
+- [ ] Convex grading action setup
+  - [ ] `convex/grading.ts` internal action (`processGrade`)
+  - [ ] Ensure `convex/essays.ts` submit schedules the action via `ctx.scheduler.runAfter(...)`
 - [ ] AI grading implementation
   - [ ] Configure OpenRouter client (Grok-4 × 3)
   - [ ] Implement `generateObject` with Zod schema validation
@@ -1446,17 +1441,11 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] Outlier detection algorithm
   - [ ] Retry logic with exponential backoff
   - [ ] Error classification (transient vs permanent)
-- [ ] Update submission endpoint
-  - [ ] Replace mock NOTIFY with real PostgreSQL NOTIFY
-  - [ ] Send `NOTIFY new_grade, ${gradeId}`
-- [ ] Grade status endpoint (`/api/grades/[id]`)
-  - [ ] Return grade status and results
-  - [ ] Used by client for adaptive polling
-- [ ] Grade API endpoints
-  - [ ] GET `/api/grades/[id]`: Get grade status and results
-- [ ] Replace grade status UI mocks with real polling hook
+- [ ] Grade status via Convex subscriptions
+  - [ ] `api.grades.getById` query
+  - [ ] Client `useGradeStatus` hook uses `useQuery` (no polling)
 - [ ] Replace grade results UI with real data
-- [ ] Test: Submit essay, verify worker processes grade, verify polling updates, verify results display
+- [ ] Test: Submit essay, verify action processes grade, verify subscriptions update UI, verify results display
 
 ---
 
@@ -1468,16 +1457,16 @@ NEXT_PUBLIC_URL=http://localhost:3000
   - [ ] Add Stripe SDK: `bun add stripe @stripe/stripe-js`
   - [ ] Set up Stripe API keys
   - [ ] Initialize Stripe client
-- [ ] Credit API endpoints
-  - [ ] GET `/api/credits/balance`: Get user's credit balance
-  - [ ] GET `/api/credits/transactions`: Get transaction history
+- [ ] Credits via Convex
+  - [ ] `api.credits.getBalance` (query)
+  - [ ] (TODO) Add a `creditTransactions` list query for history UI
 - [ ] Stripe checkout
-  - [ ] POST `/api/payments/create-checkout`: Create Stripe checkout session
+  - [ ] Create checkout session (planned: Convex action)
   - [ ] Replace credit purchase mocks with real Stripe redirect
-- [ ] Stripe webhook (`/api/webhooks/stripe`)
+- [ ] Stripe webhook (Convex HTTP endpoint: `POST /stripe-webhook`)
   - [ ] Verify webhook signature
-  - [ ] On `checkout.session.completed`: Idempotency check, update credits, log transaction
-  - [ ] Use atomic transactions
+  - [ ] On `checkout.session.completed`: (TODO) idempotency check, update credits, log transaction
+  - [ ] Call `internal.credits.addFromPurchase`
 - [ ] Replace credit balance mocks with real API calls
 - [ ] Replace transaction history mocks with real data
 - [ ] Test: Purchase credits, verify webhook, verify balance update, verify transaction log
@@ -1512,15 +1501,11 @@ NEXT_PUBLIC_URL=http://localhost:3000
 
 **Goal:** Deploy to production and launch.
 
-- [ ] Production database setup
-  - [ ] Create Neon production branch
-  - [ ] Run migrations
-  - [ ] Initialize platform settings (signup bonus)
-- [ ] Railway deployment
-  - [ ] Deploy web service
-  - [ ] Deploy worker service
-  - [ ] Configure environment variables
-  - [ ] Verify LISTEN/NOTIFY working in production
+- [ ] Production Convex + Vercel setup
+  - [ ] Configure Vercel environment variables (including `NEXT_PUBLIC_CONVEX_URL`)
+  - [ ] Configure Convex deployment key (`CONVEX_DEPLOY_KEY`) for production deploys
+  - [ ] Configure Clerk webhook URLs to point at production Convex `/clerk-webhook`
+  - [ ] Configure Stripe webhook URL to point at production Convex `/stripe-webhook` (once implemented)
 - [ ] Stripe production setup
   - [ ] Switch to production API keys
   - [ ] Configure production webhooks
