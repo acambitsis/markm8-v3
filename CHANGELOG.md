@@ -1,3 +1,16 @@
+# [1.3.0](https://github.com/acambitsis/markm8-v3/compare/v1.2.3...v1.3.0) (2026-01-01)
+
+
+### Bug Fixes
+
+* address code review issues for Convex migration ([48faec4](https://github.com/acambitsis/markm8-v3/commit/48faec4519a3ebb57ca7f9d2a1e68b9a64b00df7))
+* address PR review issues for Convex migration ([21f01b3](https://github.com/acambitsis/markm8-v3/commit/21f01b3e7a35244137003977b3be47791ae77046))
+
+
+### Features
+
+* migrate from Neon/Drizzle to Convex ([42e1e95](https://github.com/acambitsis/markm8-v3/commit/42e1e959af5f4b55cb3576150ecda3dd5f666969))
+
 ## [1.2.3](https://github.com/acambitsis/markm8-v3/compare/v1.2.2...v1.2.3) (2025-12-23)
 
 
