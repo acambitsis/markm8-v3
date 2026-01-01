@@ -1,10 +1,11 @@
 'use client';
 
+import { useQuery } from 'convex/react';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
-import useSWR from 'swr';
 
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
@@ -17,48 +18,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import type { AssignmentBrief } from '@/models/Schema';
 
-type Essay = {
-  id: string;
-  assignmentBrief: AssignmentBrief | null;
-  submittedAt: string | null;
-  wordCount: number | null;
-  grade: {
-    id: string;
-    status: 'queued' | 'processing' | 'complete' | 'failed';
-    letterGradeRange: string | null;
-  } | null;
-};
-
-type PaginatedResponse = {
-  essays: Essay[];
-  pagination: {
-    page: number;
-    pageSize: number;
-    total: number;
-    totalPages: number;
-  };
-};
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { api } from '../../../convex/_generated/api';
 
 export function EssayHistoryTable() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
-  const { data, isLoading } = useSWR<PaginatedResponse>(
-    `/api/essays/list?page=${page}&search=${encodeURIComponent(search)}`,
-    fetcher,
-  );
+  const data = useQuery(api.essays.list, { page, search: search || undefined });
 
   const handleSearch = useCallback(() => {
     setSearch(searchInput);
     setPage(1);
   }, [searchInput]);
 
-  if (isLoading) {
+  if (data === undefined) {
     return (
       <div className="flex items-center justify-center py-12">
         <Loader2 className="size-8 animate-spin text-muted-foreground" />
@@ -66,8 +42,8 @@ export function EssayHistoryTable() {
     );
   }
 
-  const essays = data?.essays ?? [];
-  const pagination = data?.pagination;
+  const essays = data.essays;
+  const pagination = data.pagination;
 
   return (
     <div className="space-y-4">
@@ -114,11 +90,11 @@ export function EssayHistoryTable() {
                 <TableBody>
                   {essays.map(essay => (
                     <TableRow
-                      key={essay.id}
+                      key={essay._id}
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => {
                         if (essay.grade) {
-                          window.location.href = `/grades/${essay.grade.id}`;
+                          router.push(`/grades/${essay.grade._id}`);
                         }
                       }}
                     >
@@ -131,7 +107,7 @@ export function EssayHistoryTable() {
                         {essay.grade
                           ? (
                               <Link
-                                href={`/grades/${essay.grade.id}`}
+                                href={`/grades/${essay.grade._id}`}
                                 className="hover:underline"
                               >
                                 {essay.assignmentBrief?.title ?? 'Untitled'}
@@ -156,7 +132,7 @@ export function EssayHistoryTable() {
           )}
 
       {/* Pagination */}
-      {pagination && pagination.totalPages > 1 && (
+      {pagination.totalPages > 1 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             Showing

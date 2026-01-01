@@ -9,7 +9,7 @@ export const Env = createEnv({
   skipValidation,
   server: {
     CLERK_SECRET_KEY: z.string().min(1),
-    DATABASE_URL: z.string().optional(),
+    CONVEX_DEPLOY_KEY: z.string().optional(), // For Convex deployment
     LOGTAIL_SOURCE_TOKEN: z.string().optional(),
     // Stripe keys optional for Phase 1 (will be required in Phase 3)
     STRIPE_SECRET_KEY: z.string().min(1).optional(),
@@ -21,6 +21,7 @@ export const Env = createEnv({
   },
   client: {
     NEXT_PUBLIC_APP_URL: z.string().optional(),
+    NEXT_PUBLIC_CONVEX_URL: z.string().min(1), // Convex deployment URL
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1),
     // Stripe publishable key optional for Phase 1 (will be required in Phase 3)
@@ -33,7 +34,7 @@ export const Env = createEnv({
   // You need to destructure all the keys manually
   runtimeEnv: {
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
-    DATABASE_URL: process.env.DATABASE_URL,
+    CONVEX_DEPLOY_KEY: process.env.CONVEX_DEPLOY_KEY,
     LOGTAIL_SOURCE_TOKEN: process.env.LOGTAIL_SOURCE_TOKEN,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
@@ -42,6 +43,7 @@ export const Env = createEnv({
     MISTRAL_API_KEY: process.env.MISTRAL_API_KEY,
     CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+    NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY,
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL,

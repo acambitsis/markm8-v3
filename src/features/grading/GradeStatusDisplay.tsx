@@ -9,10 +9,11 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { GradeResults } from '@/features/grading/GradeResults';
 import { useGradeStatus } from '@/hooks/useGradeStatus';
-import type { AssignmentBrief, GradeFeedback, ModelResult, PercentageRange } from '@/models/Schema';
+
+import type { Id } from '../../../convex/_generated/dataModel';
 
 type Props = {
-  gradeId: string;
+  gradeId: Id<'grades'>;
 };
 
 export function GradeStatusDisplay({ gradeId }: Props) {
@@ -41,7 +42,7 @@ export function GradeStatusDisplay({ gradeId }: Props) {
   }
 
   const { status, essay } = grade;
-  const essayTitle = (essay?.assignmentBrief as AssignmentBrief | null)?.title ?? 'Your Essay';
+  const essayTitle = essay?.assignmentBrief?.title ?? 'Your Essay';
 
   // Queued Status
   if (status === 'queued') {
@@ -138,12 +139,14 @@ export function GradeStatusDisplay({ gradeId }: Props) {
         </Card>
 
         {/* Grade Results */}
-        <GradeResults
-          letterGradeRange={grade.letterGradeRange!}
-          percentageRange={grade.percentageRange as PercentageRange}
-          feedback={grade.feedback as GradeFeedback}
-          modelResults={grade.modelResults as ModelResult[]}
-        />
+        {grade.letterGradeRange && grade.percentageRange && grade.feedback && grade.modelResults && (
+          <GradeResults
+            letterGradeRange={grade.letterGradeRange}
+            percentageRange={grade.percentageRange}
+            feedback={grade.feedback}
+            modelResults={grade.modelResults}
+          />
+        )}
       </div>
     );
   }

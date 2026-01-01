@@ -14,6 +14,7 @@ test.describe('I18n', () => {
     });
 
     // Skip in CI - Clerk sign-in pages depend on external resources that timeout
+    // eslint-disable-next-line playwright/no-skipped-test
     test.skip('should switch language from English to French using URL and verify text on the sign-in page', async ({ page }) => {
       await page.goto('/sign-in');
 

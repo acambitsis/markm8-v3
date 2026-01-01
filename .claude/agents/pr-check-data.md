@@ -1,14 +1,14 @@
 ---
 name: pr-check-data
-description: Validates database schema, queries, API routes, transactions, and data handling patterns in PR changes
+description: Validates Convex schema, queries, mutations, indexes, and data handling patterns in PR changes
 tools: Read, Grep, Glob, Bash
 ---
 
-# PR Validation: Database & API Patterns
+# PR Validation: Convex Data Patterns
 
-**Purpose:** Validate that database schema, queries, API routes, and data handling follow project patterns.
+**Purpose:** Validate that Convex schema, queries, mutations, and data handling follow project patterns.
 
-**When to use:** Run on PRs that touch database schema, API routes, or data operations.
+**When to use:** Run on PRs that touch Convex schema, functions, or data operations.
 
 ---
 
@@ -21,8 +21,8 @@ tools: Read, Grep, Glob, Bash
 ## Exception Annotations
 
 ```typescript
-// @pr-check-ignore: no-timestamps — Lookup table, immutable after creation
-export const countries = pgTable('countries', { ... });
+// @pr-check-ignore: no-index — Small table, full scan acceptable
+const results = await ctx.db.query('settings').collect();
 ```
 
 ---
@@ -30,7 +30,7 @@ export const countries = pgTable('countries', { ... });
 ## Instructions for Validator
 
 1. Get the list of changed files in this PR
-2. Identify files involving: schema changes, database queries, API routes, transactions
+2. Identify files involving: schema changes, Convex functions, data operations
 3. Apply the principles below to each relevant file
 4. Report violations with confidence level and file:line reference
 
@@ -38,376 +38,499 @@ export const countries = pgTable('countries', { ... });
 
 ## Principle 1: Schema Location
 
-**Core Principle:** All database schema definitions must be in a single source of truth.
+**Core Principle:** All Convex schema definitions must be in `convex/schema.ts`.
 
 ### Detection Pattern
 
 ```typescript
-// DEFINITE VIOLATION — Schema defined outside Schema.ts
-// File: src/features/essays/models.ts
-export const essays = pgTable('essays', { ... });  // Wrong location!
+// DEFINITE VIOLATION — Schema defined outside schema.ts
+// File: convex/essays.ts
+import { defineTable } from 'convex/server';
+const essays = defineTable({ ... });  // Wrong location!
 
 // CORRECT — All schema in one file
-// File: src/models/Schema.ts
-export const essays = pgTable('essays', { ... });
+// File: convex/schema.ts
+import { defineSchema, defineTable } from 'convex/server';
+
+export default defineSchema({
+  essays: defineTable({ ... }),
+});
 ```
 
 ### Detection Heuristic
 
-1. Search for `pgTable(`, `pgEnum(` outside of `src/models/Schema.ts`
+1. Search for `defineTable(`, `defineSchema(` outside of `convex/schema.ts`
 2. Any match is a DEFINITE violation
 
 ---
 
-## Principle 2: User-Owned Table Structure
+## Principle 2: User-Owned Document Structure
 
-**Core Principle:** Tables representing user-owned resources must have standard columns for ownership, auditing, and soft-delete.
+**Core Principle:** Documents representing user-owned resources must have required fields and proper indexes.
 
-### How to Identify User-Owned Tables
+### How to Identify User-Owned Documents
 
-A table is "user-owned" if it has a `userId` foreign key to the users table:
+A document is "user-owned" if it has a `userId` field referencing the users table:
 
 ```typescript
-userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull()
+userId: v.id('users'),
 ```
 
-### Required Columns for User-Owned Tables
+### Required Fields for User-Owned Documents
 
 ```typescript
-// DEFINITE VIOLATION — User-owned table missing required columns
-export const essays = pgTable('essays', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => users.id).notNull(),
-  title: text('title'),
-  // Missing: createdAt, updatedAt
-});
+// DEFINITE VIOLATION — User-owned document missing required fields
+essays: defineTable({
+  userId: v.id('users'),
+  title: v.string(),
+  // Missing: indexes for user queries!
+}),
 
-// CORRECT — All required columns present
-export const essays = pgTable('essays', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  // ... business columns ...
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
-```
-
-### Detection Heuristic
-
-For tables with `userId` column:
-1. Check for `createdAt` and `updatedAt` columns
-2. Check `userId` has `.notNull()` and `onDelete: 'cascade'`
-3. Missing any = DEFINITE violation
-
-### Exempt Tables (no userId = not user-owned)
-
-```typescript
-// These are lookup/config tables — exempt from user-owned rules
-export const countries = pgTable('countries', { ... });  // No userId = OK
-export const systemSettings = pgTable('system_settings', { ... });  // No userId = OK
-```
-
----
-
-## Principle 3: Naming Conventions
-
-**Core Principle:** Consistent naming enables automated tooling and reduces cognitive load.
-
-### Conventions
-
-| Element | Convention | Detection |
-|---------|------------|-----------|
-| Table names | snake_case plural | `pgTable('essay')` → VIOLATION (singular) |
-| Column names | snake_case | `userId` in DB → VIOLATION (use `user_id`) |
-| Enum names | snake_case | `EssayStatus` → VIOLATION (use `essay_status`) |
-| TypeScript exports | PascalCase | `export const essay = ...` → LIKELY violation |
-
-### Detection Pattern
-
-```typescript
-// LIKELY VIOLATION — Singular table name
-export const essay = pgTable('essay', { ... });  // Should be 'essays'
-
-// LIKELY VIOLATION — camelCase in database
-createdAt: timestamp('createdAt')  // Should be 'created_at'
-
-// CORRECT
-export const essays = pgTable('essays', {
-  createdAt: timestamp('created_at'),
-});
-```
-
----
-
-## Principle 4: Status Fields Use Enums
-
-**Core Principle:** Status fields with finite values must use PostgreSQL enums for type safety.
-
-### Detection Pattern
-
-```typescript
-// LIKELY VIOLATION — String for status field
-status: text('status').notNull().default('draft'),  // Should be enum
-
-// CORRECT — Enum for status
-export const essayStatusEnum = pgEnum('essay_status', ['draft', 'submitted', 'archived']);
-status: essayStatusEnum('status').notNull().default('draft'),
+// CORRECT — Proper structure with indexes
+essays: defineTable({
+  userId: v.id('users'),
+  status: v.union(v.literal('draft'), v.literal('submitted'), v.literal('archived')),
+  // ... business fields ...
+  deletedAt: v.optional(v.number()),  // For soft delete
+})
+  .index('by_user_id', ['userId'])
+  .index('by_user_status', ['userId', 'status']),
 ```
 
 ### Detection Heuristic
 
-1. Find columns named `status`, `state`, `type` with `text()` type
-2. If column has `.default()` with one of a few values, LIKELY should be enum
-3. Flag as LIKELY — may be intentional for extensibility
+For documents with `userId` field:
+1. Check for index including `userId` (for efficient user-scoped queries)
+2. Check for `deletedAt` if soft-delete is used elsewhere
+3. Missing index = LIKELY violation (may be intentional for small tables)
+
+### Exempt Documents (no userId = not user-owned)
+
+```typescript
+// These are lookup/config documents — exempt from user-owned rules
+platformSettings: defineTable({ ... }),  // No userId = OK
+```
 
 ---
 
-## Principle 5: Query Builder Over Raw SQL
+## Principle 3: Index Strategy
 
-**Core Principle:** Use type-safe query builder unless raw SQL is necessary for performance.
+**Core Principle:** Queries should use indexes, not full table scans.
 
 ### Detection Pattern
 
 ```typescript
-// POSSIBLE VIOLATION — Raw SQL when query builder would work
-await db.execute(sql`SELECT * FROM essays WHERE user_id = ${userId}`);
-
-// CORRECT — Type-safe query builder
-await db.query.essays.findMany({
-  where: eq(essays.userId, userId),
+// LIKELY VIOLATION — Query without index
+export const getEssays = query({
+  handler: async (ctx) => {
+    return await ctx.db.query('essays')
+      .filter(q => q.eq(q.field('status'), 'submitted'))  // No index!
+      .collect();
+  },
 });
+
+// CORRECT — Using index
+export const getEssays = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+    return await ctx.db.query('essays')
+      .withIndex('by_user_status', q => q.eq('userId', userId).eq('status', 'submitted'))
+      .collect();
+  },
+});
+```
+
+### Index Best Practices
+
+```typescript
+// Composite indexes — order matters!
+// Query: userId + status
+.index('by_user_status', ['userId', 'status'])  // Can query userId alone or userId + status
+
+// NOT: status first (can't efficiently query just userId)
+.index('by_status_user', ['status', 'userId'])  // Only efficient for status-first queries
 ```
 
 ### Detection Heuristic
 
-1. Find `db.execute(sql` usages
-2. Check if the query could be expressed with query builder
-3. Flag as POSSIBLE — raw SQL may be intentional for complex queries
-
-### Valid Uses of Raw SQL
-
-- Complex joins not supported by query builder
-- Performance-critical queries with specific optimizations
-- Database-specific features (must be annotated)
+1. Find `.filter()` on queries without preceding `.withIndex()`
+2. Flag as LIKELY — may be acceptable for small tables or rare queries
+3. Check schema has appropriate index for the filter conditions
 
 ---
 
-## Principle 6: Soft Delete Filtering
+## Principle 4: Soft Delete Filtering
 
-**Core Principle:** Queries on soft-deletable tables must filter out deleted records unless explicitly fetching them.
+**Core Principle:** Queries on soft-deletable documents must filter out deleted records unless explicitly fetching them.
 
 ### Detection Pattern
 
 ```typescript
-// LIKELY VIOLATION — Not filtering deleted records
-const essays = await db.query.essays.findMany({
-  where: eq(essays.userId, userId),
-  // Missing: isNull(essays.deletedAt)
+// LIKELY VIOLATION — Not filtering soft-deleted records
+export const getEssays = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+    return await ctx.db.query('essays')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      // Missing: filter for deletedAt
+      .collect();
+  },
 });
 
 // CORRECT — Filter soft-deleted records
-const essays = await db.query.essays.findMany({
-  where: and(
-    eq(essays.userId, userId),
-    isNull(essays.deletedAt),
-  ),
+export const getEssays = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+    return await ctx.db.query('essays')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      .filter(q => q.eq(q.field('deletedAt'), undefined))
+      .collect();
+  },
 });
 
 // CORRECT — Explicitly fetching deleted (annotated)
 // @pr-check-ignore: include-deleted — Admin recovery endpoint
-const essays = await db.query.essays.findMany({
-  where: eq(essays.userId, userId),  // Intentionally including deleted
-});
+export const getDeletedEssays = query({ ... });
 ```
 
 ### Detection Heuristic
 
-1. Check if queried table has `deletedAt` column (check Schema.ts)
-2. If yes, check if query includes `isNull(table.deletedAt)`
+1. Check if queried document type has `deletedAt` field (check schema.ts)
+2. If yes, check if query includes filter for `deletedAt === undefined`
 3. Missing = LIKELY violation (may be intentional for admin/recovery)
 
 ---
 
-## Principle 7: Transaction Atomicity
+## Principle 5: Bounded Queries
 
-**Core Principle:** Operations that must succeed or fail together must be wrapped in a transaction.
+**Core Principle:** List queries must be bounded to prevent unbounded result sets.
 
 ### Detection Pattern
 
 ```typescript
-// DEFINITE VIOLATION — Related operations outside transaction
-await db.update(credits).set({ balance: sql`balance - 1.00` });
-await db.update(essays).set({ status: 'submitted' });  // If this fails, credits gone!
-
-// CORRECT — Atomic transaction
-await db.transaction(async (tx) => {
-  await tx.update(credits).set({ balance: sql`balance - 1.00` });
-  await tx.update(essays).set({ status: 'submitted' });
+// LIKELY VIOLATION — Unbounded collect
+export const getAllEssays = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+    return await ctx.db.query('essays')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      .collect();  // Could return thousands!
+  },
 });
 
-// DEFINITE VIOLATION — Using db inside transaction instead of tx
-await db.transaction(async (tx) => {
-  await db.update(credits).set({ ... });  // Wrong! Should use tx
-  await tx.update(essays).set({ ... });
+// CORRECT — Use take() for limits
+export const getRecentEssays = query({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+    return await ctx.db.query('essays')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      .order('desc')
+      .take(10);  // Bounded!
+  },
+});
+
+// CORRECT — Pagination pattern
+export const getEssaysPaginated = query({
+  args: { page: v.number(), pageSize: v.number() },
+  handler: async (ctx, { page, pageSize }) => {
+    const userId = await requireAuth(ctx);
+    const essays = await ctx.db.query('essays')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      .collect();  // For pagination, collect then slice
+
+    const start = (page - 1) * pageSize;
+    return {
+      essays: essays.slice(start, start + pageSize),
+      total: essays.length,
+    };
+  },
 });
 ```
 
 ### Detection Heuristic
 
-1. Find sequences of `db.update`, `db.insert`, `db.delete` in same function
-2. If they affect related data (same userId, FK relationships), check for transaction
-3. Inside transaction blocks, verify all calls use `tx`, not `db`
-
-### Operations That Require Transactions
-
-- Credit operations (reserve, deduct, refund) with related record updates
-- Essay submission (update essay + create grade + reserve credit)
-- Any operation where partial failure would leave inconsistent state
+1. Find `.collect()` calls without `.take()` limit
+2. Flag as LIKELY — may be acceptable for known-small datasets
+3. Valid exceptions: user's drafts (typically < 5), config data
 
 ---
 
-## Principle 8: Credit Operation Flow
+## Principle 6: Mutation Atomicity
 
-**Core Principle:** Credit operations follow reserve → consume/refund pattern for safety.
+**Core Principle:** Related operations that must succeed or fail together should be in a single mutation.
+
+### Detection Pattern
+
+```typescript
+// LIKELY VIOLATION — Related operations split across functions
+// Client code:
+await deductCredits();  // If this succeeds...
+await createGrade();    // ...but this fails, credits gone!
+
+// CORRECT — Single atomic mutation
+export const submit = mutation({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+
+    // All in one mutation = atomic
+    await ctx.db.patch(creditsId, { balance: newBalance });
+    await ctx.db.patch(essayId, { status: 'submitted' });
+    const gradeId = await ctx.db.insert('grades', { ... });
+
+    return { gradeId };
+  },
+});
+```
+
+### Convex Atomicity Rules
+
+- **Mutations** are atomic — all operations succeed or all fail
+- **Actions** are NOT atomic — each `ctx.runMutation()` is separate
+- **Queries** are point-in-time consistent reads
+
+### Detection Heuristic
+
+1. Look for multiple `useMutation()` calls in sequence in client code
+2. If they modify related data (credits + essays), should be combined
+3. Flag as LIKELY — may be intentional for independent operations
+
+---
+
+## Principle 7: Credit Operation Flow
+
+**Core Principle:** Credit operations follow a consistent pattern for safety.
 
 ### The Credit Flow
 
 ```
 Submission:
-  balance - 1.00, reserved + 1.00  (move to held)
+  balance - 1.00 (deduct at submission, atomic with essay update)
 
 Success:
-  reserved - 1.00  (consume the held credit)
+  No change (credit already deducted)
 
 Failure:
-  balance + 1.00, reserved - 1.00  (return to available)
+  balance + 1.00 (refund in action's catch block)
 ```
 
 ### Detection Pattern
 
 ```typescript
-// LIKELY VIOLATION — Deducting without reservation
-await tx.update(credits).set({
-  balance: sql`balance - 1.00`,  // Direct deduction, no reservation!
+// CORRECT — Credit deduction at submission (in mutation)
+export const submit = mutation({
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+
+    // Get current balance
+    const credits = await ctx.db.query('credits')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      .unique();
+
+    if (!credits || parseFloat(credits.balance) < 1.00) {
+      throw new Error('Insufficient credits');
+    }
+
+    // Deduct atomically
+    await ctx.db.patch(credits._id, {
+      balance: subtractDecimal(credits.balance, '1.00'),
+    });
+
+    // Create grade in same mutation
+    const gradeId = await ctx.db.insert('grades', { ... });
+    return { gradeId };
+  },
 });
 
-// CORRECT — Reserve pattern
-// At submission
-await tx.update(credits).set({
-  balance: sql`balance - 1.00`,
-  reserved: sql`reserved + 1.00`,
-});
-
-// On success (in worker)
-await db.update(credits).set({
-  reserved: sql`reserved - 1.00`,
-});
-// Note: Balance was moved to reserved at submission; clearing reserved consumes the credit
-
-// On failure (in worker)
-await db.update(credits).set({
-  balance: sql`balance + 1.00`,
-  reserved: sql`reserved - 1.00`,
+// CORRECT — Refund on failure (in action)
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    try {
+      // ... AI processing ...
+      await ctx.runMutation(internal.grades.complete, { gradeId });
+    } catch (error) {
+      // Refund credit on failure
+      await ctx.runMutation(internal.grades.fail, { gradeId });
+      // fail mutation includes: balance + 1.00
+    }
+  },
 });
 ```
 
 ### Detection Heuristic
 
 1. Find credit balance modifications
-2. Check if they follow the reserve pattern
-3. Verify success path clears reserved, failure path refunds
+2. Check they follow the deduct-at-submission, refund-on-failure pattern
+3. Verify refund logic exists in action error handlers
 
 ---
 
-## Principle 9: API Response Consistency
+## Principle 8: Validators Match Schema
 
-**Core Principle:** API responses follow a consistent format for client predictability.
-
-### Standard Format
-
-```typescript
-// Success responses
-return NextResponse.json({ data: result });
-return NextResponse.json({ data: { id, status } });
-
-// Error responses — always include status code
-return NextResponse.json({ error: 'Not found' }, { status: 404 });
-return NextResponse.json({ error: 'Invalid input' }, { status: 400 });
-```
+**Core Principle:** Argument validators should match schema field types.
 
 ### Detection Pattern
 
 ```typescript
-// LIKELY VIOLATION — Inconsistent response format
-return NextResponse.json({ message: 'Error' });  // Use 'error' not 'message'
-return NextResponse.json({ errors: ['Error'] });  // Use 'error' string, not array
-return NextResponse.json({ result: data });  // Use 'data' not 'result'
+// DEFINITE VIOLATION — Validator doesn't match schema
+// Schema: status: v.union(v.literal('draft'), v.literal('submitted'))
+export const updateStatus = mutation({
+  args: {
+    status: v.string(),  // Should be union, not string!
+  },
+  handler: async (ctx, { status }) => { ... },
+});
 
-// DEFINITE VIOLATION — Error without status code
-return NextResponse.json({ error: 'Not found' });  // Missing { status: 404 }
+// CORRECT — Validator matches schema
+export const updateStatus = mutation({
+  args: {
+    status: v.union(v.literal('draft'), v.literal('submitted')),
+  },
+  handler: async (ctx, { status }) => { ... },
+});
+```
+
+### Reusable Validators
+
+```typescript
+// CORRECT — Define validators once in schema.ts or shared file
+const statusValidator = v.union(
+  v.literal('draft'),
+  v.literal('submitted'),
+  v.literal('archived'),
+);
+
+// Reuse in functions
+args: { status: statusValidator }
 ```
 
 ### Detection Heuristic
 
-1. Find all `NextResponse.json()` calls
-2. Check success responses use `{ data: ... }`
-3. Check error responses use `{ error: string }` with status code
+1. Compare function `args` validators with schema field definitions
+2. Looser validators (e.g., `v.string()` vs `v.union()`) = LIKELY violation
+3. May be intentional for partial updates or flexibility
 
 ---
 
-## Principle 10: Pagination for List Queries
+## Principle 9: Action Database Access
 
-**Core Principle:** List queries must be paginated to prevent unbounded result sets.
+**Core Principle:** Actions must use `ctx.runQuery()` and `ctx.runMutation()` for database access, not direct `ctx.db`.
 
 ### Detection Pattern
 
 ```typescript
-// LIKELY VIOLATION — Unbounded list query
-const essays = await db.query.essays.findMany({
-  where: eq(essays.userId, userId),
-  // Missing: limit
+// DEFINITE VIOLATION — Direct db access in action
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    const grade = await ctx.db.get(gradeId);  // WRONG! Actions can't use ctx.db
+    // ...
+  },
 });
 
-// CORRECT — Paginated query
-const essays = await db.query.essays.findMany({
-  where: eq(essays.userId, userId),
-  limit: 20,
-  offset: page * 20,
-  orderBy: desc(essays.createdAt),
+// CORRECT — Use internal queries/mutations
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    const grade = await ctx.runQuery(internal.grades.getInternal, { gradeId });
+    // ...
+    await ctx.runMutation(internal.grades.complete, { gradeId, results });
+  },
 });
 ```
 
 ### Detection Heuristic
 
-1. Find `findMany()` calls without `limit`
-2. Flag as LIKELY — may be intentional for small datasets or exports
-3. Verify use case if flagged
+1. Find `internalAction` or `action` definitions
+2. Check for `ctx.db` usage — always a DEFINITE violation
+3. Must use `ctx.runQuery()` and `ctx.runMutation()` instead
 
-### Valid Exceptions
+---
 
-- Admin export endpoints (annotated)
-- Known small datasets (e.g., user's active drafts, typically < 10)
+## Principle 10: Decimal Precision
+
+**Core Principle:** Credit amounts must be stored as strings and use decimal helpers.
+
+### Detection Pattern
+
+```typescript
+// DEFINITE VIOLATION — Using number for credits
+balance: credits.balance - 1.0,  // Floating point errors!
+
+// DEFINITE VIOLATION — Direct string arithmetic
+balance: (parseFloat(credits.balance) - 1.0).toString(),  // Precision loss!
+
+// CORRECT — Use decimal helpers
+import { subtractDecimal, addDecimal, isGreaterOrEqual } from './lib/decimal';
+
+balance: subtractDecimal(credits.balance, '1.00'),
+// Returns: "2.50" from "3.50" - "1.00"
+```
+
+### Detection Heuristic
+
+1. Find operations on credit `balance` or `amount` fields
+2. Check they use decimal helpers, not arithmetic operators
+3. Flag as DEFINITE if using `+`, `-`, `*`, `/` directly on credit values
+
+---
+
+## Principle 11: Scheduled Function Patterns
+
+**Core Principle:** Scheduled functions should be idempotent and handle duplicates.
+
+### Detection Pattern
+
+```typescript
+// LIKELY VIOLATION — Non-idempotent scheduled function
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    // No check if already processing!
+    await ctx.runMutation(internal.grades.startProcessing, { gradeId });
+    // ...
+  },
+});
+
+// CORRECT — Check state before processing
+export const processGrade = internalAction({
+  handler: async (ctx, { gradeId }) => {
+    const grade = await ctx.runQuery(internal.grades.getInternal, { gradeId });
+
+    // Skip if already processed or processing
+    if (grade.status !== 'queued') {
+      console.log('Grade already processed, skipping');
+      return;
+    }
+
+    await ctx.runMutation(internal.grades.startProcessing, { gradeId });
+    // ...
+  },
+});
+```
+
+### Detection Heuristic
+
+1. Find `ctx.scheduler.runAfter()` calls and their target functions
+2. Check target functions verify state before mutating
+3. Flag as LIKELY if no state check at beginning
 
 ---
 
 ## Output Format
 
 ```
-## Data & API Validation Results
+## Data & Schema Validation Results
 
 ### DEFINITE Violations
-- `src/features/essays/model.ts:15` — [PRINCIPLE 1] Schema defined outside Schema.ts
-- `src/app/api/essays/route.ts:42` — [PRINCIPLE 7] Related operations not in transaction
+- `convex/essays.ts:15` — [PRINCIPLE 9] Direct ctx.db access in action
+- `convex/credits.ts:42` — [PRINCIPLE 10] Credit arithmetic without decimal helpers
 
 ### LIKELY Violations
-- `src/models/Schema.ts:67` — [PRINCIPLE 4] Status field uses text instead of enum
-- `src/app/api/essays/route.ts:30` — [PRINCIPLE 6] Query missing deletedAt filter
+- `convex/schema.ts:67` — [PRINCIPLE 2] User-owned document missing userId index
+- `convex/essays.ts:30` — [PRINCIPLE 4] Query missing deletedAt filter
 
 ### POSSIBLE Violations
-- `src/libs/Reports.ts:55` — [PRINCIPLE 5] Raw SQL could use query builder
+- `convex/grades.ts:55` — [PRINCIPLE 5] Unbounded collect, verify dataset is small
 
 ### Exceptions Found
-- `src/models/Schema.ts:120` — @pr-check-ignore: no-timestamps — "Lookup table" ✓ Valid
+- `convex/settings.ts:20` — @pr-check-ignore: no-index — "Config table, < 10 records" ✓ Valid
 
 ### Passed
 - [list of files that passed]
@@ -424,11 +547,11 @@ X files reviewed
 ## Maintenance Notes
 
 **When to update this agent:**
-- New table types introduced → Verify Principle 2 categorization handles them
-- Response format conventions change → Update Principle 9
-- New transaction patterns needed → Add to Principle 7 examples
+- New document types introduced → Verify Principle 2 handles them
+- Credit flow changes → Update Principle 7
+- New Convex features used → Add relevant principle
 
 **This agent should NOT contain:**
-- Hardcoded table names (derive from schema patterns)
-- Hardcoded column lists (derive from table structure)
+- Hardcoded document names (derive from schema patterns)
+- Hardcoded field lists (derive from document structure)
 - Framework version-specific patterns (reference CLAUDE.md)

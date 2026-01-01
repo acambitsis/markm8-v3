@@ -1,45 +1,25 @@
 'use client';
 
+import { useQuery } from 'convex/react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
-import useSWR from 'swr';
 
 import { StatusBadge } from '@/components/StatusBadge';
-import type { AssignmentBrief } from '@/models/Schema';
 
-type Essay = {
-  id: string;
-  assignmentBrief: AssignmentBrief | null;
-  submittedAt: string | null;
-  grade: {
-    id: string;
-    status: 'queued' | 'processing' | 'complete' | 'failed';
-    letterGradeRange: string | null;
-  } | null;
-};
-
-const fetcher = (url: string) => fetch(url).then(res => res.json());
+import { api } from '../../../convex/_generated/api';
 
 export function RecentEssays() {
-  const { data, isLoading } = useSWR<{ essays: Essay[] }>(
-    '/api/essays/recent',
-    fetcher,
-  );
+  const essays = useQuery(api.essays.recent);
 
-  if (isLoading) {
+  if (essays === undefined) {
     return (
       <div className="space-y-3">
         {[1, 2, 3].map(i => (
-          <div
-            key={i}
-            className="h-16 animate-pulse rounded-lg bg-muted"
-          />
+          <div key={i} className="h-16 animate-pulse rounded-lg bg-muted" />
         ))}
       </div>
     );
   }
-
-  const essays = data?.essays ?? [];
 
   if (essays.length === 0) {
     return (
@@ -53,8 +33,8 @@ export function RecentEssays() {
     <div className="space-y-3">
       {essays.map(essay => (
         <Link
-          key={essay.id}
-          href={essay.grade ? `/grades/${essay.grade.id}` : '#'}
+          key={essay._id}
+          href={essay.grade ? `/grades/${essay.grade._id}` : '#'}
           className="block rounded-lg border p-4 transition-colors hover:bg-muted/50"
         >
           <div className="flex items-center justify-between">
@@ -64,13 +44,17 @@ export function RecentEssays() {
               </div>
               <div className="text-sm text-muted-foreground">
                 {essay.submittedAt
-                  ? formatDistanceToNow(new Date(essay.submittedAt), { addSuffix: true })
+                  ? formatDistanceToNow(new Date(essay.submittedAt), {
+                    addSuffix: true,
+                  })
                   : 'Draft'}
               </div>
             </div>
             <div className="flex items-center gap-3">
               {essay.grade?.letterGradeRange && (
-                <span className="font-semibold">{essay.grade.letterGradeRange}</span>
+                <span className="font-semibold">
+                  {essay.grade.letterGradeRange}
+                </span>
               )}
               {essay.grade && <StatusBadge status={essay.grade.status} />}
             </div>

@@ -41,7 +41,8 @@ export function FocusAreasTab({ focusAreas, onUpdate }: Props) {
 
       <div className="space-y-3">
         {focusAreas.map((area, index) => (
-          <div key={`focus-area-${index}`} className="flex items-center gap-2">
+          // eslint-disable-next-line react/no-array-index-key
+          <div key={`focus-area-${index}-${area.slice(0, 10)}`} className="flex items-center gap-2">
             <Input
               placeholder={`e.g., ${index === 0 ? 'Thesis statement clarity' : index === 1 ? 'APA citation format' : 'Counter-argument strength'}`}
               maxLength={100}

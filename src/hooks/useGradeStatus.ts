@@ -1,62 +1,26 @@
-import useSWR from 'swr';
+'use client';
 
-import type { AssignmentBrief, GradeFeedback, ModelResult, PercentageRange } from '@/models/Schema';
+import { useQuery } from 'convex/react';
 
-type GradeStatus = 'queued' | 'processing' | 'complete' | 'failed';
+import { api } from '../../convex/_generated/api';
+import type { Id } from '../../convex/_generated/dataModel';
 
-type GradeData = {
-  id: string;
-  essayId: string;
-  status: GradeStatus;
-  letterGradeRange: string | null;
-  percentageRange: PercentageRange | null;
-  feedback: GradeFeedback | null;
-  modelResults: ModelResult[] | null;
-  errorMessage: string | null;
-  queuedAt: string;
-  startedAt: string | null;
-  completedAt: string | null;
-  createdAt: string;
-  essay: {
-    id: string;
-    assignmentBrief: AssignmentBrief | null;
-    wordCount: number | null;
-    submittedAt: string | null;
-  } | null;
-};
-
-const fetcher = (url: string) => fetch(url).then((res) => {
-  if (!res.ok) {
-    throw new Error('Failed to fetch grade');
-  }
-  return res.json();
-});
-
-export function useGradeStatus(gradeId: string) {
-  const { data, error, isLoading, mutate } = useSWR<GradeData>(
-    `/api/grades/${gradeId}`,
-    fetcher,
-    {
-      // Fast polling (2s) while queued or processing
-      // Stop polling when complete or failed
-      refreshInterval: (data) => {
-        if (!data) {
-          return 2000;
-        }
-        if (data.status === 'queued' || data.status === 'processing') {
-          return 2000;
-        }
-        return 0; // Stop polling
-      },
-      revalidateOnFocus: true,
-    },
-  );
+/**
+ * Hook to get grade status and results
+ * Uses Convex real-time subscription - no polling needed!
+ * The UI will automatically update when the grade status changes
+ */
+export function useGradeStatus(gradeId: Id<'grades'>) {
+  const grade = useQuery(api.grades.getById, {
+    id: gradeId,
+  });
 
   return {
-    grade: data,
-    isLoading,
-    isError: !!error,
-    error,
-    refresh: mutate,
+    grade,
+    isLoading: grade === undefined,
+    isError: grade === null,
+    // No refresh needed - Convex subscriptions auto-update
+    // When the grading action completes, this hook will automatically
+    // receive the updated grade with status: 'complete' or 'failed'
   };
 }

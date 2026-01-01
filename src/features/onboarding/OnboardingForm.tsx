@@ -1,5 +1,6 @@
 'use client';
 
+import { useMutation } from 'convex/react';
 import { Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -16,7 +17,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
-type GradingScale = 'percentage' | 'letter' | 'uk' | 'gpa' | 'pass_fail';
+import { api } from '../../../convex/_generated/api';
+import type { GradingScale } from '../../../convex/schema';
 
 const GRADING_SCALES: { value: GradingScale; label: string; description: string }[] = [
   { value: 'percentage', label: 'Percentage (%)', description: 'Grades shown as 85-92%' },
@@ -28,6 +30,7 @@ const GRADING_SCALES: { value: GradingScale; label: string; description: string 
 
 export function OnboardingForm() {
   const router = useRouter();
+  const updateProfile = useMutation(api.users.updateProfile);
   const [isLoading, setIsLoading] = useState(false);
   const [gradingScale, setGradingScale] = useState<GradingScale>('percentage');
   const [institution, setInstitution] = useState('');
@@ -37,14 +40,10 @@ export function OnboardingForm() {
     setIsLoading(true);
 
     try {
-      await fetch('/api/user/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          defaultGradingScale: skip ? 'percentage' : gradingScale,
-          institution: skip ? null : (institution || null),
-          course: skip ? null : (course || null),
-        }),
+      await updateProfile({
+        defaultGradingScale: skip ? 'percentage' : gradingScale,
+        institution: skip ? undefined : (institution || undefined),
+        course: skip ? undefined : (course || undefined),
       });
 
       router.push('/dashboard');

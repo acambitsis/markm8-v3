@@ -14,8 +14,8 @@ Developer experience first, extremely flexible code structure:
 - ✅ Strict Mode for TypeScript and [React](https://react.dev)
 - 🔒 Authentication with [Clerk](https://go.clerk.com/zGlzydF)
 - 👤 Passwordless Authentication with Magic Links, Multi-Factor Auth (MFA), Social Auth
-- 📦 Type-safe ORM with DrizzleORM
-- 💽 Offline and local development database with PGlite
+- 📦 Type-safe database with Convex
+- 💽 Local development with Convex dev server
 - 🌐 Multi-language (i18n) with [next-intl](https://next-intl-docs.vercel.app/)
 - ♻️ Type-safe environment variables with T3 Env
 - ⌨️ Form with [React Hook Form](https://react-hook-form.com)
@@ -35,7 +35,7 @@ Developer experience first, extremely flexible code structure:
 - 🗂 VSCode configuration: Debug, Settings, Tasks and Extensions
 - 🤖 SEO metadata, JSON-LD and Open Graph tags
 - 🗺️ Sitemap.xml and robots.txt
-- ⌘ Database exploration with Drizzle Studio
+- ⌘ Database exploration with Convex Dashboard
 
 ---
 
@@ -47,24 +47,23 @@ Developer experience first, extremely flexible code structure:
 ├── .github                         # GitHub folder
 ├── .husky                          # Husky configuration
 ├── .vscode                         # VSCode configuration
-├── migrations                      # Database migrations
+├── convex                          # Convex backend (schema, functions, http endpoints)
 ├── public                          # Public assets folder
 ├── scripts                         # Scripts folder
 ├── src
 │   ├── app                         # Next JS App (App Router)
 │   ├── components                  # Reusable components
 │   ├── features                    # Components specific to a feature
+│   ├── hooks                       # Custom React hooks
 │   ├── libs                        # 3rd party libraries configuration
 │   ├── locales                     # Locales folder (i18n messages)
-│   ├── models                      # Database models
-│   ├── styles                      # Styles folder
+│   ├── styles                      # Styles folder (Tailwind 4 CSS-first config)
 │   ├── templates                   # Templates folder
 │   ├── types                       # Type definitions
 │   └── utils                       # Utilities folder
 ├── tests
 │   ├── e2e                         # E2E tests
 │   └── integration                 # Integration tests
-├── tailwind.config.js              # Tailwind CSS configuration
 └── tsconfig.json                   # TypeScript configuration
 ```
 
@@ -83,11 +82,13 @@ CLERK_SECRET_KEY=your_clerk_secret_key
 
 ### Database
 
-The project uses DrizzleORM with PostgreSQL. For production, use [Neon](https://neon.tech) or another PostgreSQL provider. Add the connection string to `.env.local`:
+The project uses Convex for the database and serverless functions. Set up your Convex project and add the deployment URL to `.env.local`:
 
 ```shell
-DATABASE_URL=your_database_url
+NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 ```
+
+See `SETUP.md` for detailed Convex setup instructions.
 
 ### Translation (i18n)
 
@@ -99,23 +100,22 @@ For translation, the project uses `next-intl`. Translations are managed in `src/
 
 ### Change Schema
 
-Update `./src/models/Schema.ts`, then generate a migration:
+Update `./convex/schema.ts`, then run Convex dev to apply changes:
 
 ```shell
-bun run db:generate
+bun run convex:dev
 ```
 
-Migrations are automatically applied during the next database interaction.
+Schema changes are automatically synced to your Convex deployment.
 
-### Database Studio
+### Database Dashboard
 
-Explore the database with Drizzle Studio:
+Explore the database with Convex Dashboard:
 
 ```shell
-bun run db:studio
+# Dashboard opens automatically when running convex:dev
+# Or visit: https://dashboard.convex.dev
 ```
-
-Then open https://local.drizzle.studio
 
 ---
 
@@ -150,7 +150,7 @@ bun run test:e2e
 
 ### Production Build
 
-During the build process, database migrations are automatically executed. Define `DATABASE_URL` in your environment variables.
+During the build process, Convex functions are automatically deployed. Define `NEXT_PUBLIC_CONVEX_URL` and `CONVEX_DEPLOY_KEY` in your environment variables.
 
 ```shell
 bun run build
@@ -222,3 +222,4 @@ Quick customization by searching for `FIXME:` in the codebase. Key files:
 The ixartz SaaS Boilerplate is licensed under the MIT License.
 
 Made with ♥ by [CreativeDesignsGuru](https://creativedesignsguru.com)
+

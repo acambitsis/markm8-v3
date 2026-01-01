@@ -10,8 +10,9 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import type { GradeFeedback, ModelResult, PercentageRange } from '@/models/Schema';
 import { cn } from '@/utils/Helpers';
+
+import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
 
 type Props = {
   letterGradeRange: string;
@@ -47,9 +48,9 @@ export function GradeResults({ letterGradeRange, percentageRange, feedback, mode
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-4">
               <div className="space-y-2">
-                {modelResults.map((result, index) => (
+                {modelResults.map(result => (
                   <div
-                    key={`${result.model}-${result.percentage}-${index}`}
+                    key={`${result.model}-${result.percentage}`}
                     className="flex items-center justify-between rounded-lg bg-muted p-3"
                   >
                     <div className="flex items-center gap-2">

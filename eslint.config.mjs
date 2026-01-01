@@ -27,6 +27,7 @@ export default antfu({
     'migrations/**/*',
     'next-env.d.ts',
     '**/*.md',
+    'convex/_generated/**/*',
   ],
 }, /* ...tailwind.configs['flat/recommended'], */ jsxA11y.flatConfigs.recommended, {
   plugins: {

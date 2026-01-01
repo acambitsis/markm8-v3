@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type AutosaveStatus = 'idle' | 'saving' | 'saved' | 'error';

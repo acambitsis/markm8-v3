@@ -3,19 +3,21 @@
 
 import type { CREDIT_PACKAGE_ID } from '@/utils/AppConfig';
 
+import type { TransactionType } from '../../convex/schema';
 import type { EnumValues } from './Enum';
 
 export type CreditPackageId = EnumValues<typeof CREDIT_PACKAGE_ID>;
 
-// Transaction types for credit audit log
+// Transaction type constants for convenience (values match schema)
 export const TRANSACTION_TYPE = {
-  SIGNUP_BONUS: 'signup_bonus',
-  PURCHASE: 'purchase',
-  GRADING: 'grading',
-  REFUND: 'refund',
+  SIGNUP_BONUS: 'signup_bonus' as const,
+  PURCHASE: 'purchase' as const,
+  GRADING: 'grading' as const,
+  REFUND: 'refund' as const,
 } as const;
 
-export type TransactionType = EnumValues<typeof TRANSACTION_TYPE>;
+// Re-export TransactionType from schema (single source of truth)
+export type { TransactionType };
 
 // Credit package for purchase (displayed on pricing page and checkout)
 export type CreditPackage = {

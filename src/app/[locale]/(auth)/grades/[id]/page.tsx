@@ -4,6 +4,8 @@ import { TitleBar } from '@/components/TitleBar';
 import { MainLayout } from '@/features/dashboard/MainLayout';
 import { GradeStatusDisplay } from '@/features/grading/GradeStatusDisplay';
 
+import type { Id } from '../../../../../../convex/_generated/dataModel';
+
 type Props = {
   params: Promise<{ locale: string; id: string }>;
 };
@@ -31,7 +33,7 @@ export default async function GradePage({ params }: Props) {
         description="View your essay grading results and feedback"
       />
 
-      <GradeStatusDisplay gradeId={id} />
+      <GradeStatusDisplay gradeId={id as Id<'grades'>} />
     </MainLayout>
   );
 }
