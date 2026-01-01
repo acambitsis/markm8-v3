@@ -39,18 +39,20 @@ export const getById = query({
 
 /**
  * Get all grades for an essay (for regrading history)
+ * Limited to prevent unbounded queries (shouldn't be many regrades per essay)
  */
 export const getByEssayId = query({
   args: { essayId: v.id('essays') },
   handler: async (ctx, { essayId }) => {
     const userId = await requireAuth(ctx);
+    const MAX_GRADES = 100; // Safety limit for regrading history
 
     const grades = await ctx.db
       .query('grades')
       .withIndex('by_essay_id', q => q.eq('essayId', essayId))
       .filter(q => q.eq(q.field('userId'), userId))
       .order('desc')
-      .collect();
+      .take(MAX_GRADES); // Limit to prevent unbounded queries
 
     return grades;
   },

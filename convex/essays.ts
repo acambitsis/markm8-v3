@@ -233,15 +233,17 @@ export const list = query({
     const userId = await requireAuth(ctx);
     const page = args.page ?? 1;
     const pageSize = args.pageSize ?? 20;
+    const MAX_ESSAYS = 1000; // Safety limit for unbounded queries
 
-    // Get all submitted essays for this user
+    // Get submitted essays for this user (with safety limit)
+    // Note: Search filtering happens in-memory after collect due to Convex query limitations
     let essays = await ctx.db
       .query('essays')
       .withIndex('by_user_status', q =>
         q.eq('userId', userId).eq('status', 'submitted'))
       .filter(q => q.eq(q.field('deletedAt'), undefined))
       .order('desc')
-      .collect();
+      .take(MAX_ESSAYS); // Limit to prevent unbounded queries
 
     // Apply search filter if provided
     if (args.search && args.search.trim()) {

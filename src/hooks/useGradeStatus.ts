@@ -10,9 +10,9 @@ import type { Id } from '../../convex/_generated/dataModel';
  * Uses Convex real-time subscription - no polling needed!
  * The UI will automatically update when the grade status changes
  */
-export function useGradeStatus(gradeId: string) {
+export function useGradeStatus(gradeId: Id<'grades'>) {
   const grade = useQuery(api.grades.getById, {
-    id: gradeId as Id<'grades'>,
+    id: gradeId,
   });
 
   return {

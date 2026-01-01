@@ -5,44 +5,10 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
+// Import types from schema (single source of truth)
+import type { GradeFeedback, ModelResult, PercentageRange } from './schema';
 
 const GRADING_COST = '1.00';
-
-// Types for grading results
-type PercentageRange = {
-  lower: number;
-  upper: number;
-};
-
-type GradeFeedback = {
-  strengths: Array<{
-    title: string;
-    description: string;
-    evidence?: string;
-  }>;
-  improvements: Array<{
-    title: string;
-    description: string;
-    suggestion: string;
-    detailedSuggestions?: string[];
-  }>;
-  languageTips: Array<{
-    category: string;
-    feedback: string;
-  }>;
-  resources?: Array<{
-    title: string;
-    url?: string;
-    description: string;
-  }>;
-};
-
-type ModelResult = {
-  model: string;
-  percentage: number;
-  included: boolean;
-  reason?: string;
-};
 
 /**
  * Generate mock grading results for testing
@@ -153,7 +119,14 @@ export const processGrade = internalAction({
         throw new Error('Grade not found');
       }
 
-      // 2. Get the essay
+      // 2. Idempotency check: only process if status is 'queued'
+      // Prevents duplicate processing if action is retried or scheduled multiple times
+      if (grade.status !== 'queued') {
+        // Grade already processed or being processed - skip
+        return;
+      }
+
+      // 3. Get the essay
       const essay = await ctx.runQuery(internal.essays.getInternal, {
         essayId: grade.essayId,
       });
@@ -162,28 +135,28 @@ export const processGrade = internalAction({
         throw new Error('Essay not found');
       }
 
-      // 3. Update status to processing
+      // 4. Update status to processing
       await ctx.runMutation(internal.grades.startProcessing, { gradeId });
 
-      // 4. Simulate processing delay (1-3 seconds)
+      // 5. Simulate processing delay (1-3 seconds)
       await new Promise(resolve =>
         setTimeout(resolve, 1000 + Math.random() * 2000),
       );
 
-      // 5. Generate mock results
+      // 6. Generate mock results
       // TODO: Replace with actual AI grading:
       // - Call OpenRouter API with 3x Grok-4 in parallel
       // - Implement retry logic (3 retries, exponential backoff)
       // - Outlier detection (exclude furthest from mean if >10% deviation)
       const results = generateMockGrade();
 
-      // 6. Complete the grade
+      // 7. Complete the grade
       await ctx.runMutation(internal.grades.complete, {
         gradeId,
         ...results,
       });
 
-      // 7. Clear credit reservation and record transaction
+      // 8. Clear credit reservation and record transaction
       await ctx.runMutation(internal.credits.clearReservation, {
         userId: grade.userId,
         amount: GRADING_COST,

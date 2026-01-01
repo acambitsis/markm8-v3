@@ -5,6 +5,7 @@ import { v } from 'convex/values';
 
 import { internalMutation, internalQuery, mutation, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
+import { gradingScaleValidator } from './schema';
 
 /**
  * Get the current authenticated user's profile
@@ -25,15 +26,7 @@ export const updateProfile = mutation({
   args: {
     institution: v.optional(v.string()),
     course: v.optional(v.string()),
-    defaultGradingScale: v.optional(
-      v.union(
-        v.literal('percentage'),
-        v.literal('letter'),
-        v.literal('uk'),
-        v.literal('gpa'),
-        v.literal('pass_fail'),
-      ),
-    ),
+    defaultGradingScale: v.optional(gradingScaleValidator),
   },
   handler: async (ctx, args) => {
     const userId = await requireAuth(ctx);

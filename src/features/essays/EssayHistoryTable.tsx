@@ -4,6 +4,7 @@ import { useQuery } from 'convex/react';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 import { StatusBadge } from '@/components/StatusBadge';
@@ -21,6 +22,7 @@ import {
 import { api } from '../../../convex/_generated/api';
 
 export function EssayHistoryTable() {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
@@ -92,7 +94,7 @@ export function EssayHistoryTable() {
                       className="cursor-pointer hover:bg-muted/50"
                       onClick={() => {
                         if (essay.grade) {
-                          window.location.href = `/grades/${essay.grade._id}`;
+                          router.push(`/grades/${essay.grade._id}`);
                         }
                       }}
                     >
