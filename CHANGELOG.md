@@ -1,3 +1,10 @@
+# [1.4.0](https://github.com/acambitsis/markm8-v3/compare/v1.3.0...v1.4.0) (2026-01-02)
+
+
+### Features
+
+* add AI model configuration system with testing overrides ([ca1f028](https://github.com/acambitsis/markm8-v3/commit/ca1f028df4cd093383f7da7c534bc247d19099e4))
+
 # [1.3.0](https://github.com/acambitsis/markm8-v3/compare/v1.2.3...v1.3.0) (2026-01-01)
 
 
