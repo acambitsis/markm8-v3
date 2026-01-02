@@ -12,7 +12,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 
 ### Core Value Proposition
 
-- Multi-model grading (3 AI models for accuracy)
+- Multi-model grading (configurable 3–5 parallel runs for accuracy)
 - Detailed feedback (category scores + actionable suggestions)
 - Pay-per-use (no subscriptions, configurable signup bonus)
 
@@ -191,9 +191,9 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - **GPA:** "3.2-3.5" (converted from percentage, 0.0-4.0 scale)
   - **Pass/Fail:** "Pass" (if average ≥ 50%) or "Fail" (if average < 50%)
 - **Individual Model Scores** (collapsed by default):
-  - Model 1 (Grok-4): 82% ✓ Included
-  - Model 2 (Grok-4): 87% ✓ Included
-  - Model 3 (Grok-4): 95% ✗ Excluded (outlier)
+  - Run 1 (x-ai/grok-4.1): 82% ✓ Included
+  - Run 2 (x-ai/grok-4.1): 87% ✓ Included
+  - Run 3 (openai/gpt-5.2): 95% ✗ Excluded (outlier)
   - Explanation: "Outlier detection excludes scores >10% different from all others"
 
 **Overall Feedback:**
@@ -430,7 +430,10 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 ### Multi-Model Consensus Algorithm
 
 **Configuration:**
-- Run **3 parallel instances** of Grok-4 on same essay
+- Run **N parallel grading runs** on the same essay (N = 3..5)
+- Each run uses a **configured model** (all the same model, or mixed models)
+  - Example (all same): `x-ai/grok-4.1,x-ai/grok-4.1,x-ai/grok-4.1`
+  - Example (mixed): `x-ai/grok-4.1,google/gemini-3,openai/gpt-5.2,anthropic/claude-opus-4.5`
 - Same prompt, same parameters
 - Different responses due to LLM temperature/variance
 
@@ -468,7 +471,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 **`/` - Landing Page**
 - Hero section: "AI-Powered Essay Grading in 60 Seconds"
 - Features grid:
-  - "Multi-Model Grading" - 3 AI models for accuracy
+  - "Multi-Model Grading" - 3–5 parallel runs for accuracy
   - "Detailed Feedback" - Category scores + actionable suggestions
   - "Fast Results" - 95% graded within 60 seconds
 - Pricing section (credit packages)
@@ -597,6 +600,30 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Save button updates configuration
   - Changes apply to future signups only (existing users unaffected)
   - Validation: Must be ≥ 0.00, max 1000.00 (safety limit)
+- **AI Model Configuration:**
+  - **Title Generation:**
+    - Primary model selector (dropdown: Claude Haiku 4.5, GPT Mini latest, etc.)
+    - Fallback models (multi-select)
+    - Temperature and max tokens settings
+  - **Grading Ensemble:**
+    - Mode selector (Mock / Live)
+    - Run count (3–5)
+    - Per-run model selection (supports mixed models)
+    - Reasoning effort per run (Low / Medium / High)
+    - Outlier threshold percentage
+    - Retry settings (max retries, backoff delays)
+    - **Production models only** (fast variants disabled in UI)
+  - **Testing Overrides:**
+    - Toggle: Enable testing mode
+    - When enabled: Override grading config (allows fast variants for testing)
+    - When disabled: Use production config only
+  - **Admin Access:**
+    - Email allowlist management (add/remove admin emails)
+    - Audit log: Last updated by, last updated timestamp
+  - **Model Catalog Refresh:**
+    - Button: "Refresh from OpenRouter"
+    - Fetches latest models, validates configured IDs, suggests updates
+    - Does NOT auto-update (requires admin approval)
 
 ---
 

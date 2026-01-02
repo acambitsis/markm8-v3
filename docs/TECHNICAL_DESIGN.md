@@ -19,7 +19,7 @@
 | **Async Jobs** | Convex Actions + Scheduler | Background actions for AI grading, scheduled with `ctx.scheduler.runAfter()` |
 | **Real-time** | Convex Subscriptions | Automatic UI updates via `useQuery` hooks, no polling needed |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming support, provider-agnostic, built-in error handling |
-| **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, cost-effective (~$0.10-0.15/essay) |
+| **AI Provider** | OpenRouter (configurable grading ensemble) | N-run consensus (3–5 runs), supports mixed models, cost-effective (~$0.10-0.15/essay) |
 | **OCR/Document AI** | Mistral Document AI | Image-to-markdown conversion for instructions/rubrics, 99%+ accuracy, multilingual |
 | **Payments** | Stripe | Industry standard, one-time purchases (not subscriptions) |
 | **Monitoring** | Sentry + LogTape | Error tracking + structured logging |
@@ -656,14 +656,145 @@ bun add ai @ai-sdk/openai
 **Setup:**
 - Use `@ai-sdk/openai` with OpenRouter compatibility
 - Base URL: `https://openrouter.ai/api/v1`
-- Grading model: `grok-4` (3x consensus)
-- Title generation model: `openai/gpt-3.5-turbo` (fast/cheap, ~$0.001 per title)
+- Model configuration: **Admin-configurable via `platformSettings.aiConfig`** (see AI Model Configuration section below)
+- Grading ensemble: **3–5 parallel runs**, with **per-run model selection** (supports mixed models)
+  - Production: Full models only (no fast variants)
+  - Testing: Fast variants allowed via testing config override
+- Title generation: Lightweight models (Claude Haiku 4.5 or GPT Mini latest)
+
+### AI Model Configuration
+
+**Purpose:** Centralized, admin-configurable model selection for grading and title generation. Supports testing overrides and easy updates as new SOTA models are released.
+
+**Storage:** `platformSettings.aiConfig` (singleton document in Convex)
+
+**Configuration Structure:**
+
+```typescript
+type ReasoningEffort = 'low' | 'medium' | 'high';
+
+type AiModelSpec = {
+  model: string;                 // OpenRouter model ID (e.g., "x-ai/grok-4.1", "anthropic/claude-opus-4.5")
+  reasoningEffort?: ReasoningEffort; // Provider-specific reasoning setting (converted at call time)
+  enabled?: boolean;            // Allow disabling specific runs without removing from config
+};
+
+type TitleGenConfig = {
+  primary: AiModelSpec;
+  fallbacks: AiModelSpec[];     // Fallback models if primary fails
+  temperature: number;            // Default: 0.7
+  maxTokens: number;             // Default: 20
+};
+
+type GradingConfig = {
+  mode: 'mock' | 'live';
+  runs: AiModelSpec[];           // Length 3..5, supports mixed models
+  outlierThresholdPercent: number; // Default: 10
+  retries: {
+    maxRetries: number;          // Default: 3
+    backoffMs: number[];         // Default: [5000, 15000, 45000]
+  };
+  temperature?: number;          // Optional override for all runs
+  maxTokens?: number;            // Optional override for all runs
+};
+
+type TestingConfig = {
+  enabled: boolean;              // Master switch for testing mode
+  grading?: Partial<GradingConfig>; // Overrides production grading config
+  titleGeneration?: Partial<TitleGenConfig>; // Overrides production title config
+  // Testing config allows fast variants (e.g., "x-ai/grok-4.1-fast")
+  // Production config should never use fast variants
+};
+
+type AiConfig = {
+  titleGeneration: TitleGenConfig;
+  grading: GradingConfig;
+  testing?: TestingConfig;       // Optional testing overrides
+  adminEmails: string[];         // Email allowlist for admin access
+  lastUpdatedBy?: string;        // Email of admin who last updated
+  lastUpdatedAt?: number;        // Unix timestamp in ms
+};
+```
+
+**Default Configuration:**
+
+```typescript
+const DEFAULT_AI_CONFIG: AiConfig = {
+  titleGeneration: {
+    primary: { model: 'anthropic/claude-haiku-4.5' },
+    fallbacks: [
+      { model: 'openai/gpt-mini' } // Update with latest GPT Mini identifier
+    ],
+    temperature: 0.7,
+    maxTokens: 20,
+  },
+  grading: {
+    mode: 'mock', // Switch to 'live' when OpenRouter integration is ready
+    runs: [
+      { model: 'x-ai/grok-4.1', reasoningEffort: 'medium' },
+      { model: 'x-ai/grok-4.1', reasoningEffort: 'medium' },
+      { model: 'google/gemini-3', reasoningEffort: 'medium' },
+    ],
+    outlierThresholdPercent: 10,
+    retries: {
+      maxRetries: 3,
+      backoffMs: [5000, 15000, 45000],
+    },
+  },
+  adminEmails: [], // Set via Convex Dashboard or admin UI
+};
+```
+
+**Production vs Testing:**
+
+- **Production grading:** Full models only (e.g., `x-ai/grok-4.1`, `anthropic/claude-opus-4.5`, `google/gemini-3`, `openai/gpt-5.2`)
+- **Testing grading:** Fast variants allowed (e.g., `x-ai/grok-4.1-fast`) via `testing.grading` override
+- **Testing mode:** Controlled by `testing.enabled` flag; when enabled, testing configs override production configs
+
+**Model Selection Priority (for grading):**
+
+1. **Environment override** (highest priority): `MARKM8_GRADING_MODE` and `MARKM8_GRADING_MODELS` env vars (for emergency/testing)
+2. **Testing config** (if `testing.enabled === true`): `platformSettings.aiConfig.testing.grading`
+3. **Production config**: `platformSettings.aiConfig.grading`
+4. **Hardcoded defaults**: Fallback if config missing
+
+**Admin Access:**
+
+- **Email allowlist:** `platformSettings.aiConfig.adminEmails` (array of email addresses)
+- **Admin mutations:** Check user email against allowlist before allowing config updates
+- **For v3 launch:** Update config via Convex Dashboard (manual edit of singleton document)
+- **Future (v3.1+):** Admin UI at `/admin/settings` with mutation gated by email allowlist
+
+**Updating Models (Backend Function):**
+
+**Planned:** `internalAction platformSettings.refreshAiModelCatalog`
+
+- Fetches latest models from OpenRouter API (`GET https://openrouter.ai/api/v1/models`)
+- Validates configured model IDs exist
+- Suggests updates if newer SOTA models are available
+- Does NOT auto-update (requires admin approval)
+- Can be called manually or scheduled periodically
+
+**Reasoning Effort Mapping:**
+
+Provider-specific conversion from canonical `reasoningEffort` to API parameters:
+
+- **OpenAI (GPT-5.2):** Maps to `reasoning_effort` parameter (if supported)
+- **xAI (Grok-4.1):** Maps to reasoning toggle/effort settings (varies by model variant)
+- **Google (Gemini-3):** Maps to thinking/reasoning parameters (varies by model version)
+- **Anthropic (Claude):** Maps to reasoning settings (if available)
+
+**Implementation Status:**
+
+- ✅ Schema stubs added to `convex/schema.ts`
+- ✅ Function stubs added to `convex/platformSettings.ts`
+- ⏳ Full implementation deferred (config reading, provider adapters, admin UI)
 
 ### Title Generation API
 
 **Purpose:** Generate concise essay titles (max 6 words) based on essay content and instructions.
 
-**Model Choice:** Uses a fast, cheap model (GPT-3.5 Turbo) instead of the grading models (Grok-4) to minimize cost and latency.
+**Model Choice:** Uses a fast, cheap model (Claude Haiku 4.5) instead of the grading models to minimize cost and latency.
 
 **Planned (not implemented yet):** Title generation endpoint (either a Convex action or a small Next.js route under `src/app/[locale]/api/ai/*`).
 - Input: `instructions` (assignment brief), `content` (first 500 words)
@@ -961,7 +1092,7 @@ export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
 
 1. Get grade + essay (via `ctx.runQuery(internal.grades.getInternal, ...)`)
 2. Update status: `'processing'` (via `ctx.runMutation(internal.grades.startProcessing, ...)`)
-3. Run 3x AI grading in parallel with retry logic
+3. Run N AI grading calls in parallel with retry logic (N = 3..5)
 4. Apply outlier detection
 5. Save results + clear reservation (via `ctx.runMutation(internal.grades.complete, ...)`)
 6. On error: Mark failed, refund reservation
@@ -1149,7 +1280,7 @@ Stay on free tiers where possible.
 | **Convex** | Free | ~$50/mo (estimated) | Database + serverless functions |
 | **Vercel** | Free | Free (under usage limits) | Next.js hosting |
 | **Sentry** | Free | Free (under 5k events) | Error tracking |
-| **OpenRouter** | $90/mo | $4,500/mo | AI grading (3x Grok-4) |
+| **OpenRouter** | $90/mo | $4,500/mo | AI grading (default 3-run ensemble; configurable 3–5 runs and mixed models) |
 | **Total** | **$90/mo** | **$4,550/mo** | |
 
 **Cost Benefits:**
@@ -1190,6 +1321,19 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 # OpenRouter (AI via Vercel AI SDK)
 OPENROUTER_API_KEY=sk-or-...
+
+# Grading ensemble config (Convex actions)
+# - mock: generate fake grading results (useful for tests/dev)
+# - live: reserved for future OpenRouter integration
+MARKM8_GRADING_MODE=mock
+# Optional explicit per-run model list (comma-separated). Length determines run count (clamped to 3..5).
+# Example: x-ai/grok-4.1,x-ai/grok-4.1,google/gemini-3
+MARKM8_GRADING_MODELS=x-ai/grok-4.1,x-ai/grok-4.1,x-ai/grok-4.1
+# Optional run count (3..5) used when MARKM8_GRADING_MODELS is not provided
+MARKM8_GRADING_RUNS=3
+
+# Note: Production model configuration is stored in platformSettings.aiConfig (Convex singleton)
+# Update via Convex Dashboard or future admin UI. Env vars are for emergency overrides only.
 
 # Mistral (Document AI / OCR)
 MISTRAL_API_KEY=your_mistral_api_key_here
@@ -1421,7 +1565,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - [ ] Title generation endpoint (planned: either Convex action or Next.js route under `src/app/[locale]/api/ai/*`)
   - [ ] Add Vercel AI SDK: `bun add ai @ai-sdk/openai`
   - [ ] Set up OpenRouter API key
-  - [ ] Use GPT-3.5 Turbo for fast/cheap title generation
+  - [ ] Use Claude Haiku 4.5 (`anthropic/claude-haiku-4.5`) for fast/cheap title generation
   - [ ] Replace title generation mock with real API call
 - [ ] Replace essay submission UI mocks with real API calls
 - [ ] Test: Submit essay, verify database records, test draft autosave, test document uploads
@@ -1436,9 +1580,9 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
   - [ ] `convex/grading.ts` internal action (`processGrade`)
   - [ ] Ensure `convex/essays.ts` submit schedules the action via `ctx.scheduler.runAfter(...)`
 - [ ] AI grading implementation
-  - [ ] Configure OpenRouter client (Grok-4 × 3)
+  - [ ] Configure OpenRouter client (configurable grading ensemble: 3–5 runs, supports mixed models)
   - [ ] Implement `generateObject` with Zod schema validation
-  - [ ] Multi-model consensus (3x parallel calls)
+  - [ ] Multi-model consensus (N parallel calls, N=3..5)
   - [ ] Outlier detection algorithm
   - [ ] Retry logic with exponential backoff
   - [ ] Error classification (transient vs permanent)

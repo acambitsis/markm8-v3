@@ -10,11 +10,85 @@ import type { GradeFeedback, ModelResult, PercentageRange } from './schema';
 
 const GRADING_COST = '1.00';
 
+type GradingEnsembleMode = 'mock' | 'live';
+
+/**
+ * Grading ensemble configuration.
+ *
+ * Priority order (highest to lowest):
+ * 1. Environment variables (MARKM8_GRADING_*) - for emergency/testing overrides
+ * 2. Testing config (if testing.enabled === true) - from platformSettings.aiConfig.testing.grading
+ * 3. Production config - from platformSettings.aiConfig.grading
+ * 4. Hardcoded defaults - fallback if config missing
+ *
+ * Today, we only implement `mock` grading results. The shape and selection logic
+ * is already generalized so we can:
+ * - run 3, 4, or 5 parallel grading runs
+ * - use a single model for all runs, or specify per-run models (mixed models)
+ * - swap in cheap/fast models for testing (via testing config override)
+ *
+ * Env vars (Convex action runtime) - HIGHEST PRIORITY:
+ * - `MARKM8_GRADING_MODE`: 'mock' | 'live' (default 'mock')
+ * - `MARKM8_GRADING_MODELS`: comma-separated list of models for each run
+ *    - Example: "x-ai/grok-4.1,x-ai/grok-4.1,google/gemini-3"
+ * - `MARKM8_GRADING_RUNS`: number of runs if MODELS not provided (default 3)
+ *
+ * Note: 'live' is reserved for future OpenRouter/Vercel AI SDK integration.
+ * TODO: Read from platformSettings.aiConfig when full implementation is ready.
+ */
+function getGradingEnsembleConfig(): {
+  mode: GradingEnsembleMode;
+  runModels: string[];
+} {
+  // Priority 1: Environment variables (highest priority, for emergency/testing)
+  const rawMode = (process.env.MARKM8_GRADING_MODE ?? 'mock').toLowerCase();
+  const mode: GradingEnsembleMode = rawMode === 'live' ? 'live' : 'mock';
+
+  const modelsFromEnv = (process.env.MARKM8_GRADING_MODELS ?? '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+  const runsFromEnv = Number.parseInt(process.env.MARKM8_GRADING_RUNS ?? '', 10);
+  const runs = Number.isFinite(runsFromEnv) ? runsFromEnv : 3;
+
+  const desiredRuns = Math.min(5, Math.max(3, runs));
+
+  // If env vars provided, use them (highest priority)
+  if (modelsFromEnv.length >= 1) {
+    // Clamp to 3..5 by truncating or padding with the first model.
+    const clamped = modelsFromEnv.slice(0, 5);
+    while (clamped.length < 3) {
+      clamped.push(clamped[0]!);
+    }
+    return { mode, runModels: clamped };
+  }
+
+  // Priority 2 & 3: TODO - Read from platformSettings.aiConfig
+  // const aiConfig = await ctx.runQuery(internal.platformSettings.getAiConfig, {});
+  // if (aiConfig?.testing?.enabled && aiConfig.testing.grading) {
+  //   // Use testing config (allows fast variants)
+  //   return { mode, runModels: aiConfig.testing.grading.runs.map(r => r.model) };
+  // }
+  // if (aiConfig?.grading) {
+  //   // Use production config (full models only)
+  //   return { mode, runModels: aiConfig.grading.runs.map(r => r.model) };
+  // }
+
+  // Priority 4: Hardcoded defaults (fallback)
+  // Default: 3 runs, all x-ai/grok-4.1 (matches previous behavior, but configurable).
+  return { mode, runModels: Array.from({ length: desiredRuns }, () => 'x-ai/grok-4.1') };
+}
+
+function clampPercentage(n: number): number {
+  return Math.max(0, Math.min(100, n));
+}
+
 /**
  * Generate mock grading results for testing
  * TODO: Replace with actual AI grading when OpenRouter is configured
  */
-function generateMockGrade(): {
+function generateMockGrade(runModels: string[]): {
   letterGradeRange: string;
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
@@ -24,6 +98,10 @@ function generateMockGrade(): {
   const basePercentage = Math.floor(Math.random() * 26) + 70;
   const lowerBound = Math.max(0, basePercentage - 3);
   const upperBound = Math.min(100, basePercentage + 3);
+
+  // Small per-run variation to mimic model variance.
+  const centerIndex = Math.floor(runModels.length / 2);
+  const deviations = runModels.map((_, i) => (i - centerIndex) * 2);
 
   return {
     letterGradeRange:
@@ -94,11 +172,11 @@ function generateMockGrade(): {
         },
       ],
     },
-    modelResults: [
-      { model: 'grok-4', percentage: basePercentage - 2, included: true },
-      { model: 'grok-4', percentage: basePercentage, included: true },
-      { model: 'grok-4', percentage: basePercentage + 2, included: true },
-    ],
+    modelResults: runModels.map((model, i) => ({
+      model,
+      percentage: clampPercentage(basePercentage + deviations[i]!),
+      included: true,
+    })),
   };
 }
 
@@ -110,6 +188,8 @@ export const processGrade = internalAction({
   args: { gradeId: v.id('grades') },
   handler: async (ctx, { gradeId }) => {
     try {
+      const { mode, runModels } = getGradingEnsembleConfig();
+
       // 1. Get the grade record
       const grade = await ctx.runQuery(internal.grades.getInternal, {
         gradeId,
@@ -143,12 +223,20 @@ export const processGrade = internalAction({
         setTimeout(resolve, 1000 + Math.random() * 2000),
       );
 
-      // 6. Generate mock results
+      // 6. Generate results
       // TODO: Replace with actual AI grading:
-      // - Call OpenRouter API with 3x Grok-4 in parallel
+      // - Call OpenRouter API with N runs in parallel (3..5)
+      // - Use `runModels` to decide which model each run uses (supports mixed models)
       // - Implement retry logic (3 retries, exponential backoff)
       // - Outlier detection (exclude furthest from mean if >10% deviation)
-      const results = generateMockGrade();
+      const results
+        = mode === 'mock'
+          ? generateMockGrade(runModels)
+          : (() => {
+              throw new Error(
+                'Live grading mode not implemented yet. Set MARKM8_GRADING_MODE=mock.',
+              );
+            })();
 
       // 7. Complete the grade
       await ctx.runMutation(internal.grades.complete, {

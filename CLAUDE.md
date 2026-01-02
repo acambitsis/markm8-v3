@@ -24,7 +24,7 @@
 | **Real-time** | Convex Subscriptions | Auto-updates on DB changes, no polling |
 | **UI** | Shadcn UI | Component library |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming, provider-agnostic |
-| **AI Provider** | OpenRouter (Grok-4 × 3) | Multi-model consensus, less than $0.30/essay |
+| **AI Provider** | OpenRouter (configurable grading ensemble) | 3–5 parallel runs, per-run model selection (supports mixed models), less than $0.30/essay |
 | **Payments** | Stripe | One-time credit purchases, NOT subscriptions |
 
 ---

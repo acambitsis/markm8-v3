@@ -192,6 +192,11 @@ export default defineSchema({
     key: v.literal('singleton'), // Only one row
     signupBonusAmount: v.string(), // Decimal as string (e.g., "1.00")
     updatedBy: v.optional(v.id('users')), // Admin who made the change
+
+    // AI Model Configuration (admin-configurable, see TECHNICAL_DESIGN.md)
+    // Structure: { titleGeneration, grading, testing?, adminEmails, lastUpdatedBy?, lastUpdatedAt? }
+    // Validators deferred - using v.any() for now to allow flexible schema evolution
+    aiConfig: v.optional(v.any()), // Full structure defined in TECHNICAL_DESIGN.md
   }).index('by_key', ['key']),
 });
 
