@@ -298,4 +298,21 @@ const assignmentBriefValidator = v.object({
 |--------|--------|
 | `convex/grading.ts` AI logic | Mock implementation (needs real AI calls) |
 | Stripe integration | Not started |
-| Vercel deployment | Not configured |
+
+---
+
+## Deployment & DevOps
+
+**Environments:**
+| Environment | Convex | Vercel | Clerk |
+|-------------|--------|--------|-------|
+| Development | brazen-buffalo-798 | Preview | dear-drum-37 (test) |
+| Production | lovely-swordfish-944 | Production | clerk.markm8.com (live) |
+
+**Deployment trigger:** Push to `main` → Vercel builds → Convex deploys via `CONVEX_DEPLOY_KEY`
+
+**Env vars set in:** Convex Dashboard, Vercel Dashboard, `.env.local` (local only)
+
+**Webhook endpoints (Convex HTTP):**
+- Clerk: `https://<deployment>.convex.site/clerk-webhook`
+- Stripe: `https://<deployment>.convex.site/stripe-webhook`
