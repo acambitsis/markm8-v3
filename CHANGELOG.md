@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/acambitsis/markm8-v3/compare/v1.5.0...v1.5.1) (2026-01-02)
+
+
+### Bug Fixes
+
+* add Convex type regeneration to pre-commit hooks ([ed5fce8](https://github.com/acambitsis/markm8-v3/commit/ed5fce852dce82098982913bd8f71d16c082b950))
+
 # [1.5.0](https://github.com/acambitsis/markm8-v3/compare/v1.4.0...v1.5.0) (2026-01-02)
 
 
