@@ -529,6 +529,77 @@ export const submitEssay = mutation({
 
 ---
 
+## Principle 12: No Polling Patterns
+
+**Core Principle:** Use Convex real-time subscriptions instead of polling. Polling wastes resources and provides worse UX.
+
+### Detection Pattern
+
+```typescript
+// LIKELY VIOLATION — Polling with setInterval
+'use client';
+function GradeStatus({ gradeId }) {
+  const [grade, setGrade] = useState(null);
+
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      const response = await fetch(`/api/grades/${gradeId}`);
+      setGrade(await response.json());
+    }, 5000);  // Polling every 5 seconds!
+    return () => clearInterval(interval);
+  }, [gradeId]);
+}
+
+// LIKELY VIOLATION — Recursive setTimeout polling
+useEffect(() => {
+  const poll = async () => {
+    const data = await fetchGradeStatus(gradeId);
+    setGrade(data);
+    if (data.status === 'processing') {
+      setTimeout(poll, 2000);  // Recursive polling!
+    }
+  };
+  poll();
+}, [gradeId]);
+
+// CORRECT — Convex real-time subscription
+'use client';
+import { useQuery } from 'convex/react';
+import { api } from '@/convex/_generated/api';
+
+function GradeStatus({ gradeId }) {
+  const grade = useQuery(api.grades.getById, { id: gradeId });
+  // Auto-updates when grade changes in database — no polling!
+
+  if (!grade) return <Skeleton />;
+  return <GradeDisplay grade={grade} />;
+}
+```
+
+### Detection Heuristic
+
+1. Find `setInterval` or recursive `setTimeout` patterns in React components
+2. Check if the callback fetches data or calls APIs
+3. Flag as LIKELY — may be legitimate (animations, debounce, non-Convex data)
+4. DEFINITE if polling Convex data that could use `useQuery`
+
+### Valid Exceptions (require annotation)
+
+- External API polling where webhooks aren't available
+- Animation timers or debounce patterns
+- Countdown/timer UI components
+- Rate-limited refresh buttons with manual trigger
+
+```typescript
+// @pr-check-ignore: polling — External API without webhook support
+useEffect(() => {
+  const interval = setInterval(checkExternalStatus, 30000);
+  return () => clearInterval(interval);
+}, []);
+```
+
+---
+
 ## Output Format
 
 ```
@@ -567,6 +638,7 @@ X files reviewed
 - Framework version upgrade → Update detection patterns to match new syntax
 - New Convex patterns discovered → Add new principle
 - Styling approach changed → Update Principle 8
+- Real-time patterns evolve → Update Principle 12
 
 **This agent should NOT contain:**
 - Hardcoded framework version numbers (reference CLAUDE.md)

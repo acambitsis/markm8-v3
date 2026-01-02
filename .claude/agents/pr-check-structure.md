@@ -499,6 +499,43 @@ X files checked
 
 ---
 
+## Principle 12: No Bun-Specific Imports
+
+**Core Principle:** Code must remain Node.js-compatible. Bun-specific APIs break deployment on non-Bun runtimes.
+
+### Detection Pattern
+
+```typescript
+// DEFINITE VIOLATION — Bun-specific module imports
+import { serve } from 'bun';
+import { file } from 'bun:fs';
+import { password } from 'bun:password';
+
+// DEFINITE VIOLATION — Bun global usage
+const hashedPassword = await Bun.password.hash(plaintext);
+const file = Bun.file('./data.json');
+Bun.serve({ ... });
+
+// CORRECT — Use Node.js-compatible alternatives
+import { readFile } from 'fs/promises';
+import bcrypt from 'bcrypt';
+```
+
+### Detection Heuristic
+
+1. Search for `from 'bun'` or `from 'bun:*'` import patterns
+2. Search for `Bun.` global usage
+3. Any match is a DEFINITE violation — no exceptions
+4. This applies to both `src/` and `convex/` directories
+
+### Why This Matters
+
+- Vercel deployments use Node.js runtime, not Bun
+- Convex functions run in Convex's V8 isolate, not Bun
+- Only local development uses Bun as the package manager/runner
+
+---
+
 ## Maintenance Notes
 
 **When to update this agent:**
@@ -506,6 +543,7 @@ X files checked
 - New route groups added → Update Principle 10
 - New naming conventions adopted → Update Principle 8
 - New Convex patterns → Update Principle 11
+- New runtime constraints → Update Principle 12
 
 **This agent should NOT contain:**
 - Hardcoded file paths (reference CLAUDE.md for current structure)
