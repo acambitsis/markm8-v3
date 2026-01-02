@@ -231,53 +231,25 @@ Locations:
 - **Logging:** Use `logger.info()` / `logger.error()` from Logger.ts
 - **Clerk:** Integrated with Convex via `ConvexProviderWithClerk`
 - **Testing:** Vitest for unit tests (`bun run test`), Playwright for E2E
-- **Shadcn:** Components use `forwardRef` (React 18 style, keep for compatibility)
+- **Shadcn:** Existing components use `forwardRef` (keep as-is for compatibility)
 - **Class merging:** `import { cn } from '@/utils/Helpers'`
-
----
-
-## Critical Code Patterns
-
-```typescript
-// User-scoped queries (security-critical) - ALWAYS include:
-const userId = await requireAuth(ctx);
-ctx.db.query('essays').withIndex('by_user_status', q => q.eq('userId', userId)...)
-
-// Convex validators - define complex types:
-const assignmentBriefValidator = v.object({
-  title: v.string(),
-  instructions: v.string(),
-  subject: v.string(),
-  academicLevel: v.union(v.literal('high_school'), v.literal('undergraduate'), v.literal('postgraduate')),
-});
-```
 
 ---
 
 ## Important Constraints
 
 **DO:**
-- ✅ Keep resources user-scoped (always filter by userId)
-- ✅ Use Convex actions for AI grading (never in mutations)
-- ✅ Use real-time subscriptions (useQuery auto-updates)
 - ✅ Use `requireAuth()` helper in all queries/mutations
-- ✅ Store credit amounts as strings for precision
-- ✅ Use React 19 patterns (no forwardRef needed)
-- ✅ Use Tailwind 4 CSS-first config (no tailwind.config.ts)
 - ✅ Import validators from `convex/schema.ts` (single source of truth)
 - ✅ Use `internalQuery`/`internalMutation` for functions not exposed to clients
 - ✅ Implement explicit cascade delete (Convex does NOT auto-cascade)
+- ✅ Use React 19 patterns for new components (ref as prop, no forwardRef)
 
 **DON'T:**
 - ❌ Use Clerk Organizations (only Clerk auth)
 - ❌ Add organization tables (future feature)
-- ❌ Make AI calls in mutations (use actions)
-- ❌ Poll for updates (use Convex subscriptions)
-- ❌ Use direct DB access in actions (use runQuery/runMutation)
-- ❌ Use React 18 patterns (forwardRef, manual loading states)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)
 - ❌ Expose internal functions as public `query`/`mutation` (PII leakage risk)
-- ❌ Duplicate validators across files (import from schema.ts)
 
 ---
 
