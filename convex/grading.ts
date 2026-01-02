@@ -139,6 +139,9 @@ function classifyError(error: unknown): {
   return { isTransient: false, message };
 }
 
+// User-facing error message (stable, never includes internal details)
+const USER_ERROR_MESSAGE = 'Grading failed. You were not charged. Please try again.';
+
 /**
  * Retry a function with exponential backoff
  * @param fn - Function to retry
@@ -708,34 +711,58 @@ export const processGrade = internalAction({
         description: `Grading for essay: ${essay.assignmentBrief?.title ?? 'Untitled'}`,
       });
     } catch (error) {
-      // Handle failure
-      const errorMessage
-        = error instanceof Error ? error.message : 'Unknown error occurred';
+      // Extract raw error details for logging and internal persistence
+      const rawMessage = error instanceof Error ? error.message : String(error);
+      const stack = error instanceof Error ? error.stack : undefined;
 
-      // Try to get the grade to refund
+      // Log original error for debugging (includes full details)
+      console.error('Grading failed:', {
+        gradeId,
+        error: error instanceof Error ? error : { message: rawMessage },
+        stack,
+      });
+
+      // Try to get the grade to refund and record failure
       try {
         const grade = await ctx.runQuery(internal.grades.getInternal, {
           gradeId,
         });
 
         if (grade) {
-          // Fail the grade
-          await ctx.runMutation(internal.grades.fail, {
+          // Record failure details internally (never exposed to users)
+          await ctx.runMutation(internal.gradeFailures.record, {
             gradeId,
-            errorMessage,
+            userId: grade.userId,
+            rawMessage,
+            stack,
           });
 
-          // Refund the credit
+          // Fail the grade with generic user-facing message
+          await ctx.runMutation(internal.grades.fail, {
+            gradeId,
+            errorMessage: USER_ERROR_MESSAGE,
+          });
+
+          // Refund the credit (generic reason, no internal details)
           await ctx.runMutation(internal.credits.refundReservation, {
             userId: grade.userId,
             amount: GRADING_COST,
             gradeId,
-            reason: `Grading failed: ${errorMessage}`,
+            reason: 'Grading failed - credit refunded',
+          });
+        } else {
+          // Grade not found - still try to record failure if we have gradeId
+          await ctx.runMutation(internal.gradeFailures.record, {
+            gradeId,
+            userId: undefined,
+            rawMessage,
+            stack,
           });
         }
       } catch (innerError) {
         // Log both the original error and the inner error from cleanup
         console.error('Failed to handle grading failure:', {
+          gradeId,
           originalError: error,
           innerError,
         });

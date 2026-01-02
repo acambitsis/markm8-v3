@@ -207,6 +207,18 @@ export default defineSchema({
     // Validators deferred - using v.any() for now to allow flexible schema evolution
     aiConfig: v.optional(v.any()), // Full structure defined in TECHNICAL_DESIGN.md
   }).index('by_key', ['key']),
+
+  // Grade Failures (internal-only error tracking for debugging)
+  // Raw error details stored here, never exposed to users
+  gradeFailures: defineTable({
+    gradeId: v.id('grades'),
+    userId: v.optional(v.id('users')), // Optional in case grade cannot be loaded
+    rawMessage: v.string(), // Full error message from provider/exception
+    stack: v.optional(v.string()), // Stack trace if available
+    createdAt: v.number(), // Unix timestamp in ms
+  })
+    .index('by_grade_id', ['gradeId'])
+    .index('by_user_id', ['userId']),
 });
 
 // =============================================================================
