@@ -6,11 +6,14 @@ This guide covers the one-time setup required for the Convex + Vercel architectu
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) installed
+- **Package Manager:** [Bun](https://bun.sh) (recommended for faster installs) or [npm](https://www.npmjs.com/)/[pnpm](https://pnpm.io/)
 - [Convex account](https://convex.dev) (free tier available)
 - [Clerk account](https://clerk.com) with existing project
 - [Vercel account](https://vercel.com) for deployment
 - [Stripe account](https://stripe.com) for payments (Phase 3)
+- [OpenRouter account](https://openrouter.ai) for AI grading (Phase 5)
+
+**Note:** All commands in this guide use `bun`, but you can substitute with `npm` or `pnpm` as needed.
 
 ---
 
@@ -93,6 +96,9 @@ NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 # Clerk (from your existing setup)
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_xxx
 CLERK_SECRET_KEY=sk_test_xxx
+
+# OpenRouter (for AI grading - Phase 5)
+OPENROUTER_API_KEY=sk-or-xxx  # Optional for local dev (required for live grading)
 
 # Optional: Sentry, Logtail, etc. (keep existing values)
 ```
@@ -194,7 +200,7 @@ This runs:
 1. Import your GitHub repo to Vercel
 2. Set **Framework Preset:** Next.js
 3. Set **Build Command:** (see below for preview vs production)
-4. Set **Install Command:** `bun install`
+4. Set **Install Command:** `bun install` (or `npm install` / `pnpm install` if not using Bun)
 
 ### 7.2 Configure Build Commands
 
@@ -230,7 +236,59 @@ Update Clerk webhook URL to production Convex endpoint:
 
 ---
 
-## 8. Stripe Setup (Phase 3)
+## 8. OpenRouter Setup (AI Grading)
+
+OpenRouter provides access to multiple AI models for essay grading.
+
+### 8.1 Get API Key
+
+1. Sign up at [OpenRouter.ai](https://openrouter.ai)
+2. Go to **Keys** → **Create Key**
+3. Copy your API key (starts with `sk-or-`)
+
+### 8.2 Set Environment Variables
+
+**Convex Dashboard** → **Settings** → **Environment Variables**:
+
+```
+OPENROUTER_API_KEY=sk-or-your-key-here
+```
+
+**Note:** This must be set in Convex (not just `.env.local`) because AI grading runs in Convex actions.
+
+### 8.3 Configure Grading Mode (Optional)
+
+By default, grading uses mock mode. To enable real AI grading:
+
+**Convex Dashboard** → **Settings** → **Environment Variables**:
+
+```
+MARKM8_GRADING_MODE=live
+MARKM8_GRADING_MODELS=x-ai/grok-4.1,x-ai/grok-4.1,google/gemini-3
+```
+
+**Model Configuration:**
+- `MARKM8_GRADING_MODE`: `mock` (default) or `live`
+- `MARKM8_GRADING_MODELS`: Comma-separated list of OpenRouter model IDs (3-5 models)
+  - Example: `x-ai/grok-4.1,x-ai/grok-4.1,google/gemini-3`
+  - Supports mixed models (different model per run)
+- `MARKM8_GRADING_RUNS`: Number of parallel runs (3-5, default: 3)
+
+**Recommended Models:**
+- `x-ai/grok-4.1` - Fast, cost-effective
+- `google/gemini-3` - Good balance
+- `anthropic/claude-opus-4.5` - High quality (more expensive)
+- `openai/gpt-5.2` - Latest GPT model
+
+### 8.4 Verify AI Grading
+
+1. Submit a test essay with `MARKM8_GRADING_MODE=live`
+2. Check Convex logs for AI API calls
+3. Verify grade results appear correctly
+
+---
+
+## 9. Stripe Setup (Phase 3)
 
 *To be completed when implementing payments.*
 

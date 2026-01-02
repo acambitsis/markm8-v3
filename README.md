@@ -9,6 +9,8 @@ bun install
 bun --bun run dev
 ```
 
+**Note:** Bun is recommended for faster installs, but npm/pnpm work equally well. Replace `bun` with `npm` or `pnpm` in commands as needed.
+
 ## Documentation
 
 | Doc | Purpose |

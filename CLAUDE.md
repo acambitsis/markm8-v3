@@ -14,7 +14,7 @@
 
 | Component | Choice | Key Notes |
 |-----------|--------|-----------|
-| **Runtime** | Bun | use `bun --bun run` |
+| **Runtime** | Bun (recommended) or Node.js | Bun for faster installs; npm/pnpm also work |
 | **Framework** | Next.js 15 + React 19 | Async request APIs, form actions, ref as prop |
 | **Styling** | Tailwind 4 | CSS-first config (@theme), native dark mode |
 | **Auth** | Clerk + Convex | Clerk JWT template "convex", auto user sync |

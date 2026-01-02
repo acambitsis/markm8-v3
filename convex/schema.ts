@@ -103,6 +103,14 @@ export const modelResultValidator = v.object({
   reason: v.optional(v.string()),
 });
 
+export const categoryScoresValidator = v.object({
+  contentUnderstanding: v.number(),
+  structureOrganization: v.number(),
+  criticalAnalysis: v.number(),
+  languageStyle: v.number(),
+  citationsReferences: v.optional(v.number()),
+});
+
 // =============================================================================
 // Schema Definition
 // =============================================================================
@@ -169,6 +177,7 @@ export default defineSchema({
     letterGradeRange: v.optional(v.string()), // "A" or "A-B"
     percentageRange: v.optional(percentageRangeValidator),
     feedback: v.optional(feedbackValidator),
+    categoryScores: v.optional(categoryScoresValidator),
     modelResults: v.optional(v.array(modelResultValidator)),
 
     // Cost tracking
@@ -198,6 +207,18 @@ export default defineSchema({
     // Validators deferred - using v.any() for now to allow flexible schema evolution
     aiConfig: v.optional(v.any()), // Full structure defined in TECHNICAL_DESIGN.md
   }).index('by_key', ['key']),
+
+  // Grade Failures (internal-only error tracking for debugging)
+  // Raw error details stored here, never exposed to users
+  gradeFailures: defineTable({
+    gradeId: v.id('grades'),
+    userId: v.optional(v.id('users')), // Optional in case grade cannot be loaded
+    rawMessage: v.string(), // Full error message from provider/exception
+    stack: v.optional(v.string()), // Stack trace if available
+    createdAt: v.number(), // Unix timestamp in ms
+  })
+    .index('by_grade_id', ['gradeId'])
+    .index('by_user_id', ['userId']),
 });
 
 // =============================================================================
@@ -214,4 +235,5 @@ export type AssignmentBrief = Infer<typeof assignmentBriefValidator>;
 export type Rubric = Infer<typeof rubricValidator>;
 export type PercentageRange = Infer<typeof percentageRangeValidator>;
 export type GradeFeedback = Infer<typeof feedbackValidator>;
+export type CategoryScores = Infer<typeof categoryScoresValidator>;
 export type ModelResult = Infer<typeof modelResultValidator>;

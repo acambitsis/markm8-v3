@@ -7,6 +7,7 @@ import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
 // Import validators from schema.ts (single source of truth)
 import {
+  categoryScoresValidator,
   feedbackValidator,
   modelResultValidator,
   percentageRangeValidator,
@@ -102,6 +103,7 @@ export const complete = internalMutation({
     letterGradeRange: v.string(),
     percentageRange: percentageRangeValidator,
     feedback: feedbackValidator,
+    categoryScores: v.optional(categoryScoresValidator),
     modelResults: v.array(modelResultValidator),
     totalTokens: v.optional(v.number()),
     apiCost: v.optional(v.string()),
