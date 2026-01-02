@@ -1,3 +1,15 @@
+# [1.5.0](https://github.com/acambitsis/markm8-v3/compare/v1.4.0...v1.5.0) (2026-01-02)
+
+
+### Bug Fixes
+
+* prevent internal error details leakage in grading failures ([79107b3](https://github.com/acambitsis/markm8-v3/commit/79107b3fcca46a224eb227efb9ce08965af338a7))
+
+
+### Features
+
+* implement AI grading with multi-model consensus ([87c0b6e](https://github.com/acambitsis/markm8-v3/commit/87c0b6ecd4a486818e30b3eb8083a4713776cce9))
+
 # [1.4.0](https://github.com/acambitsis/markm8-v3/compare/v1.3.0...v1.4.0) (2026-01-02)
 
 
