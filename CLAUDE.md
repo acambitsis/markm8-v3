@@ -264,11 +264,11 @@ Locations:
 - History page (paginated table)
 - Onboarding page (grading scale preferences)
 - Credits display (real-time balance)
+- AI grading (multi-model consensus via OpenRouter)
 
 **Pending Implementation:**
 | Module | Status |
 |--------|--------|
-| `convex/grading.ts` AI logic | Mock implementation (needs real AI calls) |
 | Stripe integration | Not started |
 
 ---
