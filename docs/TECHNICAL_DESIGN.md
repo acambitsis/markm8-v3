@@ -40,7 +40,9 @@
 
 - ✅ **2-10x faster** package installs vs pnpm/npm
 - ✅ **All dependencies compatible** (Clerk, Convex, Stripe)
+- ✅ **Vercel supports Bun natively** (works out of the box)
 - ⚠️ **Use Node.js-compatible APIs** (avoid Bun-specific imports for portability)
+- 📝 **Optional:** npm/pnpm work equally well - Bun is recommended but not required
 
 ---
 
@@ -325,7 +327,6 @@ src/
 │   ├── Auth.ts                      # Auth helpers (Clerk)
 │   ├── Logger.ts                    # Pino logger
 │   ├── Stripe.ts                    # Payment client (TODO)
-│   ├── AI.ts                        # Vercel AI SDK client (TODO)
 │   └── Mistral.ts                   # Mistral Document AI client (TODO)
 ├── utils/                           # Utilities (from boilerplate)
 │   └── Helpers.ts                   # cn() and other helpers
@@ -428,7 +429,7 @@ git init
 git add .
 git commit -m "Initial commit from ixartz boilerplate"
 
-# 3. Install dependencies with Bun
+# 3. Install dependencies with Bun (or npm/pnpm)
 bun install
 
 # 4. Upgrade to Next.js 15
@@ -447,7 +448,7 @@ bun add -D tailwindcss@next @tailwindcss/postcss@next
 # 7. Remove old Tailwind config
 rm tailwind.config.ts
 
-# 8. Update package.json scripts for Bun
+# 8. Update package.json scripts for Bun (optional)
 # Modify scripts to use "bun --bun run" for dev and start
 ```
 

@@ -103,6 +103,14 @@ export const modelResultValidator = v.object({
   reason: v.optional(v.string()),
 });
 
+export const categoryScoresValidator = v.object({
+  contentUnderstanding: v.number(),
+  structureOrganization: v.number(),
+  criticalAnalysis: v.number(),
+  languageStyle: v.number(),
+  citationsReferences: v.optional(v.number()),
+});
+
 // =============================================================================
 // Schema Definition
 // =============================================================================
@@ -169,6 +177,7 @@ export default defineSchema({
     letterGradeRange: v.optional(v.string()), // "A" or "A-B"
     percentageRange: v.optional(percentageRangeValidator),
     feedback: v.optional(feedbackValidator),
+    categoryScores: v.optional(categoryScoresValidator),
     modelResults: v.optional(v.array(modelResultValidator)),
 
     // Cost tracking
@@ -214,4 +223,5 @@ export type AssignmentBrief = Infer<typeof assignmentBriefValidator>;
 export type Rubric = Infer<typeof rubricValidator>;
 export type PercentageRange = Infer<typeof percentageRangeValidator>;
 export type GradeFeedback = Infer<typeof feedbackValidator>;
+export type CategoryScores = Infer<typeof categoryScoresValidator>;
 export type ModelResult = Infer<typeof modelResultValidator>;
