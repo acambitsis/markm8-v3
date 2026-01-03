@@ -63,7 +63,7 @@
     "react-dom": "^19.0.0",
     "react-hook-form": "^7.53.0",
     "sharp": "^0.33.5",
-    "stripe": "^16.12.0",
+    "stripe": "^20.1.0",
     "svix": "^1.82.0",
     "tailwind-merge": "^2.5.4",
     "zod": "^3.25.76"

@@ -11,9 +11,9 @@ export const Env = createEnv({
     CLERK_SECRET_KEY: z.string().min(1),
     CONVEX_DEPLOY_KEY: z.string().optional(), // For Convex deployment
     LOGTAIL_SOURCE_TOKEN: z.string().optional(),
-    // Stripe keys optional for Phase 1 (will be required in Phase 3)
-    STRIPE_SECRET_KEY: z.string().min(1).optional(),
-    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+    // Stripe keys for payment processing
+    STRIPE_SECRET_KEY: z.string().min(1),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1),
     BILLING_PLAN_ENV: z.enum(['dev', 'test', 'prod']).optional(),
     OPENROUTER_API_KEY: z.string().min(1).optional(), // Required for AI grading (Phase 5)
     MISTRAL_API_KEY: z.string().min(1).optional(), // Required for document OCR (Phase 4)
@@ -24,8 +24,8 @@ export const Env = createEnv({
     NEXT_PUBLIC_CONVEX_URL: z.string().min(1), // Convex deployment URL
     NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: z.string().min(1),
     NEXT_PUBLIC_CLERK_SIGN_IN_URL: z.string().min(1),
-    // Stripe publishable key optional for Phase 1 (will be required in Phase 3)
-    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1).optional(),
+    // Stripe publishable key for checkout
+    NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(), // Error monitoring
   },
   shared: {

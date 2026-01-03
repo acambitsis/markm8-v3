@@ -246,6 +246,8 @@ Locations:
 - ✅ Use React 19 patterns for new components (ref as prop, no forwardRef)
 
 **DON'T:**
+- ❌ Use `console.log`/`console.error` in Next.js — use `logger` from `@/libs/Logger`
+- ❌ Create public `query` that looks up users by external ID (use `internalQuery` for webhooks/API routes)
 - ❌ Use Clerk Organizations (only Clerk auth)
 - ❌ Add organization tables (future feature)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)

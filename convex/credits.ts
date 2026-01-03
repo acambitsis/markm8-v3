@@ -5,7 +5,7 @@ import { v } from 'convex/values';
 
 import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
-import { internalMutation, query } from './_generated/server';
+import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
 import { addDecimal, isGreaterOrEqual, isPositive, subtractDecimal } from './lib/decimal';
 
@@ -239,13 +239,22 @@ export const addFromPurchase = internalMutation({
     stripePaymentIntentId: v.string(),
   },
   handler: async (ctx, { userId, amount, stripePaymentIntentId }) => {
-    const credits = await ctx.db
+    let credits = await ctx.db
       .query('credits')
       .withIndex('by_user_id', q => q.eq('userId', userId))
       .unique();
 
+    // Create credits record if it doesn't exist (defensive coding)
     if (!credits) {
-      throw new Error('No credits found for user');
+      const creditsId = await ctx.db.insert('credits', {
+        userId,
+        balance: '0.00',
+        reserved: '0.00',
+      });
+      credits = await ctx.db.get(creditsId);
+      if (!credits) {
+        throw new Error('Failed to create credits record');
+      }
     }
 
     // Add to balance
@@ -261,5 +270,20 @@ export const addFromPurchase = internalMutation({
       description: `Purchased ${amount} credits`,
       stripePaymentIntentId,
     });
+  },
+});
+
+/**
+ * Check if a payment has already been processed (for idempotency)
+ * Used by Stripe webhook to prevent duplicate credit additions
+ */
+export const getByPaymentIntentId = internalQuery({
+  args: { stripePaymentIntentId: v.string() },
+  handler: async (ctx, { stripePaymentIntentId }) => {
+    return await ctx.db
+      .query('creditTransactions')
+      .withIndex('by_stripe_payment_intent_id', q =>
+        q.eq('stripePaymentIntentId', stripePaymentIntentId))
+      .first();
   },
 });

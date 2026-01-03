@@ -236,5 +236,31 @@
     "message_title": "Message",
     "message_description": "Enter a detailed message for your todo.",
     "submit_button": "Submit"
+  },
+  "Settings": {
+    "meta_title": "Settings - MarkM8",
+    "meta_description": "Manage your account settings and preferences",
+    "title": "Settings",
+    "description": "Manage your account settings and preferences",
+    "profile_tab": "Profile",
+    "credits_tab": "Credits",
+    "billing_tab": "Billing",
+    "profile_title": "Profile Settings",
+    "profile_description": "Manage your profile information",
+    "profile_coming_soon": "Profile settings coming soon. Use the Profile link in the menu to manage your Clerk profile.",
+    "credits_title": "Credits",
+    "current_balance": "Your current balance:",
+    "credits_unit": "credits",
+    "billing_title": "Billing History",
+    "billing_description": "View your past purchases and download receipts",
+    "billing_coming_soon": "Billing history coming soon."
+  },
+  "Credits": {
+    "buy_now": "Buy Now",
+    "processing": "Processing...",
+    "payment_success_title": "Payment successful!",
+    "payment_success_description": "Your credits have been added to your account.",
+    "payment_canceled_title": "Payment canceled",
+    "payment_canceled_description": "Your payment was canceled. No charges were made."
   }
 }

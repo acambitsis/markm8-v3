@@ -142,7 +142,9 @@ export default defineSchema({
     description: v.optional(v.string()),
     gradeId: v.optional(v.id('grades')),
     stripePaymentIntentId: v.optional(v.string()),
-  }).index('by_user_id', ['userId']),
+  })
+    .index('by_user_id', ['userId'])
+    .index('by_stripe_payment_intent_id', ['stripePaymentIntentId']),
 
   // Essays (user-scoped, drafts and submitted)
   essays: defineTable({
