@@ -236,5 +236,31 @@
     "message_title": "Message",
     "message_description": "Entrez un message détaillé pour votre tâche.",
     "submit_button": "Envoyer"
+  },
+  "Settings": {
+    "meta_title": "Paramètres - MarkM8",
+    "meta_description": "Gérez les paramètres et préférences de votre compte",
+    "title": "Paramètres",
+    "description": "Gérez les paramètres et préférences de votre compte",
+    "profile_tab": "Profil",
+    "credits_tab": "Crédits",
+    "billing_tab": "Facturation",
+    "profile_title": "Paramètres du profil",
+    "profile_description": "Gérez vos informations de profil",
+    "profile_coming_soon": "Paramètres du profil bientôt disponibles. Utilisez le lien Profil dans le menu pour gérer votre profil Clerk.",
+    "credits_title": "Crédits",
+    "current_balance": "Votre solde actuel :",
+    "credits_unit": "crédits",
+    "billing_title": "Historique de facturation",
+    "billing_description": "Consultez vos achats passés et téléchargez vos reçus",
+    "billing_coming_soon": "Historique de facturation bientôt disponible."
+  },
+  "Credits": {
+    "buy_now": "Acheter",
+    "processing": "Traitement...",
+    "payment_success_title": "Paiement réussi !",
+    "payment_success_description": "Vos crédits ont été ajoutés à votre compte.",
+    "payment_canceled_title": "Paiement annulé",
+    "payment_canceled_description": "Votre paiement a été annulé. Aucun frais n'a été prélevé."
   }
 }

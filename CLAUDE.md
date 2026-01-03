@@ -246,6 +246,8 @@ Locations:
 - ✅ Use React 19 patterns for new components (ref as prop, no forwardRef)
 
 **DON'T:**
+- ❌ Use `console.log`/`console.error` in Next.js — use `logger` from `@/libs/Logger`
+- ❌ Create public `query` that looks up users by external ID (use `internalQuery` for webhooks/API routes)
 - ❌ Use Clerk Organizations (only Clerk auth)
 - ❌ Add organization tables (future feature)
 - ❌ Use Bun-specific imports (stay Node.js-compatible)
@@ -284,6 +286,8 @@ Locations:
 **Deployment trigger:** Push to `main` → Vercel builds → Convex deploys via `CONVEX_DEPLOY_KEY`
 
 **Env vars set in:** Convex Dashboard, Vercel Dashboard, `.env.local` (local only)
+
+**CLI/MCP tools:** Use `vercel` CLI and Convex MCP server for env vars, data inspection, and debugging.
 
 **Webhook endpoints (Convex HTTP):**
 - Clerk: `https://<deployment>.convex.site/clerk-webhook`

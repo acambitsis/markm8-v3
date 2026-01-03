@@ -6,7 +6,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   const { locale } = await props.params;
   const t = await getTranslations({
     locale,
-    namespace: 'Dashboard',
+    namespace: 'Settings',
   });
 
   return {
@@ -15,7 +15,7 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
   };
 }
 
-export default async function DashboardLayout(props: { children: React.ReactNode }) {
+export default async function SettingsLayout(props: { children: React.ReactNode }) {
   const t = await getTranslations('DashboardLayout');
 
   return (

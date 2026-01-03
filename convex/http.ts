@@ -1,11 +1,13 @@
 // HTTP endpoints for webhooks
-// Handles Clerk user sync and future Stripe payments
+// Handles Clerk user sync and Stripe payments
 /* eslint-disable no-console */
 
 import { httpRouter } from 'convex/server';
+import Stripe from 'stripe';
 import { Webhook } from 'svix';
 
 import { internal } from './_generated/api';
+import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
 
 const http = httpRouter();
@@ -206,23 +208,133 @@ http.route({
 });
 
 /**
- * Stripe webhook handler (placeholder for Phase 3)
+ * Stripe webhook handler
  * Endpoint: POST /stripe-webhook
+ *
+ * Handles checkout.session.completed events to add credits after purchase.
+ * Uses stripePaymentIntentId for idempotency to prevent duplicate credits.
  */
 http.route({
   path: '/stripe-webhook',
   method: 'POST',
-  handler: httpAction(async (_ctx, _request) => {
-    // TODO: Implement Stripe webhook handling in Phase 3
-    // - Verify webhook signature
-    // - Handle checkout.session.completed
-    // - Add credits to user account
+  handler: httpAction(async (ctx, request) => {
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
-    console.log('Stripe webhook received - not yet implemented');
+    if (!webhookSecret || !stripeSecretKey) {
+      console.error('Stripe secrets not configured');
+      return new Response(
+        JSON.stringify({ error: 'Webhook not configured' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
 
+    // Get signature header
+    const signature = request.headers.get('stripe-signature');
+
+    if (!signature) {
+      console.warn('Missing stripe-signature header');
+      return new Response(
+        JSON.stringify({ error: 'Missing stripe-signature header' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Get body and verify webhook
+    const body = await request.text();
+    const stripe = new Stripe(stripeSecretKey);
+    let event: Stripe.Event;
+
+    try {
+      // Use async version for Convex runtime (uses SubtleCrypto)
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+    } catch (err) {
+      console.error('Webhook signature verification failed:', err);
+      return new Response(
+        JSON.stringify({ error: 'Invalid signature' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Handle checkout.session.completed event
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object as Stripe.Checkout.Session;
+
+      // Extract metadata
+      const userId = session.metadata?.userId;
+      const credits = session.metadata?.credits;
+      const paymentIntentId = session.payment_intent as string;
+
+      if (!userId || !credits || !paymentIntentId) {
+        console.error('Missing metadata in checkout session:', {
+          sessionId: session.id,
+          userId,
+          credits,
+          paymentIntentId,
+        });
+        return new Response(
+          JSON.stringify({ error: 'Missing metadata' }),
+          { status: 400, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Idempotency check - prevent duplicate credit additions
+      const existingTx = await ctx.runQuery(
+        internal.credits.getByPaymentIntentId,
+        { stripePaymentIntentId: paymentIntentId },
+      );
+
+      if (existingTx) {
+        console.log('Payment already processed:', paymentIntentId);
+        return new Response(
+          JSON.stringify({ success: true, message: 'Already processed' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Validate user exists
+      const user = await ctx.runQuery(internal.users.getById, {
+        userId: userId as Id<'users'>,
+      });
+
+      if (!user) {
+        console.error('User not found:', userId);
+        // Return 200 to prevent Stripe retries for permanent failure
+        return new Response(
+          JSON.stringify({ error: 'User not found' }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      // Add credits
+      try {
+        await ctx.runMutation(internal.credits.addFromPurchase, {
+          userId: userId as Id<'users'>,
+          amount: credits,
+          stripePaymentIntentId: paymentIntentId,
+        });
+
+        console.log('Credits added:', { userId, credits, paymentIntentId });
+
+        return new Response(
+          JSON.stringify({ success: true }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      } catch (error) {
+        console.error('Failed to add credits:', error);
+        // Return 500 so Stripe will retry
+        return new Response(
+          JSON.stringify({ error: 'Failed to process payment' }),
+          { status: 500, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
+    // Log other events but return success
+    console.log('Stripe webhook event received:', event.type);
     return new Response(
-      JSON.stringify({ error: 'Not implemented' }),
-      { status: 501, headers: { 'Content-Type': 'application/json' } },
+      JSON.stringify({ success: true }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
     );
   }),
 });

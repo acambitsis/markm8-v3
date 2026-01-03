@@ -143,6 +143,46 @@ export const updateFromClerk = internalMutation({
 });
 
 /**
+ * Get user by ID (internal query for webhook validation)
+ */
+export const getById = internalQuery({
+  args: { userId: v.id('users') },
+  handler: async (ctx, { userId }) => {
+    return await ctx.db.get(userId);
+  },
+});
+
+/**
+ * Get current user's checkout info (authenticated)
+ * Returns minimal fields needed for checkout - prevents PII leakage
+ * Security: Verifies caller is authenticated and returns only their own data
+ */
+export const getMyCheckoutInfo = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      return null;
+    }
+
+    const user = await ctx.db
+      .query('users')
+      .withIndex('by_clerk_id', q => q.eq('clerkId', identity.subject))
+      .unique();
+
+    if (!user) {
+      return null;
+    }
+
+    // Return only fields needed for checkout
+    return {
+      _id: user._id,
+      email: user.email,
+    };
+  },
+});
+
+/**
  * Delete user from Clerk webhook (internal mutation)
  * Implements explicit cascade delete for all user-owned resources
  *
