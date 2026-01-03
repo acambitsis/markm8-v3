@@ -15,8 +15,8 @@ tools: Read, Grep, Glob, Bash
 ## Confidence Levels
 
 - **DEFINITE** — Clear violation that will cause errors or type issues
-- **LIKELY** — Pattern suggests suboptimal code; reviewer should verify
-- **POSSIBLE** — May be intentional; flag for discussion
+- **LIKELY** — Pattern suggests suboptimal code; reviewer should verify. **Includes:** incorrect HTTP status codes, misleading error responses, wrong error semantics (e.g., returning 500/404 when 401 is appropriate)
+- **POSSIBLE** — May be intentional; flag for discussion. Code is functionally correct but could be improved for clarity or debugging
 
 ## Exception Annotations
 
