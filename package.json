@@ -8,6 +8,7 @@
     "dev": "run-p dev:*",
     "build": "next build",
     "build:prod": "npx convex deploy --cmd 'next build'",
+    "build:ci": "node scripts/build-ci.mjs",
     "start": "bun --bun run next start",
     "build-stats": "cross-env ANALYZE=true npm run build",
     "clean": "rimraf .next out coverage",

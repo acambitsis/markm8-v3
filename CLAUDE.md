@@ -171,7 +171,7 @@ bun --bun run dev
 **Convex commands:**
 ```bash
 bun run convex:dev    # Start Convex dev server (also runs with bun run dev)
-bun run convex:deploy # Deploy Convex functions to production
+bun run convex:deploy # Deploy Convex functions manually
 ```
 
 **Test Stripe webhooks locally:**
@@ -180,13 +180,35 @@ bun run convex:deploy # Deploy Convex functions to production
 stripe listen --forward-to https://<project>.convex.site/stripe-webhook
 ```
 
-**Deploy to Vercel:**
-```bash
-# Vercel auto-deploys from GitHub
-# Production: bun run build:prod (deploys Convex + builds Next.js)
-# Preview: bun run build (frontend only, uses existing Convex backend)
-# Required env var: CONVEX_DEPLOY_KEY (from Convex Dashboard → Settings → Deploy Key)
+---
+
+## Git Branching Strategy
+
 ```
+feature/* ──PR──► dev ──promote──► main
+                   │                 │
+                   ▼                 ▼
+              Dev Deploy        Prod Deploy
+           (Convex + Vercel)  (Convex + Vercel)
+```
+
+**Branches:**
+| Branch | Purpose | Deploys To |
+|--------|---------|------------|
+| `dev` | Default branch. PRs merge here first. | Dev (Convex + Vercel Preview) |
+| `main` | Production. Only receives merges from `dev`. | Prod (Convex + Vercel Production) |
+| `feature/*` | Individual work branches. | Vercel Preview only (no Convex) |
+
+**Workflow:**
+1. Create feature branch from `dev`
+2. Open PR targeting `dev` → CI runs, Vercel preview deploys (no Convex)
+3. Merge to `dev` → Deploys to dev environment (Convex + Vercel)
+4. When ready for production: merge `dev` → `main`
+5. Merge to `main` → Deploys to production (Convex + Vercel)
+
+**Build behavior (`scripts/build-ci.mjs`):**
+- `main` or `dev` branch → Deploys Convex + builds Next.js
+- Other branches (PRs) → Builds Next.js only (no Convex deploy)
 
 ---
 
@@ -267,23 +289,29 @@ Locations:
 - Onboarding page (grading scale preferences)
 - Credits display (real-time balance)
 - AI grading (multi-model consensus via OpenRouter)
+- Stripe credit purchase integration
 
 **Pending Implementation:**
 | Module | Status |
 |--------|--------|
-| Stripe integration | Not started |
+| — | All core features complete |
 
 ---
 
 ## Deployment & DevOps
 
 **Environments:**
-| Environment | Convex | Vercel | Clerk |
-|-------------|--------|--------|-------|
-| Development | brazen-buffalo-798 | Preview | dear-drum-37 (test) |
-| Production | lovely-swordfish-944 | Production | clerk.markm8.com (live) |
+| Environment | Branch | Convex | Vercel | Clerk |
+|-------------|--------|--------|--------|-------|
+| Development | `dev` | brazen-buffalo-798 | Preview | dear-drum-37 (test) |
+| Production | `main` | lovely-swordfish-944 | Production | clerk.markm8.com (live) |
 
-**Deployment trigger:** Push to `main` → Vercel builds → Convex deploys via `CONVEX_DEPLOY_KEY`
+**Deployment triggers:**
+| Trigger | Convex Deploy | Vercel Deploy |
+|---------|---------------|---------------|
+| Push to `dev` | ✅ Dev | ✅ Preview |
+| Push to `main` | ✅ Prod | ✅ Production |
+| PR to `dev` | ❌ | ✅ Preview |
 
 **Env vars set in:** Convex Dashboard, Vercel Dashboard, `.env.local` (local only)
 
