@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/acambitsis/markm8-v3/compare/v1.5.2...v1.6.0) (2026-01-03)
+
+
+### Features
+
+* add Stripe credit purchase integration ([#14](https://github.com/acambitsis/markm8-v3/issues/14)) ([0f792fd](https://github.com/acambitsis/markm8-v3/commit/0f792fdc0001333d420269ddd26ff6216000cc94))
+
 ## [1.5.2](https://github.com/acambitsis/markm8-v3/compare/v1.5.1...v1.5.2) (2026-01-03)
 
 
