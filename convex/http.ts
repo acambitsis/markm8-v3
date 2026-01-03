@@ -135,14 +135,29 @@ http.route({
       const name = [first_name, last_name].filter(Boolean).join(' ') || undefined;
 
       try {
-        await ctx.runMutation(internal.users.updateFromClerk, {
+        // updateFromClerk returns a userId if it created a new user (upsert)
+        const newUserId = await ctx.runMutation(internal.users.updateFromClerk, {
           clerkId: id,
           email,
           name,
           imageUrl: image_url ?? undefined,
         });
 
-        console.log('User updated successfully:', id);
+        // If a new user was created via upsert (race condition handling),
+        // initialize their credits with signup bonus
+        if (newUserId) {
+          const signupBonus = await ctx.runQuery(
+            internal.platformSettings.getSignupBonus,
+            {},
+          );
+          await ctx.runMutation(internal.credits.initializeForUser, {
+            userId: newUserId,
+            signupBonus,
+          });
+          console.log('User created via upsert with credits:', { userId: newUserId, email });
+        } else {
+          console.log('User updated successfully:', id);
+        }
 
         return new Response(
           JSON.stringify({ success: true }),

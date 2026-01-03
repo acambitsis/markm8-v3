@@ -48,7 +48,23 @@ export default function GlobalError({
         does not expose status codes for errors, we simply pass 0 to render a
         generic error message. */}
         <NextError statusCode={0} />
-        <button onClick={reset}>Try again</button>
+        <button
+          onClick={reset}
+          style={{
+            display: 'block',
+            margin: '20px auto',
+            padding: '12px 24px',
+            fontSize: '16px',
+            fontWeight: 500,
+            color: '#ffffff',
+            backgroundColor: '#0070f3',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+          }}
+        >
+          Try again
+        </button>
       </body>
     </html>
   );

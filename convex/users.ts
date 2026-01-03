@@ -137,7 +137,8 @@ export const updateFromClerk = internalMutation({
       ...(args.imageUrl !== undefined && { imageUrl: args.imageUrl }),
     });
 
-    return user._id;
+    // Return undefined for updates (userId is only returned for new user creation)
+    return undefined;
   },
 });
 
