@@ -62,219 +62,21 @@ The `grades` table supports **1-to-many** with essays (no unique constraint on `
 
 ### Schema Definition
 
-```typescript
-// convex/schema.ts (single source of truth)
-import { defineSchema, defineTable } from 'convex/server';
-import type { Infer } from 'convex/values';
-import { v } from 'convex/values';
+**Authoritative source:** `convex/schema.ts`
 
-// =============================================================================
-// Validators for reusable types (exported for type inference)
-// =============================================================================
+The schema defines all document types, validators, and exported TypeScript types. Key tables:
 
-export const gradingScaleValidator = v.union(
-  v.literal('percentage'),
-  v.literal('letter'),
-  v.literal('uk'),
-  v.literal('gpa'),
-  v.literal('pass_fail'),
-);
+| Table | Purpose |
+|-------|---------|
+| `users` | Synced from Clerk webhook, indexed by `clerkId` |
+| `credits` | Balance + reserved per user |
+| `creditTransactions` | Audit log (signup_bonus, purchase, grading, refund) |
+| `essays` | User essays with status (draft/submitted/archived) |
+| `grades` | Grading results, 1-to-many with essays for regrading |
+| `platformSettings` | Singleton config (signup bonus, AI config) |
+| `gradeFailures` | Internal error tracking for debugging |
 
-export const essayStatusValidator = v.union(
-  v.literal('draft'),
-  v.literal('submitted'),
-  v.literal('archived'),
-);
-
-export const gradeStatusValidator = v.union(
-  v.literal('queued'),
-  v.literal('processing'),
-  v.literal('complete'),
-  v.literal('failed'),
-);
-
-export const transactionTypeValidator = v.union(
-  v.literal('signup_bonus'),
-  v.literal('purchase'),
-  v.literal('grading'),
-  v.literal('refund'),
-);
-
-export const academicLevelValidator = v.union(
-  v.literal('high_school'),
-  v.literal('undergraduate'),
-  v.literal('postgraduate'),
-);
-
-// =============================================================================
-// Complex object validators
-// =============================================================================
-
-export const assignmentBriefValidator = v.object({
-  title: v.string(),
-  instructions: v.string(),
-  subject: v.string(),
-  academicLevel: academicLevelValidator,
-});
-
-export const rubricValidator = v.object({
-  customCriteria: v.optional(v.string()),
-  focusAreas: v.optional(v.array(v.string())),
-});
-
-export const percentageRangeValidator = v.object({
-  lower: v.number(),
-  upper: v.number(),
-});
-
-export const strengthValidator = v.object({
-  title: v.string(),
-  description: v.string(),
-  evidence: v.optional(v.string()),
-});
-
-export const improvementValidator = v.object({
-  title: v.string(),
-  description: v.string(),
-  suggestion: v.string(),
-  detailedSuggestions: v.optional(v.array(v.string())),
-});
-
-export const languageTipValidator = v.object({
-  category: v.string(),
-  feedback: v.string(),
-});
-
-export const resourceValidator = v.object({
-  title: v.string(),
-  url: v.optional(v.string()),
-  description: v.string(),
-});
-
-export const feedbackValidator = v.object({
-  strengths: v.array(strengthValidator),
-  improvements: v.array(improvementValidator),
-  languageTips: v.array(languageTipValidator),
-  resources: v.optional(v.array(resourceValidator)),
-});
-
-export const modelResultValidator = v.object({
-  model: v.string(),
-  percentage: v.number(),
-  included: v.boolean(),
-  reason: v.optional(v.string()),
-});
-
-// =============================================================================
-// Schema Definition
-// =============================================================================
-
-export default defineSchema({
-  // Users (synced from Clerk)
-  users: defineTable({
-    clerkId: v.string(), // Clerk user ID (e.g., 'user_2abc123def456')
-    email: v.string(),
-    name: v.optional(v.string()),
-    imageUrl: v.optional(v.string()),
-    institution: v.optional(v.string()), // User's institution (free text)
-    course: v.optional(v.string()), // User's course (free text)
-    defaultGradingScale: v.optional(gradingScaleValidator), // Preferred grading scale
-  }).index('by_clerk_id', ['clerkId']),
-
-  // Credits (user-scoped balance tracking)
-  credits: defineTable({
-    userId: v.id('users'),
-    balance: v.string(), // Store as string for decimal precision (e.g., "1.00")
-    reserved: v.string(), // Credits reserved for pending grading
-  }).index('by_user_id', ['userId']),
-
-  // Credit Transactions (audit log)
-  creditTransactions: defineTable({
-    userId: v.id('users'),
-    amount: v.string(), // Can be negative for deductions
-    transactionType: transactionTypeValidator,
-    description: v.optional(v.string()),
-    gradeId: v.optional(v.id('grades')),
-    stripePaymentIntentId: v.optional(v.string()),
-  }).index('by_user_id', ['userId']),
-
-  // Essays (user-scoped, drafts and submitted)
-  essays: defineTable({
-    userId: v.id('users'),
-    authorUserId: v.optional(v.id('users')), // For future org support
-
-    // Essay data (optional for drafts)
-    assignmentBrief: v.optional(assignmentBriefValidator),
-    rubric: v.optional(rubricValidator),
-    content: v.optional(v.string()),
-    wordCount: v.optional(v.number()),
-    focusAreas: v.optional(v.array(v.string())),
-
-    // Lifecycle
-    status: essayStatusValidator,
-    submittedAt: v.optional(v.number()), // Unix timestamp in ms
-    deletedAt: v.optional(v.number()), // Soft delete timestamp
-  })
-    .index('by_user_id', ['userId'])
-    .index('by_user_status', ['userId', 'status'])
-    .index('by_user_submitted', ['userId', 'submittedAt']),
-
-  // Grades (user-scoped, 1-to-many with essays for regrading support)
-  grades: defineTable({
-    userId: v.id('users'),
-    essayId: v.id('essays'), // NOT unique (supports regrading)
-
-    // Grading status
-    status: gradeStatusValidator,
-
-    // Results (populated when status = 'complete')
-    letterGradeRange: v.optional(v.string()), // "A" or "A-B"
-    percentageRange: v.optional(percentageRangeValidator),
-    feedback: v.optional(feedbackValidator),
-    modelResults: v.optional(v.array(modelResultValidator)),
-
-    // Cost tracking
-    totalTokens: v.optional(v.number()),
-    apiCost: v.optional(v.string()), // Decimal as string
-
-    // Error handling
-    errorMessage: v.optional(v.string()),
-
-    // Timing (Unix timestamps in ms)
-    queuedAt: v.number(),
-    startedAt: v.optional(v.number()),
-    completedAt: v.optional(v.number()),
-  })
-    .index('by_user_id', ['userId'])
-    .index('by_essay_id', ['essayId'])
-    .index('by_status', ['status']),
-
-  // Platform Settings (singleton for admin-configurable values)
-  platformSettings: defineTable({
-    key: v.literal('singleton'), // Only one row
-    signupBonusAmount: v.string(), // Decimal as string (e.g., "1.00")
-    updatedBy: v.optional(v.id('users')), // Admin who made the change
-  }).index('by_key', ['key']),
-});
-
-// =============================================================================
-// Inferred Types (for use in UI components - single source of truth)
-// =============================================================================
-
-export type GradingScale = Infer<typeof gradingScaleValidator>;
-export type EssayStatus = Infer<typeof essayStatusValidator>;
-export type GradeStatus = Infer<typeof gradeStatusValidator>;
-export type TransactionType = Infer<typeof transactionTypeValidator>;
-export type AcademicLevel = Infer<typeof academicLevelValidator>;
-
-export type AssignmentBrief = Infer<typeof assignmentBriefValidator>;
-export type Rubric = Infer<typeof rubricValidator>;
-export type PercentageRange = Infer<typeof percentageRangeValidator>;
-export type GradeFeedback = Infer<typeof feedbackValidator>;
-export type ModelResult = Infer<typeof modelResultValidator>;
-```
-
-**That's it.** Simple, clean, user-scoped.
+All validators and inferred types are exported from `convex/schema.ts` for use across the codebase.
 
 ### Draft Uniqueness Constraint
 
@@ -284,52 +86,31 @@ Convex queries enforce the business rule that each user can only have one draft 
 
 ## File Structure
 
+*Key architectural files shown; not exhaustive.*
+
 ```
 convex/                              # Convex backend (serverless)
 ├── schema.ts                        # Document schema + exported validators (single source of truth)
 ├── auth.config.ts                   # Convex auth configuration (Clerk integration)
 ├── http.ts                          # HTTP endpoints (Clerk webhook, Stripe webhook)
-├── lib/                             # Shared helpers
-│   ├── auth.ts                      # requireAuth() helper
-│   └── decimal.ts                   # Credit arithmetic (integer cents internally)
+├── lib/                             # Shared helpers (auth, decimal, ai, gradingPrompt, gradingSchema)
 ├── platformSettings.ts              # Admin-configurable settings (signup bonus)
 ├── users.ts                         # User sync from Clerk
 ├── credits.ts                       # Balance, reservations, transactions
 ├── essays.ts                        # Drafts, submission, history
 ├── grades.ts                        # Grade records and status
-└── grading.ts                       # AI grading action (background processing)
+├── grading.ts                       # AI grading action (background processing)
+└── gradeFailures.ts                 # Internal error tracking
 
 src/
-├── app/
-│   ├── [locale]/                    # i18n routing (from boilerplate)
-│   │   ├── (auth)/                  # Protected routes
-│   │   │   ├── dashboard/
-│   │   │   ├── submit/              # 3-tab essay submission
-│   │   │   ├── grades/[id]/         # Status + results
-│   │   │   ├── history/
-│   │   │   └── settings/
-│   │   └── (unauth)/                # Public routes (landing, pricing)
-│   └── api/                         # Minimal API routes (most logic in Convex)
-│       └── ai/                      # AI endpoints (title generation, OCR) - future
-├── components/
-│   ├── ui/                          # Shadcn components (from boilerplate)
-│   └── ConvexClientProvider.tsx     # Convex + Clerk provider setup
-├── features/                        # Feature modules (boilerplate pattern)
-│   ├── essays/                      # Submission forms, draft autosave
-│   ├── grading/                     # Results display, category scores
-│   └── credits/                     # Balance display, purchase flow
-├── hooks/
-│   ├── useGradeStatus.ts            # Real-time grade status (Convex subscription)
-│   ├── useCredits.ts                # Real-time credits (Convex subscription)
-│   └── useAutosave.ts               # Draft autosave hook
-├── libs/                            # Third-party configs (boilerplate pattern)
-│   ├── Env.ts                       # Environment variables (t3-env)
-│   ├── Auth.ts                      # Auth helpers (Clerk)
-│   ├── Logger.ts                    # Pino logger
-│   └── Stripe.ts                    # Payment client
-├── utils/                           # Utilities (from boilerplate)
-│   └── Helpers.ts                   # cn() and other helpers
-└── locales/                         # i18n JSON files (from boilerplate)
+├── app/[locale]/
+│   ├── (auth)/                      # Protected routes (dashboard, submit, grades, history, settings)
+│   └── (unauth)/                    # Public routes (landing, pricing)
+├── components/                      # Shared UI components
+├── features/                        # Feature modules (essays, grading, billing, dashboard, onboarding)
+├── hooks/                           # Custom hooks (useCredits, useGradeStatus, useAutosave)
+├── libs/                            # Third-party configs (Env, Logger, Stripe)
+└── utils/                           # Utilities (Helpers.ts with cn())
 ```
 
 ---
@@ -409,10 +190,10 @@ We're using the FREE ixartz/SaaS-Boilerplate from GitHub ($0) instead of Pro ($3
 - ✅ Landing page template
 - ✅ ESLint + Prettier + Husky
 
-### What We're Adding
+### What We Added
 
-- ✅ Vercel AI SDK (configured, AI logic TODO)
-- ⏳ Stripe integration (not started)
+- ✅ Vercel AI SDK + OpenRouter integration
+- ✅ Stripe integration (one-time credit purchases)
 - ✅ Dark mode (via Tailwind 4)
 
 ### Installation Steps
@@ -617,7 +398,7 @@ Initialize Stripe client with secret key, latest API version (`2024-12-18.acacia
 
 ### Checkout Session
 
-**Planned (not implemented yet):** Create a Stripe Checkout Session via a **Convex action** (recommended, since it calls an external API).
+Stripe Checkout Session is created via a **Next.js API route** (`src/app/api/stripe/checkout/route.ts`).
 
 - Mode: `payment` (one-time, NOT subscription)
 - Line items: Dynamic `price_data` (not pre-created products)
@@ -633,9 +414,9 @@ Initialize Stripe client with secret key, latest API version (`2024-12-18.acacia
 2. On `checkout.session.completed`:
    - Extract purchase metadata
    - Resolve the target Convex user
-   - **Idempotency (TODO):** before crediting, check whether a `creditTransactions` record already exists for `stripePaymentIntentId` and skip if present
+   - Idempotency check: verify no `creditTransactions` record exists for `stripePaymentIntentId`
    - Credit the user by calling `internal.credits.addFromPurchase({ userId, amount, stripePaymentIntentId })`
-3. Use atomic Convex mutations for DB updates (actions use `ctx.runMutation`)
+3. Use atomic Convex mutations for DB updates
 
 **Why Idempotency Check is Critical:**
 
@@ -784,19 +565,14 @@ Provider-specific conversion from canonical `reasoningEffort` to API parameters:
 - **Google (Gemini-3):** Maps to thinking/reasoning parameters (varies by model version)
 - **Anthropic (Claude):** Maps to reasoning settings (if available)
 
-**Implementation Status:**
-
-- ✅ Schema stubs added to `convex/schema.ts`
-- ✅ Function stubs added to `convex/platformSettings.ts`
-- ⏳ Full implementation deferred (config reading, provider adapters, admin UI)
-
 ### Title Generation API
 
 **Purpose:** Generate concise essay titles (max 6 words) based on essay content and instructions.
 
 **Model Choice:** Uses a fast, cheap model (Claude Haiku 4.5) instead of the grading models to minimize cost and latency.
 
-**Planned (not implemented yet):** Title generation endpoint (either a Convex action or a small Next.js route under `src/app/[locale]/api/ai/*`).
+**Note:** Title generation is optional - the user can enter a title manually or use the auto-generate feature.
+
 - Input: `instructions` (assignment brief), `content` (first 500 words)
 - Validation: Require at least one field
 - Model config: `maxTokens: 20`, `temperature: 0.7`
@@ -921,8 +697,6 @@ Use: `await generateObject({ model: getGradingModel(), schema: GradeSchema, prom
 ### Overview
 
 Users can upload documents (PDF, DOCX, TXT) for **Instructions** and **Custom Rubric** fields. The same document parsing pipeline (mammoth.js for DOCX, Gemini Flash for PDF) handles all uploads, converting them to markdown while preserving structure and formatting.
-
-**Note:** This uses the same document parsing approach as essay content (see Document Ingestion section above).
 
 ### Supported Document Formats
 
@@ -1285,366 +1059,67 @@ Stay on free tiers where possible.
 
 ## Environment Variables
 
-```env
-# Clerk (auth only)
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
-CLERK_SECRET_KEY=sk_test_...
-CLERK_WEBHOOK_SECRET=whsec_...
+**Authoritative source:** `SETUP.md`
 
-# Convex (database + serverless functions)
-NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
-CONVEX_DEPLOY_KEY=prod:xxx  # For CI/CD deployment
+See SETUP.md for complete environment variable configuration including:
+- Clerk authentication keys
+- Convex deployment URLs and keys
+- Stripe payment keys
+- OpenRouter API key for AI grading
+- Grading mode configuration (`MARKM8_GRADING_MODE`, `MARKM8_GRADING_MODELS`)
 
-# Stripe (payments)
-STRIPE_SECRET_KEY=sk_test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-
-# OpenRouter (AI via Vercel AI SDK)
-OPENROUTER_API_KEY=sk-or-...
-
-# Grading ensemble config (Convex actions)
-# - mock: generate fake grading results (useful for tests/dev)
-# - live: reserved for future OpenRouter integration
-MARKM8_GRADING_MODE=mock
-# Optional explicit per-run model list (comma-separated). Length determines run count (clamped to 3..5).
-# Example: x-ai/grok-4.1,x-ai/grok-4.1,google/gemini-3
-MARKM8_GRADING_MODELS=x-ai/grok-4.1,x-ai/grok-4.1,x-ai/grok-4.1
-# Optional run count (3..5) used when MARKM8_GRADING_MODELS is not provided
-MARKM8_GRADING_RUNS=3
-
-# Note: Production model configuration is stored in platformSettings.aiConfig (Convex singleton)
-# Update via Convex Dashboard or future admin UI. Env vars are for emergency overrides only.
-
-# App
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
+Environment variables are set in:
+- `.env.local` for local development
+- Convex Dashboard for backend functions
+- Vercel Dashboard for production deployment
 
 ---
 
-## Launch Checklist
+## Implementation Status
 
-### Phase 1: Foundation
+### Phase Status
 
-- [ ] Clone boilerplate
-- [ ] Upgrade Next.js 14→15, React 18→19, Tailwind 3→4
-- [ ] Remove example code
-- [ ] Add dark mode
-- [ ] Set up Clerk (Google OAuth, no Organizations) - **Auth only, no webhooks yet**
-- [ ] Verify: `bun --bun run dev`
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Foundation (boilerplate, upgrades, Clerk auth) | ✅ Complete |
+| **Phase 2** | UI Implementation (all pages and components) | ✅ Complete |
+| **Phase 3** | Authentication & User Management (Clerk + Convex) | ✅ Complete |
+| **Phase 4** | Essay Submission & Draft Management | ✅ Complete (document parsing pending) |
+| **Phase 5** | Grading System (AI ensemble, real-time status) | ✅ Complete |
+| **Phase 6** | Credits & Billing (Stripe integration) | ✅ Complete |
+| **Phase 7** | Testing & Polish | 🔄 In Progress |
+| **Phase 8** | Launch | ⏳ Pending |
 
----
+### Section Status
 
-### Phase 2: UI Implementation with Mocked Backends
+| Section | Status | Notes |
+|---------|--------|-------|
+| Database Schema | ✅ Complete | Authoritative source: `convex/schema.ts` |
+| Authentication (Clerk) | ✅ Complete | Webhook, JWT template, user sync |
+| Payments (Stripe) | ✅ Complete | Checkout, webhook, idempotency |
+| AI Integration | ✅ Complete | Multi-model ensemble, outlier detection |
+| Document Ingestion | ⏳ Not implemented | Users paste text directly |
+| Document Upload (Instructions/Rubric) | ⏳ Not implemented | Part of document parsing feature |
+| Title Generation API | ⏳ Not implemented | Users enter titles manually |
+| Async Grading | ✅ Complete | Convex actions, real-time subscriptions |
 
-**Goal:** Build complete UI flows end-to-end with mocked API responses. Use dialogue boxes/alerts to indicate what backend would do.
+### Remaining Work
 
-**Mock Strategy:**
-- Create mock API route handlers in `src/app/api/` that return static/mock data
-- Use `alert()` or toast notifications to indicate backend actions
-- Store mock data in memory (Map/object) for session persistence
-- All UI interactions should work, but backend is simulated
+**Document Parsing:**
+- Backend action for PDF/DOCX parsing not yet implemented
+- UI shows "coming soon" placeholder
+- Users currently paste text directly
 
-#### 2.1: Landing Page & Auth Flow
+**Testing & Polish:**
+- E2E test coverage
+- Error handling edge cases
+- Performance optimization
+- Accessibility audit
 
-- [ ] Landing page (`/`)
-  - [ ] Hero section with value proposition
-  - [ ] Features section
-  - [ ] Pricing section (credit packages)
-  - [ ] "Get Started" button → Clerk sign-in
-- [ ] Clerk authentication (sign-in/sign-up)
-  - [ ] Mock: On signup, show alert: "Backend would: Create user record, initialize credits with signup bonus"
-  - [ ] Redirect to `/onboarding` on first signup (check localStorage flag)
-  - [ ] Redirect to `/dashboard` on subsequent logins
-
-#### 2.2: Onboarding Page
-
-- [ ] Onboarding form (`/onboarding`)
-  - [ ] Default Grading Scale dropdown (required)
-  - [ ] Institution field (optional, max 200 chars)
-  - [ ] Course field (optional, max 200 chars)
-  - [ ] "Skip" button → saves default grading scale, redirects to `/dashboard`
-  - [ ] "Continue" button → saves all fields, redirects to `/dashboard`
-  - [ ] Mock: Store in localStorage, show alert: "Backend would: Update user profile in database"
-  - [ ] Prevent re-showing after completion (localStorage flag)
-
-#### 2.3: Dashboard
-
-- [ ] Dashboard (`/dashboard`)
-  - [ ] Credit balance widget (top-right) - mock: `1.00 credits` from localStorage
-  - [ ] "Submit New Essay" button → `/submit`
-  - [ ] "Buy Credits" button → `/settings#credits`
-  - [ ] Recent essays list (last 5)
-    - [ ] Mock data: Array of essay objects with title, date, status, grade
-    - [ ] Click to navigate to `/grades/[id]`
-  - [ ] Stats section (optional): Total essays, average grade, credits used
-
-#### 2.4: Essay Submission (3-Tab UI)
-
-- [ ] Tab 1: Assignment Brief (`/submit`)
-  - [ ] Title field (required, max 200 chars)
-  - [ ] "Auto-generate Title" button
-    - [ ] Mock: Returns random title, show alert: "Backend would: Call AI API to generate title based on content"
-  - [ ] Instructions field (required, max 10,000 chars)
-  - [ ] Document upload for Instructions
-    - [ ] File picker (PDF, DOCX, TXT)
-    - [ ] Mock: Simulate processing delay, show alert: "Backend would: Parse document via mammoth.js (DOCX) or Gemini Flash (PDF), extract markdown"
-    - [ ] Populate Instructions field with mock markdown
-  - [ ] Subject dropdown (required)
-  - [ ] Academic Level dropdown (required)
-  - [ ] Focus Areas multi-select (optional)
-  - [ ] "Next" button → Tab 2
-- [ ] Tab 2: Rubric
-  - [ ] Custom Rubric field (optional, max 10,000 chars)
-  - [ ] Document upload for Custom Rubric
-    - [ ] Same mock behavior as Instructions upload
-  - [ ] "Back" button → Tab 1
-  - [ ] "Next" button → Tab 3
-- [ ] Tab 3: Essay Content
-  - [ ] Essay content textarea or document upload
-  - [ ] Document upload (PDF, DOCX, TXT)
-    - [ ] Mock: Simulate processing, show alert: "Backend would: Parse document, extract text, validate word count"
-    - [ ] Populate content field with mock text
-  - [ ] Word count display (update on paste/type)
-  - [ ] Word count validation (50-50,000 words)
-  - [ ] Cost estimator (mock: `1.00 credit`)
-  - [ ] "Back" button → Tab 2
-  - [ ] "Submit" button
-    - [ ] Validation (all required fields, word count)
-    - [ ] Mock: Show alert: "Backend would (Convex): Submit essay, reserve credit, create grade (queued), schedule grading action"
-    - [ ] Redirect to `/grades/[mock-grade-id]`
-- [ ] Draft autosave
-  - [ ] Mock: Save to localStorage on document upload, typing (1-2s debounce), tab blur
-  - [ ] Show toast: "Draft saved" (mock: "Backend would: Update essay draft in database")
-  - [ ] Restore draft on page load
-
-#### 2.5: Grade Status & Results
-
-- [ ] Grade status page (`/grades/[id]`)
-  - [ ] Mock grade data with different statuses for testing
-  - [ ] Status: `queued`
-    - [ ] Show "Queued" badge
-    - [ ] Mock: Show alert: "Backend would: Subscribe to grade via Convex (`useQuery`) and UI auto-updates"
-  - [ ] Status: `processing`
-    - [ ] Show "Processing" badge with progress indicator
-    - [ ] Mock: Simulate status updates, show alert: "Backend would: Push real-time updates via Convex subscriptions"
-  - [ ] Status: `complete`
-    - [ ] Display full results:
-      - [ ] Grade range (percentage and letter) - convert to user's preferred scale
-      - [ ] Category scores (5 categories with progress bars)
-      - [ ] Strengths section (list with evidence)
-      - [ ] Improvements section (list with suggestions)
-      - [ ] Language tips section
-      - [ ] Resources section (optional)
-      - [ ] "Regrade" button (mock: shows alert about creating new grade)
-  - [ ] Status: `failed`
-    - [ ] Error message display
-    - [ ] "Retry" button (mock: shows alert about resubmitting)
-  - [ ] Breadcrumb navigation
-
-#### 2.6: Essay History
-
-- [ ] History page (`/history`)
-  - [ ] Table of essays (mock data)
-    - [ ] Columns: Date Submitted, Title, Grade, Status, Actions
-    - [ ] Pagination (20 per page)
-    - [ ] Search by title (client-side filter on mock data)
-    - [ ] Sort by date, grade
-  - [ ] Row click → navigate to `/grades/[id]`
-  - [ ] Delete action
-    - [ ] Confirmation modal
-    - [ ] Mock: Remove from mock data, show alert: "Backend would: Soft delete essay (set deletedAt timestamp)"
-
-#### 2.7: Settings
-
-- [ ] Settings page (`/settings`)
-  - [ ] Tab: Profile
-    - [ ] Email (read-only, from Clerk)
-    - [ ] Name (editable)
-    - [ ] Default Grading Scale dropdown
-    - [ ] Institution field
-    - [ ] Course field
-    - [ ] Save button → mock: Show alert: "Backend would: Update user profile in database"
-  - [ ] Tab: Credits
-    - [ ] Current balance display (mock: from localStorage)
-    - [ ] Purchase options (1, 5, 10, 20, 50 credits)
-    - [ ] Custom amount input
-    - [ ] "Buy Credits" button
-      - [ ] Mock: Show alert: "Backend would: Create Stripe checkout session, redirect to Stripe"
-      - [ ] Simulate purchase: Update localStorage balance, show success message
-    - [ ] Transaction history table (mock data)
-      - [ ] Columns: Date, Type, Amount, Balance After
-  - [ ] Tab: Billing
-    - [ ] Past payments list (mock data)
-    - [ ] Download receipt buttons (mock: show alert)
-
-#### 2.8: UI Polish
-
-- [ ] Loading states (skeleton screens for all async operations)
-- [ ] Error states (network errors, validation errors)
-- [ ] Toast notifications for all user actions
-- [ ] Mobile responsive design
-- [ ] Dark mode polish
-- [ ] Form validation feedback
-- [ ] Accessibility (keyboard navigation, ARIA labels)
-
-**Testing Phase 2:**
-- [ ] Complete user flow: Sign up → Onboarding → Submit essay → View results → History → Settings
-- [ ] All UI interactions work smoothly
-- [ ] Mock alerts clearly indicate backend actions
-- [ ] No console errors
-- [ ] Responsive on mobile devices
-
----
-
-### Phase 3: Authentication & User Management
-
-**Goal:** Replace Clerk auth mocks with real Clerk integration and user database operations.
-
-- [ ] Set up Convex project + env vars (`NEXT_PUBLIC_CONVEX_URL`, `CONVEX_DEPLOY_KEY`)
-- [ ] Configure Clerk → Convex JWT template (audience/application ID = `convex`)
-- [ ] Configure Clerk user lifecycle webhook to Convex endpoint: `POST /clerk-webhook` (`convex/http.ts`)
-  - [ ] Verify webhook signature (Svix)
-  - [ ] On `user.created`: create user, initialize credits, log signup bonus transaction
-  - [ ] On `user.updated`: update user
-  - [ ] On `user.deleted`: cascade delete user-owned docs
-- [ ] User profile via Convex
-  - [ ] `api.users.getProfile` (query)
-  - [ ] `api.users.updateProfile` (mutation)
-- [ ] Replace onboarding/settings mocks with Convex calls
-- [ ] Test: Sign up new user, verify Convex documents, update profile
-
----
-
-### Phase 4: Essay Submission & Draft Management
-
-**Goal:** Implement essay CRUD, draft autosave, and document parsing.
-
-- [ ] Essay operations via Convex
-  - [ ] Draft save/load (Convex mutation/query)
-  - [ ] Submit (Convex mutation) → reserves credit + creates grade + schedules grading action
-  - [ ] History list + search/pagination (Convex query)
-  - [ ] Soft delete (Convex mutation)
-- [ ] Draft autosave
-  - [ ] Debounced save on typing (1-2s)
-  - [ ] Save on tab blur
-  - [ ] Save on document upload completion
-  - [ ] Restore draft on page load
-- [ ] Document parsing (mammoth.js + Gemini Flash)
-  - [ ] Add mammoth.js: `bun add mammoth`
-  - [ ] Implement `convex/lib/documentParser.ts`
-    - [ ] DOCX: mammoth.js → HTML → Gemini (markdown conversion)
-    - [ ] PDF: Gemini Flash native vision → markdown
-  - [ ] Create Convex action `internal.documents.parse`
-    - [ ] Validate file type (PDF, DOCX) and size (10 MB max)
-    - [ ] Route to appropriate parser
-    - [ ] Return markdown
-  - [ ] Replace document upload mocks with real API calls
-- [ ] Title generation endpoint (planned: either Convex action or Next.js route under `src/app/[locale]/api/ai/*`)
-  - [ ] Add Vercel AI SDK: `bun add ai @ai-sdk/openai`
-  - [ ] Set up OpenRouter API key
-  - [ ] Use Claude Haiku 4.5 (`anthropic/claude-haiku-4.5`) for fast/cheap title generation
-  - [ ] Replace title generation mock with real API call
-- [ ] Replace essay submission UI mocks with real API calls
-- [ ] Test: Submit essay, verify database records, test draft autosave, test document uploads
-
----
-
-### Phase 5: Grading System
-
-**Goal:** Implement Convex action grading, AI logic, and real-time grade status via subscriptions.
-
-- [ ] Convex grading action setup
-  - [ ] `convex/grading.ts` internal action (`processGrade`)
-  - [ ] Ensure `convex/essays.ts` submit schedules the action via `ctx.scheduler.runAfter(...)`
-- [ ] AI grading implementation
-  - [ ] Configure OpenRouter client (configurable grading ensemble: 3–5 runs, supports mixed models)
-  - [ ] Implement `generateObject` with Zod schema validation
-  - [ ] Multi-model consensus (N parallel calls, N=3..5)
-  - [ ] Outlier detection algorithm
-  - [ ] Retry logic with exponential backoff
-  - [ ] Error classification (transient vs permanent)
-- [ ] Grade status via Convex subscriptions
-  - [ ] `api.grades.getById` query
-  - [ ] Client `useGradeStatus` hook uses `useQuery` (no polling)
-- [ ] Replace grade results UI with real data
-- [ ] Test: Submit essay, verify action processes grade, verify subscriptions update UI, verify results display
-
----
-
-### Phase 6: Credits & Billing
-
-**Goal:** Implement credit system and Stripe integration.
-
-- [ ] Stripe setup
-  - [ ] Add Stripe SDK: `bun add stripe @stripe/stripe-js`
-  - [ ] Set up Stripe API keys
-  - [ ] Initialize Stripe client
-- [ ] Credits via Convex
-  - [ ] `api.credits.getBalance` (query)
-  - [ ] (TODO) Add a `creditTransactions` list query for history UI
-- [ ] Stripe checkout
-  - [ ] Create checkout session (planned: Convex action)
-  - [ ] Replace credit purchase mocks with real Stripe redirect
-- [ ] Stripe webhook (Convex HTTP endpoint: `POST /stripe-webhook`)
-  - [ ] Verify webhook signature
-  - [ ] On `checkout.session.completed`: (TODO) idempotency check, update credits, log transaction
-  - [ ] Call `internal.credits.addFromPurchase`
-- [ ] Replace credit balance mocks with real API calls
-- [ ] Replace transaction history mocks with real data
-- [ ] Test: Purchase credits, verify webhook, verify balance update, verify transaction log
-
----
-
-### Phase 7: Testing & Polish
-
-**Goal:** End-to-end testing, error handling, and final polish.
-
-- [ ] E2E tests
-  - [ ] User signup flow
-  - [ ] Essay submission flow
-  - [ ] Grading flow (with mocked AI responses for speed)
-  - [ ] Credit purchase flow
-- [ ] Error handling
-  - [ ] API timeout handling
-  - [ ] Network error recovery
-  - [ ] Validation error display
-  - [ ] Graceful degradation
-- [ ] Performance optimization
-  - [ ] Image optimization
-  - [ ] Code splitting
-  - [ ] Lazy loading
-- [ ] Accessibility audit
-- [ ] Browser compatibility testing
-- [ ] Mobile device testing
-
----
-
-### Phase 8: Launch
-
-**Goal:** Deploy to production and launch.
-
-- [ ] Production Convex + Vercel setup
-  - [ ] Configure Vercel environment variables (including `NEXT_PUBLIC_CONVEX_URL`)
-  - [ ] Configure Convex deployment key (`CONVEX_DEPLOY_KEY`) for production deploys
-  - [ ] Configure Clerk webhook URLs to point at production Convex `/clerk-webhook`
-  - [ ] Configure Stripe webhook URL to point at production Convex `/stripe-webhook` (once implemented)
-- [ ] Stripe production setup
-  - [ ] Switch to production API keys
-  - [ ] Configure production webhooks
-- [ ] Monitoring
-  - [ ] Set up Sentry (production)
-  - [ ] Set up logging
-- [ ] Content
-  - [ ] Landing page copy review
-  - [ ] Privacy policy
-  - [ ] Terms of service
-- [ ] Final checks
-  - [ ] Test complete user flow in production
-  - [ ] Verify credit purchases work
-  - [ ] Verify grading completes successfully
-  - [ ] Monitor error rates
-- [ ] Launch! 🚀
+**Launch:**
+- Production environment configuration
+- Content review (landing page, legal pages)
+- Final verification
 
 ---
 
