@@ -1,3 +1,11 @@
+## [1.5.2](https://github.com/acambitsis/markm8-v3/compare/v1.5.1...v1.5.2) (2026-01-03)
+
+
+### Bug Fixes
+
+* address PR review feedback ([d6fad4d](https://github.com/acambitsis/markm8-v3/commit/d6fad4de0ab9f8cf5497016265129ea6aa2ae432))
+* resolve auth race conditions and global-error issues ([eab72f4](https://github.com/acambitsis/markm8-v3/commit/eab72f42c47dcf22c7220bef18dcda9afb6ad31f))
+
 ## [1.5.1](https://github.com/acambitsis/markm8-v3/compare/v1.5.0...v1.5.1) (2026-01-02)
 
 
