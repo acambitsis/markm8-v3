@@ -287,6 +287,8 @@ Locations:
 
 **Env vars set in:** Convex Dashboard, Vercel Dashboard, `.env.local` (local only)
 
+**CLI/MCP tools:** Use `vercel` CLI and Convex MCP server for env vars, data inspection, and debugging.
+
 **Webhook endpoints (Convex HTTP):**
 - Clerk: `https://<deployment>.convex.site/clerk-webhook`
 - Stripe: `https://<deployment>.convex.site/stripe-webhook`
