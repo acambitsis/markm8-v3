@@ -42,9 +42,13 @@ export async function POST(request: Request) {
     // 2. Get Convex user ID (auth-protected - returns only caller's own data)
     // Pass the Clerk JWT token to Convex for server-side auth
     const token = await getToken({ template: 'convex' });
-    const user = await fetchQuery(api.users.getMyCheckoutInfo, {}, {
-      token: token ?? undefined,
-    });
+    if (!token) {
+      return NextResponse.json(
+        { error: 'Authentication token unavailable' },
+        { status: 401 },
+      );
+    }
+    const user = await fetchQuery(api.users.getMyCheckoutInfo, {}, { token });
 
     if (!user) {
       return NextResponse.json(
