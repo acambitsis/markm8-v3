@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
@@ -9,7 +9,8 @@ import { StatusBadge } from '@/components/StatusBadge';
 import { api } from '../../../convex/_generated/api';
 
 export function RecentEssays() {
-  const essays = useQuery(api.essays.recent);
+  const { isAuthenticated } = useConvexAuth();
+  const essays = useQuery(api.essays.recent, isAuthenticated ? {} : 'skip');
 
   if (essays === undefined) {
     return (

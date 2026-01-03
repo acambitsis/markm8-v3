@@ -1,6 +1,6 @@
 'use client';
 
-import { useMutation, useQuery } from 'convex/react';
+import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -26,6 +26,7 @@ export type DraftData = {
 
 export function SubmitForm() {
   const router = useRouter();
+  const { isAuthenticated } = useConvexAuth();
   const { credits } = useCredits();
 
   const [activeTab, setActiveTab] = useState('brief');
@@ -36,8 +37,11 @@ export function SubmitForm() {
   const saveDraft = useMutation(api.essays.saveDraft);
   const submitEssay = useMutation(api.essays.submit);
 
-  // Load existing draft from Convex
-  const existingDraft = useQuery(api.essays.getDraft);
+  // Load existing draft from Convex (skip until authenticated)
+  const existingDraft = useQuery(
+    api.essays.getDraft,
+    isAuthenticated ? {} : 'skip',
+  );
 
   // Form state
   const [draft, setDraft] = useState<DraftData>({

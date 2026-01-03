@@ -2,18 +2,43 @@
 
 import * as Sentry from '@sentry/nextjs';
 import NextError from 'next/error';
-import { use, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function GlobalError(props: {
+import { AllLocales, AppConfig } from '@/utils/AppConfig';
+
+/**
+ * Extract locale from URL path (e.g., /fr/dashboard -> 'fr')
+ * Falls back to default locale if not found or invalid
+ */
+function getLocaleFromPath(): string {
+  if (typeof window === 'undefined') {
+    return AppConfig.defaultLocale;
+  }
+
+  const pathSegments = window.location.pathname.split('/').filter(Boolean);
+  const firstSegment = pathSegments[0];
+
+  if (firstSegment && AllLocales.includes(firstSegment)) {
+    return firstSegment;
+  }
+
+  return AppConfig.defaultLocale;
+}
+
+export default function GlobalError({
+  error,
+  reset,
+}: {
   error: Error & { digest?: string };
-  params: Promise<{ locale: string }>;
+  reset: () => void;
 }) {
-  // Use React 19's use() hook to unwrap the Promise
-  const { locale } = use(props.params);
+  const [locale, setLocale] = useState(AppConfig.defaultLocale);
 
   useEffect(() => {
-    Sentry.captureException(props.error);
-  }, [props.error]);
+    Sentry.captureException(error);
+    // Extract locale from URL on client side
+    setLocale(getLocaleFromPath());
+  }, [error]);
 
   return (
     <html lang={locale}>
@@ -23,6 +48,7 @@ export default function GlobalError(props: {
         does not expose status codes for errors, we simply pass 0 to render a
         generic error message. */}
         <NextError statusCode={0} />
+        <button onClick={reset}>Try again</button>
       </body>
     </html>
   );
