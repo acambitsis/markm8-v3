@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from 'convex/react';
+import { useConvexAuth, useQuery } from 'convex/react';
 import { formatDistanceToNow } from 'date-fns';
 import { ChevronLeft, ChevronRight, Loader2, Search } from 'lucide-react';
 import Link from 'next/link';
@@ -23,11 +23,15 @@ import { api } from '../../../convex/_generated/api';
 
 export function EssayHistoryTable() {
   const router = useRouter();
+  const { isAuthenticated } = useConvexAuth();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [searchInput, setSearchInput] = useState('');
 
-  const data = useQuery(api.essays.list, { page, search: search || undefined });
+  const data = useQuery(
+    api.essays.list,
+    isAuthenticated ? { page, search: search || undefined } : 'skip',
+  );
 
   const handleSearch = useCallback(() => {
     setSearch(searchInput);

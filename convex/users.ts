@@ -97,6 +97,8 @@ export const createFromClerk = internalMutation({
 
 /**
  * Update user from Clerk webhook (internal mutation)
+ * Uses upsert pattern - creates user if they don't exist
+ * This handles race conditions where user.updated fires before user.created
  */
 export const updateFromClerk = internalMutation({
   args: {
@@ -112,7 +114,21 @@ export const updateFromClerk = internalMutation({
       .unique();
 
     if (!user) {
-      throw new Error(`User not found: ${args.clerkId}`);
+      // User doesn't exist - this can happen if user.updated fires before
+      // user.created is processed, or when using dev Convex with prod Clerk.
+      // Create the user instead of failing.
+      if (!args.email) {
+        throw new Error(`Cannot create user without email: ${args.clerkId}`);
+      }
+
+      const userId = await ctx.db.insert('users', {
+        clerkId: args.clerkId,
+        email: args.email,
+        name: args.name,
+        imageUrl: args.imageUrl,
+      });
+
+      return userId;
     }
 
     await ctx.db.patch(user._id, {
@@ -121,7 +137,8 @@ export const updateFromClerk = internalMutation({
       ...(args.imageUrl !== undefined && { imageUrl: args.imageUrl }),
     });
 
-    return user._id;
+    // Return undefined for updates (userId is only returned for new user creation)
+    return undefined;
   },
 });
 
