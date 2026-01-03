@@ -92,9 +92,8 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Max 10,000 characters
   - What the assignment asks for
   - Example: "Analyze the impact of the Medici family on Renaissance art..."
-  - **Document upload support:** Users can upload a document (PDF, DOCX, PNG, JPEG, AVIF) containing instructions
-    - Document is converted to markdown via Mistral Document AI
-    - Works with text-based PDFs, DOCX files, scanned PDFs, and images (photos/screenshots)
+  - **Document upload support:** Users can upload a document (PDF, DOCX, TXT) containing instructions
+    - Document is converted to markdown (preserving tables and structure)
     - Extracted text populates the Instructions field (editable after conversion)
     - Shows loading state during processing
     - Error handling: "Failed to process document. Please try again or paste text directly."
@@ -105,9 +104,8 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
   - Max 10,000 characters
   - Specific criteria to grade against
   - Example: "Focus on thesis clarity (30%), evidence quality (40%), writing style (30%)"
-  - **Document upload support:** Users can upload a document (PDF, DOCX, PNG, JPEG, AVIF) containing rubric
-    - Document is converted to markdown via Mistral Document AI
-    - Works with text-based PDFs, DOCX files, scanned PDFs, and images (photos/screenshots)
+  - **Document upload support:** Users can upload a document (PDF, DOCX, TXT) containing rubric
+    - Document is converted to markdown (preserving tables and structure)
     - Extracted text populates the Custom Rubric field (editable after conversion)
     - Shows loading state during processing
     - Error handling: "Failed to process document. Please try again or paste text directly."
@@ -125,10 +123,9 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 #### Tab 3: Essay Content
 
 - **Upload File** OR **Paste Text**
-  - Supported formats: PDF, DOCX, PNG, JPEG, AVIF (images for scanned documents)
-  - Document parsing via Mistral Document AI extracts text content and converts to markdown
-  - **Supports scanned PDFs and images:** Mistral OCR handles text extraction from scanned documents and photos
-  - **Note displayed:** "We'll extract text from your document using AI-powered OCR. This works with text-based PDFs, DOCX files, and scanned documents/images."
+  - Supported formats: PDF, DOCX, TXT
+  - Document is parsed and converted to markdown (TXT passed through directly)
+  - **Note displayed:** "We'll extract text from your document. This works with PDF, DOCX, and TXT files."
 - **Word Count Display**
   - Min: 50 words
   - Max: 50,000 words
@@ -684,7 +681,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 | Document processing failed | "Failed to process document. Please try again or paste text directly." | Allow retry or paste text |
 | No text extracted | "No text could be extracted from this document. Please ensure the document contains readable text." | Show error, allow retry or paste text |
 | File too large | "File exceeds 10 MB limit. Please use a smaller file." | Allow retry |
-| Unsupported file format | "Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF." | Allow retry |
+| Unsupported file format | "Unsupported file type. Please use PDF, DOCX, or TXT." | Allow retry |
 | Rate limit exceeded | "Rate limit exceeded - Please wait 30 seconds between submissions" | Disable submit button temporarily |
 | Title generation failed | "Could not generate title. Please enter a title manually." | Allow manual entry, no blocking |
 

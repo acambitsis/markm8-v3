@@ -20,7 +20,7 @@
 | **Real-time** | Convex Subscriptions | Automatic UI updates via `useQuery` hooks, no polling needed |
 | **AI SDK** | Vercel AI SDK | Type-safe AI calls, streaming support, provider-agnostic, built-in error handling |
 | **AI Provider** | OpenRouter (configurable grading ensemble) | N-run consensus (3–5 runs), supports mixed models, cost-effective (~$0.10-0.15/essay) |
-| **OCR/Document AI** | Mistral Document AI | Image-to-markdown conversion for instructions/rubrics, 99%+ accuracy, multilingual |
+| **Document Parsing** | mammoth.js + Gemini Flash | DOCX→HTML via mammoth, PDF→markdown via Gemini 3 Flash (OpenRouter) |
 | **Payments** | Stripe | Industry standard, one-time purchases (not subscriptions) |
 | **Monitoring** | Sentry + LogTape | Error tracking + structured logging |
 
@@ -326,8 +326,7 @@ src/
 │   ├── Env.ts                       # Environment variables (t3-env)
 │   ├── Auth.ts                      # Auth helpers (Clerk)
 │   ├── Logger.ts                    # Pino logger
-│   ├── Stripe.ts                    # Payment client (TODO)
-│   └── Mistral.ts                   # Mistral Document AI client (TODO)
+│   └── Stripe.ts                    # Payment client
 ├── utils/                           # Utilities (from boilerplate)
 │   └── Helpers.ts                   # cn() and other helpers
 └── locales/                         # i18n JSON files (from boilerplate)
@@ -802,7 +801,7 @@ Provider-specific conversion from canonical `reasoningEffort` to API parameters:
 - Validation: Require at least one field
 - Model config: `maxTokens: 20`, `temperature: 0.7`
 - Output: Trim to max 6 words
-- Cost: ~$0.001 per generation (no credit deduction, free for users)
+- Cost: Negligible (no credit deduction, free for users)
 
 ### Usage in Convex Actions
 
@@ -855,13 +854,13 @@ Use: `await generateObject({ model: getGradingModel(), schema: GradeSchema, prom
 
 ---
 
-## Document Ingestion (File Upload & Parsing via Mistral Document AI)
+## Document Ingestion (File Upload & Parsing)
 
 ### Supported Formats
 
-- **PDF:** `.pdf` files (text-based and scanned)
-- **DOCX:** `.docx` files (Microsoft Word)
-- **Images:** PNG, JPEG/JPG, AVIF (for scanned documents/photos)
+- **PDF:** `.pdf` files (text-based and scanned) - parsed via Gemini Flash
+- **DOCX:** `.docx` files (Microsoft Word) - parsed via mammoth.js
+- **TXT:** `.txt` files - passed through directly (no parsing needed)
 - **Plain text:** Direct paste (no parsing needed)
 
 ### File Size Limits
@@ -870,36 +869,34 @@ Use: `await generateObject({ model: getGradingModel(), schema: GradeSchema, prom
 - **Maximum word count:** 50,000 words (enforced after parsing)
 - **Minimum word count:** 50 words
 
-### Unified Document Processing with Mistral Document AI
+### Document Processing Strategy
 
-**Why Mistral for All Documents:**
-- ✅ **Single service** for all document types (PDF, DOCX, images)
-- ✅ **99%+ accuracy** with OCR (handles scanned PDFs and images)
-- ✅ **Markdown output** preserves structure (headers, lists, tables)
-- ✅ **Multilingual support** (11+ languages)
-- ✅ **Handles complex layouts** (tables, forms, multi-column text)
-- ✅ **Simpler architecture** (one API instead of multiple libraries)
+**Two-Path Approach:**
 
-**Implementation (`src/utils/documentParser.ts`):**
+| Format | Flow | Cost |
+|--------|------|------|
+| **TXT** | Pass through directly | Free |
+| **DOCX** | mammoth.js → HTML → Gemini Flash → Markdown | Free (local) + very low (API) |
+| **PDF** | Gemini Flash (native vision) → Markdown | Very low |
 
-1. **`parseDocument(file)`:**
-   - Validate file type (PDF, DOCX, PNG, JPEG, AVIF)
-   - Convert to buffer: `Buffer.from(await file.arrayBuffer())`
-   - Use `mistralClient` from `src/libs/Mistral.ts` to process document
-   - Extract markdown from response (use SDK's typed response structure - consult `@mistralai/mistralai` TypeScript types or API docs for correct field name)
-   - Throw if empty
+**DOCX Flow Explained:**
+1. **mammoth.js** extracts DOCX content as HTML (runs locally, preserves tables as `<table>` elements)
+2. **Gemini Flash** converts the HTML to clean markdown (LLM handles semantic conversion, preserves table structure as markdown tables)
 
-2. **`countWords(text)`:**
-   - Split on whitespace, filter empty strings, return count
+**PDF Flow Explained:**
+1. **Gemini Flash** processes PDF directly using native vision (no intermediate format)
+2. Model extracts text and structure, outputs clean markdown
 
-3. **`parseAndValidateDocument(file)`:**
-   - Call `parseDocument()`, then validate word count (50-50,000)
-   - Throw descriptive errors for each validation failure
+**Why This Approach:**
+- **DOCX:** mammoth.js reliably extracts structure as HTML; Gemini handles the HTML→markdown conversion intelligently (understands semantic meaning, not just regex replacement)
+- **PDF:** Gemini 3 Flash has native PDF vision with 1M token context window - processes the visual layout directly
+- **Cost-effective:** DOCX local processing is free; PDF API cost is bottom-tier for this type of conversion
+- **No subscriptions:** Pay-per-use via existing OpenRouter account (same as grading)
 
 **Security Considerations:**
 - Validate MIME type server-side (don't trust client `file.type`)
 - Validate file size before processing (prevent DoS)
-- Limit file size (10 MB) before sending to Mistral API
+- Limit file size (10 MB) before sending to API
 - Sanitize extracted markdown (remove potential XSS if displaying)
 - Rate limit per user (prevent abuse)
 
@@ -910,75 +907,58 @@ Use: `await generateObject({ model: getGradingModel(), schema: GradeSchema, prom
 
 **Error Handling:**
 - File too large → Show error: "File exceeds 10 MB limit. Please use a smaller document."
-- Invalid format → Show error: "Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF."
+- Invalid format → Show error: "Unsupported file type. Please use PDF, DOCX, or TXT."
 - Document processing failed → Show error: "Failed to process document. Please try again or paste text directly."
 - No text extracted → Show error: "No text could be extracted from this document. Please ensure the document contains readable text."
 
+**Future Enhancement (if needed):**
+- If mammoth + Gemini quality is insufficient for complex rubrics, consider CloudConvert free tier (10 conversions/day) for DOCX→PDF conversion before Gemini processing
+
 ---
 
-## Document Upload for Instructions & Rubric (Mistral Document AI)
+## Document Upload for Instructions & Rubric
 
 ### Overview
 
-Users can upload documents (PDF, DOCX, PNG, JPEG, AVIF) for **Instructions** and **Custom Rubric** fields. Mistral Document AI processes all document types uniformly, converting them to markdown while preserving structure and formatting.
+Users can upload documents (PDF, DOCX, TXT) for **Instructions** and **Custom Rubric** fields. The same document parsing pipeline (mammoth.js for DOCX, Gemini Flash for PDF) handles all uploads, converting them to markdown while preserving structure and formatting.
 
-**Note:** This uses the same Mistral Document AI service as essay document parsing (see Document Ingestion section above). The unified endpoint handles all document types (text-based PDFs, DOCX, scanned PDFs, images) seamlessly.
+**Note:** This uses the same document parsing approach as essay content (see Document Ingestion section above).
 
 ### Supported Document Formats
 
-- **PDF:** Text-based and scanned PDFs
-- **DOCX:** Microsoft Word documents
-- **Images:** PNG, JPEG/JPG, AVIF (for photos/screenshots of documents)
+- **PDF:** Text-based and scanned PDFs (parsed via Gemini Flash)
+- **DOCX:** Microsoft Word documents (parsed via mammoth.js)
+- **TXT:** Plain text files (passed through directly)
 - **Maximum file size:** 10 MB per document
-
-### Why Mistral Document AI?
-
-- ✅ **99%+ accuracy** across global languages
-- ✅ **Markdown output** preserves structure (headers, lists, tables)
-- ✅ **Multilingual support** (11+ languages)
-- ✅ **Fast processing** (up to 2,000 pages/minute)
-- ✅ **Handles complex layouts** (tables, forms, multi-column text)
 
 ### Setup
 
 **Installation:**
 ```bash
-bun add @mistralai/mistralai
+bun add mammoth
 ```
 
 **Environment Variables:**
 ```env
-MISTRAL_API_KEY=your_mistral_api_key_here
+# Uses existing OPENROUTER_API_KEY for Gemini Flash PDF parsing
+OPENROUTER_API_KEY=sk-or-...
 ```
 
-### Mistral Client
+### Document Processing Endpoint
 
-```typescript
-// src/libs/Mistral.ts
-import MistralClient from '@mistralai/mistralai';
+**Convex Action `internal.documents.parse`** (shared for essay documents, instructions, and rubric):
 
-if (!process.env.MISTRAL_API_KEY) {
-  throw new Error('MISTRAL_API_KEY is not set');
-}
-
-export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
-```
-
-### OCR API Endpoint
-
-**POST /api/ocr/process** (shared for essay documents, instructions, and rubric images):
-
-1. Require auth
-2. Extract file from FormData
-3. Validate file type (PDF, DOCX, PNG, JPEG, AVIF)
-4. Validate file size (max 10 MB)
-5. Call `parseDocument(file)` from `src/utils/documentParser.ts` (uses `mistralClient` internally)
-6. Return `{ markdown }` or error
+1. Validate file type (PDF, DOCX)
+2. Validate file size (max 10 MB)
+3. Route to appropriate parser:
+   - DOCX → mammoth.js → HTML → Gemini (markdown conversion)
+   - PDF → Gemini Flash (native vision)
+4. Return `{ markdown }` or error
 
 ### Client-Side Usage
 
 **Instructions/Rubric uploads:**
-- POST file to `/api/ocr/process` via FormData
+- Call Convex mutation with file data
 - On success: Populate field with returned `markdown`
 - On error: Show "Failed to process document. Please try again or paste text directly."
 
@@ -991,7 +971,7 @@ export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
 
 **Instructions Field (Tab 1):**
 - Text area with "Paste text" or "Upload document" toggle
-- Document upload button (PDF, DOCX, PNG, JPEG, AVIF)
+- Document upload button (PDF, DOCX, TXT)
 - Loading state while processing
 - Preview extracted markdown (editable)
 - Character count (max 10,000)
@@ -1006,15 +986,15 @@ export const mistralClient = new MistralClient(process.env.MISTRAL_API_KEY);
 | Error | User Message | Action |
 |-------|-------------|---------|
 | File too large | "File exceeds 10 MB limit. Please use a smaller document." | Allow retry |
-| Unsupported format | "Unsupported file type. Please use PDF, DOCX, PNG, JPEG, or AVIF." | Allow retry |
+| Unsupported format | "Unsupported file type. Please use PDF, DOCX, or TXT." | Allow retry |
 | Document processing failed | "Failed to process document. Please try again or paste text directly." | Allow retry or paste text |
 | No text extracted | "No text could be extracted from this document. Please ensure the document contains readable text." | Allow retry or paste text |
 | API timeout | "Processing took too long. Please try again or paste text directly." | Allow retry or paste text |
 
 ### Cost Considerations
 
-- **Mistral Document AI pricing:** Check current pricing (typically per page/document)
-- **Cost per document:** Estimate ~$0.01-0.05 per document (verify with Mistral)
+- **DOCX parsing:** Free (mammoth.js runs locally)
+- **PDF parsing:** Very low cost (Gemini Flash via OpenRouter, bottom tier for this type of conversion)
 - **No credit deduction:** Document processing is free for users (cost absorbed by platform)
 - **Rate limiting:** Consider rate limiting to prevent abuse (e.g., 10 documents/minute per user)
 - **Usage:** Used for:
@@ -1336,9 +1316,6 @@ MARKM8_GRADING_RUNS=3
 # Note: Production model configuration is stored in platformSettings.aiConfig (Convex singleton)
 # Update via Convex Dashboard or future admin UI. Env vars are for emergency overrides only.
 
-# Mistral (Document AI / OCR)
-MISTRAL_API_KEY=your_mistral_api_key_here
-
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
@@ -1355,8 +1332,6 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 - [ ] Add dark mode
 - [ ] Set up Clerk (Google OAuth, no Organizations) - **Auth only, no webhooks yet**
 - [ ] Verify: `bun --bun run dev`
-
-**Note:** Skip database, AI SDK, Stripe, and Mistral setup for now. These will be added in backend phases.
 
 ---
 
@@ -1412,8 +1387,8 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
     - [ ] Mock: Returns random title, show alert: "Backend would: Call AI API to generate title based on content"
   - [ ] Instructions field (required, max 10,000 chars)
   - [ ] Document upload for Instructions
-    - [ ] File picker (PDF, DOCX, PNG, JPEG, AVIF)
-    - [ ] Mock: Simulate processing delay, show alert: "Backend would: Send to Mistral Document AI, extract markdown"
+    - [ ] File picker (PDF, DOCX, TXT)
+    - [ ] Mock: Simulate processing delay, show alert: "Backend would: Parse document via mammoth.js (DOCX) or Gemini Flash (PDF), extract markdown"
     - [ ] Populate Instructions field with mock markdown
   - [ ] Subject dropdown (required)
   - [ ] Academic Level dropdown (required)
@@ -1427,7 +1402,7 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
   - [ ] "Next" button → Tab 3
 - [ ] Tab 3: Essay Content
   - [ ] Essay content textarea or document upload
-  - [ ] Document upload (PDF, DOCX, PNG, JPEG, AVIF)
+  - [ ] Document upload (PDF, DOCX, TXT)
     - [ ] Mock: Simulate processing, show alert: "Backend would: Parse document, extract text, validate word count"
     - [ ] Populate content field with mock text
   - [ ] Word count display (update on paste/type)
@@ -1555,12 +1530,14 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
   - [ ] Save on tab blur
   - [ ] Save on document upload completion
   - [ ] Restore draft on page load
-- [ ] Document parsing (Mistral Document AI)
-  - [ ] Add Mistral SDK: `bun add @mistralai/mistralai`
-  - [ ] Set up Mistral API key
-  - [ ] OCR endpoint (planned: either Convex action or Next.js route under `src/app/[locale]/api/ai/*`)
-    - [ ] Validate file type and size
-    - [ ] Process via Mistral Document AI
+- [ ] Document parsing (mammoth.js + Gemini Flash)
+  - [ ] Add mammoth.js: `bun add mammoth`
+  - [ ] Implement `convex/lib/documentParser.ts`
+    - [ ] DOCX: mammoth.js → HTML → Gemini (markdown conversion)
+    - [ ] PDF: Gemini Flash native vision → markdown
+  - [ ] Create Convex action `internal.documents.parse`
+    - [ ] Validate file type (PDF, DOCX) and size (10 MB max)
+    - [ ] Route to appropriate parser
     - [ ] Return markdown
   - [ ] Replace document upload mocks with real API calls
 - [ ] Title generation endpoint (planned: either Convex action or Next.js route under `src/app/[locale]/api/ai/*`)
