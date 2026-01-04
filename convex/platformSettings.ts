@@ -2,7 +2,7 @@
 // Handles admin-configurable platform values
 
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
-import { DEFAULT_AI_CONFIG, validateAiConfig } from './lib/aiConfig';
+import { validateAiConfig } from './lib/aiConfig';
 import { type AiConfig, aiConfigValidator } from './schema';
 
 export const DEFAULT_SIGNUP_BONUS = '1.00';
@@ -62,13 +62,10 @@ export const getAiConfig = internalQuery({
       .unique();
 
     if (!settings) {
-      // platformSettings not seeded - provide helpful error message
-      console.error(
-        '[aiConfig] platformSettings not found. Run: npx convex run seed/platformSettings:seed',
+      // Fail fast - don't silently use defaults (which include mode: 'mock')
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
       );
-      // Return defaults to allow development, but log warning
-      console.warn('[aiConfig] Using default configuration (not persisted)');
-      return DEFAULT_AI_CONFIG;
     }
 
     const config = settings.aiConfig;
