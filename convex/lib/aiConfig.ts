@@ -15,9 +15,9 @@ export const DEFAULT_GRADING_CONFIG: GradingConfig = {
   mode: 'mock', // Override to 'live' for production via seed script
   temperature: 0.4, // Lower temperature for consistent grading (0.3-0.5 recommended)
   runs: [
-    { model: 'x-ai/grok-4.1' },
-    { model: 'x-ai/grok-4.1' },
-    { model: 'x-ai/grok-4.1' },
+    { model: 'x-ai/grok-4.1-fast' },
+    { model: 'x-ai/grok-4.1-fast' },
+    { model: 'x-ai/grok-4.1-fast' },
   ],
   outlierThresholdPercent: 10,
   retry: {
@@ -27,7 +27,7 @@ export const DEFAULT_GRADING_CONFIG: GradingConfig = {
 };
 
 export const DEFAULT_TITLE_GENERATION_CONFIG: TitleGenerationConfig = {
-  model: 'openai/gpt-4o-mini',
+  model: 'anthropic/claude-haiku-4.5',
   temperature: 0.4,
   maxTokens: 14, // ~10 words
 };
