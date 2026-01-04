@@ -48,6 +48,10 @@
 - Credits display (real-time balance)
 - AI grading (multi-model consensus via OpenRouter)
 - Stripe credit purchase integration
+- Database-driven LLM configuration system (PR #20) - replaces env vars with `platformSettings.aiConfig`
+- Database-driven model catalog (PR #21) - `modelCatalog` table with OpenRouter sync
+- Unified schema approach (PR #22) - eliminated Zod/Convex duplication, single source of truth
+- Grading module refactor (PR #18) - extracted 776-line file into 4 focused modules
 
 ---
 
