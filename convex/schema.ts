@@ -121,7 +121,7 @@ export const modelCapabilityValidator = v.union(
 );
 
 export const modelCatalogEntryValidator = v.object({
-  slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1"
+  slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
   name: v.string(), // Display name, e.g., "Grok 4.1"
   provider: v.string(), // Provider name, e.g., "xAI"
   enabled: v.boolean(), // Whether model is available for selection
@@ -142,7 +142,7 @@ export const gradingModeValidator = v.union(
 );
 
 export const gradingRunValidator = v.object({
-  model: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1"
+  model: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
 });
 
 export const retryConfigValidator = v.object({
@@ -271,7 +271,7 @@ export default defineSchema({
   // Seed with: npx convex run seed/modelCatalog:seed
   // Sync from OpenRouter: npx convex run modelCatalog:syncFromOpenRouter
   modelCatalog: defineTable({
-    slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1"
+    slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
     name: v.string(), // Display name, e.g., "Grok 4.1"
     provider: v.string(), // Provider name, e.g., "xAI"
     enabled: v.boolean(), // Whether model is available for selection

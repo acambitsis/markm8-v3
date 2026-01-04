@@ -34,7 +34,7 @@ export function getOpenRouterProvider() {
 
 /**
  * Get a model instance for grading
- * @param modelId - OpenRouter model ID (e.g., "x-ai/grok-4.1", "anthropic/claude-opus-4.5")
+ * @param modelId - OpenRouter model ID (e.g., "x-ai/grok-4.1-fast", "anthropic/claude-opus-4.5")
  */
 export function getGradingModel(modelId: string) {
   const provider = getOpenRouterProvider();
