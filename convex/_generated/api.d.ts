@@ -15,6 +15,7 @@ import type * as grades from "../grades.js";
 import type * as grading from "../grading.js";
 import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
+import type * as lib_aiConfig from "../lib/aiConfig.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_decimal from "../lib/decimal.js";
 import type * as lib_grading_ai from "../lib/grading/ai.js";
@@ -25,6 +26,7 @@ import type * as lib_grading_utils from "../lib/grading/utils.js";
 import type * as lib_gradingPrompt from "../lib/gradingPrompt.js";
 import type * as lib_gradingSchema from "../lib/gradingSchema.js";
 import type * as platformSettings from "../platformSettings.js";
+import type * as seed_platformSettings from "../seed/platformSettings.js";
 import type * as users from "../users.js";
 
 import type {
@@ -41,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   grading: typeof grading;
   http: typeof http;
   "lib/ai": typeof lib_ai;
+  "lib/aiConfig": typeof lib_aiConfig;
   "lib/auth": typeof lib_auth;
   "lib/decimal": typeof lib_decimal;
   "lib/grading/ai": typeof lib_grading_ai;
@@ -51,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "lib/gradingPrompt": typeof lib_gradingPrompt;
   "lib/gradingSchema": typeof lib_gradingSchema;
   platformSettings: typeof platformSettings;
+  "seed/platformSettings": typeof seed_platformSettings;
   users: typeof users;
 }>;
 

@@ -125,8 +125,9 @@ export const createFromClerk = internalMutation({ ... });
 convex/                          # Convex backend (serverless)
 ├── schema.ts                    # Document schema + exported validators (single source of truth)
 ├── http.ts                      # Webhook endpoints (Clerk, Stripe)
-├── lib/                         # Shared helpers (auth.ts, decimal.ts)
-├── platformSettings.ts          # Admin-configurable settings (signup bonus)
+├── lib/                         # Shared helpers (auth.ts, decimal.ts, aiConfig.ts)
+├── seed/                        # Database seeding scripts (run via: npx convex run seed/...)
+├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig)
 └── [domain].ts                  # Function files: users, credits, essays, grades, grading
 
 src/
@@ -209,6 +210,11 @@ feature/* ──PR──► dev ──promote──► main
 **Build behavior (`scripts/build-ci.mjs`):**
 - `main` or `dev` branch → Deploys Convex + builds Next.js
 - Other branches (PRs) → Builds Next.js only (no Convex deploy)
+
+**Commit/PR conventions:**
+- Use `Closes #XX` in PR body or commit message to auto-close issues on merge
+- Valid keywords: `Closes`, `Fixes`, `Resolves` (not "Addresses", "Related to")
+- Commit messages must follow commitlint rules (max 100 chars per line in footer)
 
 ---
 

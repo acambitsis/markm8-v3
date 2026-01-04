@@ -7,7 +7,6 @@ import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
 import {
   generateMockGrade,
-  getGradingEnsembleConfig,
   GRADING_COST,
   runAIGrading,
   USER_ERROR_MESSAGE,
@@ -21,7 +20,12 @@ export const processGrade = internalAction({
   args: { gradeId: v.id('grades') },
   handler: async (ctx, { gradeId }) => {
     try {
-      const { mode, runModels } = getGradingEnsembleConfig();
+      // Fetch AI config from database
+      const aiConfig = await ctx.runQuery(
+        internal.platformSettings.getAiConfig,
+        {},
+      );
+      const gradingConfig = aiConfig.grading;
 
       // 1. Get the grade record
       const grade = await ctx.runQuery(internal.grades.getInternal, {
@@ -54,11 +58,11 @@ export const processGrade = internalAction({
       // 5. Generate results using AI or mock
       let results: Awaited<ReturnType<typeof runAIGrading>>;
 
-      if (mode === 'mock') {
-        results = generateMockGrade(runModels);
+      if (gradingConfig.mode === 'mock') {
+        results = generateMockGrade(gradingConfig);
       } else {
         // Real AI grading
-        results = await runAIGrading(essay, runModels);
+        results = await runAIGrading(essay, gradingConfig);
       }
 
       // 6. Complete the grade

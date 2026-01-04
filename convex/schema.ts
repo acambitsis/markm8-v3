@@ -112,6 +112,43 @@ export const categoryScoresValidator = v.object({
 });
 
 // =============================================================================
+// AI Configuration Validators
+// =============================================================================
+
+export const gradingModeValidator = v.union(
+  v.literal('mock'),
+  v.literal('live'),
+);
+
+export const gradingRunValidator = v.object({
+  model: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1"
+});
+
+export const retryConfigValidator = v.object({
+  maxRetries: v.number(),
+  backoffMs: v.array(v.number()),
+});
+
+export const gradingConfigValidator = v.object({
+  mode: gradingModeValidator,
+  temperature: v.number(), // 0.0-1.0, recommend 0.3-0.5 for consistent grading
+  runs: v.array(gradingRunValidator), // 1-10 runs, each with its own model
+  outlierThresholdPercent: v.number(), // Deviation threshold for outlier detection
+  retry: retryConfigValidator,
+});
+
+export const titleGenerationConfigValidator = v.object({
+  model: v.string(), // OpenRouter model ID
+  temperature: v.number(),
+  maxTokens: v.number(),
+});
+
+export const aiConfigValidator = v.object({
+  grading: gradingConfigValidator,
+  titleGeneration: titleGenerationConfigValidator,
+});
+
+// =============================================================================
 // Schema Definition
 // =============================================================================
 
@@ -204,10 +241,9 @@ export default defineSchema({
     signupBonusAmount: v.string(), // Decimal as string (e.g., "1.00")
     updatedBy: v.optional(v.id('users')), // Admin who made the change
 
-    // AI Model Configuration (admin-configurable, see TECHNICAL_DESIGN.md)
-    // Structure: { titleGeneration, grading, testing?, adminEmails, lastUpdatedBy?, lastUpdatedAt? }
-    // Validators deferred - using v.any() for now to allow flexible schema evolution
-    aiConfig: v.optional(v.any()), // Full structure defined in TECHNICAL_DESIGN.md
+    // AI Model Configuration (admin-configurable)
+    // Required field - use seed script to initialize: npx convex run seed/platformSettings:seed
+    aiConfig: aiConfigValidator,
   }).index('by_key', ['key']),
 
   // Grade Failures (internal-only error tracking for debugging)
@@ -239,3 +275,11 @@ export type PercentageRange = Infer<typeof percentageRangeValidator>;
 export type GradeFeedback = Infer<typeof feedbackValidator>;
 export type CategoryScores = Infer<typeof categoryScoresValidator>;
 export type ModelResult = Infer<typeof modelResultValidator>;
+
+// AI Configuration Types
+export type GradingMode = Infer<typeof gradingModeValidator>;
+export type GradingRun = Infer<typeof gradingRunValidator>;
+export type RetryConfig = Infer<typeof retryConfigValidator>;
+export type GradingConfig = Infer<typeof gradingConfigValidator>;
+export type TitleGenerationConfig = Infer<typeof titleGenerationConfigValidator>;
+export type AiConfig = Infer<typeof aiConfigValidator>;
