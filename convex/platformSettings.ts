@@ -1,11 +1,51 @@
 // Platform settings queries and mutations
 // Handles admin-configurable platform values
 
+import type { DatabaseReader } from './_generated/server';
 import { internalMutation, internalQuery } from './_generated/server';
-import { validateAiConfig, validateAiConfigAgainstCatalog } from './lib/aiConfig';
-import { type AiConfig, aiConfigValidator } from './schema';
+import {
+  type CatalogValidationOptions,
+  validateAiConfig,
+  validateAiConfigAgainstCatalog,
+} from './lib/aiConfig';
+import { type AiConfig, aiConfigValidator, type ModelCapability } from './schema';
 
 export const DEFAULT_SIGNUP_BONUS = '1.00';
+
+/**
+ * Helper to fetch enabled model slugs by capability
+ * Extracts common catalog query logic used in validation
+ */
+async function getEnabledSlugsByCapability(
+  db: DatabaseReader,
+  capability: ModelCapability,
+): Promise<string[]> {
+  const models = await db
+    .query('modelCatalog')
+    .withIndex('by_enabled', q => q.eq('enabled', true))
+    .take(100); // Defensive bound
+
+  return models
+    .filter(m => m.capabilities.includes(capability))
+    .map(m => m.slug);
+}
+
+/**
+ * Helper to get catalog validation options from database
+ */
+async function getCatalogValidationOptions(
+  db: DatabaseReader,
+): Promise<CatalogValidationOptions | null> {
+  const gradingSlugs = await getEnabledSlugsByCapability(db, 'grading');
+  const titleSlugs = await getEnabledSlugsByCapability(db, 'title');
+
+  // Return null if catalog not seeded
+  if (gradingSlugs.length === 0 && titleSlugs.length === 0) {
+    return null;
+  }
+
+  return { gradingSlugs, titleSlugs, strict: false };
+}
 
 /**
  * Get platform settings (internal use)
@@ -87,26 +127,9 @@ export const getAiConfig = internalQuery({
 
     // Catalog validation (check models exist and are enabled)
     // This is a soft check - warns but doesn't fail
-    const gradingSlugs = await ctx.db
-      .query('modelCatalog')
-      .withIndex('by_enabled', q => q.eq('enabled', true))
-      .collect()
-      .then(models => models.filter(m => m.capabilities.includes('grading')).map(m => m.slug));
-
-    const titleSlugs = await ctx.db
-      .query('modelCatalog')
-      .withIndex('by_enabled', q => q.eq('enabled', true))
-      .collect()
-      .then(models => models.filter(m => m.capabilities.includes('title')).map(m => m.slug));
-
-    // Only validate if catalog has been seeded
-    if (gradingSlugs.length > 0 || titleSlugs.length > 0) {
-      const catalogValidation = validateAiConfigAgainstCatalog(config, {
-        gradingSlugs,
-        titleSlugs,
-        strict: false, // Warn only, don't fail
-      });
-
+    const catalogOptions = await getCatalogValidationOptions(ctx.db);
+    if (catalogOptions) {
+      const catalogValidation = validateAiConfigAgainstCatalog(config, catalogOptions);
       for (const warning of catalogValidation.warnings) {
         console.warn(`[aiConfig] ${warning}`);
       }
@@ -137,25 +160,9 @@ export const updateAiConfig = internalMutation({
     allWarnings.push(...validation.warnings);
 
     // Catalog validation (check models exist and are enabled)
-    const gradingSlugs = await ctx.db
-      .query('modelCatalog')
-      .withIndex('by_enabled', q => q.eq('enabled', true))
-      .collect()
-      .then(models => models.filter(m => m.capabilities.includes('grading')).map(m => m.slug));
-
-    const titleSlugs = await ctx.db
-      .query('modelCatalog')
-      .withIndex('by_enabled', q => q.eq('enabled', true))
-      .collect()
-      .then(models => models.filter(m => m.capabilities.includes('title')).map(m => m.slug));
-
-    // Only validate if catalog has been seeded
-    if (gradingSlugs.length > 0 || titleSlugs.length > 0) {
-      const catalogValidation = validateAiConfigAgainstCatalog(aiConfig, {
-        gradingSlugs,
-        titleSlugs,
-        strict: false, // Warn only on update, don't prevent saving
-      });
+    const catalogOptions = await getCatalogValidationOptions(ctx.db);
+    if (catalogOptions) {
+      const catalogValidation = validateAiConfigAgainstCatalog(aiConfig, catalogOptions);
       allWarnings.push(...catalogValidation.warnings);
     }
 

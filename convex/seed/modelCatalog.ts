@@ -27,124 +27,48 @@ type SeedModel = {
 };
 
 const INITIAL_MODELS: SeedModel[] = [
-  // xAI - Grok models (excellent for reasoning)
+  // xAI - Grok models
   {
-    slug: 'x-ai/grok-4.1',
-    name: 'Grok 4.1',
+    slug: 'x-ai/grok-code-fast-1',
+    name: 'Grok Code Fast 1',
     provider: 'xAI',
-    capabilities: ['grading'],
-    contextLength: 131072,
-    pricingInputPer1M: 3.0,
-    pricingOutputPer1M: 15.0,
-  },
-  {
-    slug: 'x-ai/grok-3',
-    name: 'Grok 3',
-    provider: 'xAI',
-    capabilities: ['grading'],
-    contextLength: 131072,
-    pricingInputPer1M: 3.0,
-    pricingOutputPer1M: 15.0,
+    capabilities: ['grading', 'title'],
   },
 
-  // OpenAI - GPT-4 family
+  // OpenAI
   {
-    slug: 'openai/gpt-4o',
-    name: 'GPT-4o',
+    slug: 'openai/gpt-5.2-pro',
+    name: 'GPT 5.2 Pro',
     provider: 'OpenAI',
     capabilities: ['grading'],
-    contextLength: 128000,
-    pricingInputPer1M: 2.5,
-    pricingOutputPer1M: 10.0,
-  },
-  {
-    slug: 'openai/gpt-4o-mini',
-    name: 'GPT-4o Mini',
-    provider: 'OpenAI',
-    capabilities: ['grading', 'title'],
-    contextLength: 128000,
-    pricingInputPer1M: 0.15,
-    pricingOutputPer1M: 0.6,
-  },
-  {
-    slug: 'openai/gpt-4-turbo',
-    name: 'GPT-4 Turbo',
-    provider: 'OpenAI',
-    capabilities: ['grading'],
-    contextLength: 128000,
-    pricingInputPer1M: 10.0,
-    pricingOutputPer1M: 30.0,
   },
 
   // Anthropic - Claude family
   {
-    slug: 'anthropic/claude-sonnet-4',
-    name: 'Claude Sonnet 4',
+    slug: 'anthropic/claude-opus-4.5',
+    name: 'Claude Opus 4.5',
     provider: 'Anthropic',
     capabilities: ['grading'],
-    contextLength: 200000,
-    pricingInputPer1M: 3.0,
-    pricingOutputPer1M: 15.0,
   },
   {
-    slug: 'anthropic/claude-3.5-sonnet',
-    name: 'Claude 3.5 Sonnet',
+    slug: 'anthropic/claude-haiku-4.5',
+    name: 'Claude Haiku 4.5',
     provider: 'Anthropic',
-    capabilities: ['grading'],
-    contextLength: 200000,
-    pricingInputPer1M: 3.0,
-    pricingOutputPer1M: 15.0,
-  },
-  {
-    slug: 'anthropic/claude-3-opus',
-    name: 'Claude 3 Opus',
-    provider: 'Anthropic',
-    capabilities: ['grading'],
-    contextLength: 200000,
-    pricingInputPer1M: 15.0,
-    pricingOutputPer1M: 75.0,
+    capabilities: ['grading', 'title'],
   },
 
   // Google - Gemini family
   {
-    slug: 'google/gemini-2.0-flash',
-    name: 'Gemini 2.0 Flash',
+    slug: 'google/gemini-3-flash-preview',
+    name: 'Gemini 3 Flash Preview',
     provider: 'Google',
     capabilities: ['grading', 'title'],
-    contextLength: 1000000,
-    pricingInputPer1M: 0.1,
-    pricingOutputPer1M: 0.4,
   },
   {
-    slug: 'google/gemini-pro-1.5',
-    name: 'Gemini Pro 1.5',
+    slug: 'google/gemini-3-pro-preview',
+    name: 'Gemini 3 Pro Preview',
     provider: 'Google',
     capabilities: ['grading'],
-    contextLength: 2000000,
-    pricingInputPer1M: 1.25,
-    pricingOutputPer1M: 5.0,
-  },
-
-  // DeepSeek - Cost-effective option
-  {
-    slug: 'deepseek/deepseek-chat-v3',
-    name: 'DeepSeek Chat V3',
-    provider: 'DeepSeek',
-    capabilities: ['grading', 'title'],
-    contextLength: 64000,
-    pricingInputPer1M: 0.27,
-    pricingOutputPer1M: 1.1,
-  },
-
-  // Meta - Llama models
-  {
-    slug: 'meta-llama/llama-3.3-70b-instruct',
-    name: 'Llama 3.3 70B',
-    provider: 'Meta',
-    capabilities: ['grading'],
-    contextLength: 131072,
-    pricingInputPer1M: 0.4,
-    pricingOutputPer1M: 0.4,
   },
 ];
 
@@ -204,7 +128,7 @@ export const reset = internalMutation({
   args: {},
   handler: async (ctx) => {
     // Clear existing models
-    const existing = await ctx.db.query('modelCatalog').collect();
+    const existing = await ctx.db.query('modelCatalog').take(100); // Defensive bound
     for (const model of existing) {
       await ctx.db.delete(model._id);
     }

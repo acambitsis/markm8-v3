@@ -15,6 +15,7 @@ import { modelCapabilityValidator } from './schema';
 /**
  * Get all enabled models, optionally filtered by capability
  * Used by UI to populate model selection dropdowns
+ * Public query - only exposes enabled models (non-sensitive)
  */
 export const getEnabled = query({
   args: {
@@ -24,7 +25,7 @@ export const getEnabled = query({
     let models = await ctx.db
       .query('modelCatalog')
       .withIndex('by_enabled', q => q.eq('enabled', true))
-      .collect();
+      .take(100); // Defensive bound
 
     // Filter by capability if specified
     if (capability) {
@@ -44,11 +45,12 @@ export const getEnabled = query({
 
 /**
  * Get all models (enabled and disabled) for admin UI
+ * Internal only - includes disabled models and pricing info
  */
-export const getAll = query({
+export const getAll = internalQuery({
   args: {},
   handler: async (ctx) => {
-    const models = await ctx.db.query('modelCatalog').collect();
+    const models = await ctx.db.query('modelCatalog').take(100); // Defensive bound
 
     // Sort by provider then name
     return models.sort((a, b) => {
@@ -77,7 +79,7 @@ export const getEnabledSlugs = internalQuery({
     let models = await ctx.db
       .query('modelCatalog')
       .withIndex('by_enabled', q => q.eq('enabled', true))
-      .collect();
+      .take(100); // Defensive bound
 
     if (capability) {
       models = models.filter(m => m.capabilities.includes(capability));
@@ -232,7 +234,7 @@ export const remove = internalMutation({
 export const clear = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const models = await ctx.db.query('modelCatalog').collect();
+    const models = await ctx.db.query('modelCatalog').take(100); // Defensive bound
     for (const model of models) {
       await ctx.db.delete(model._id);
     }
@@ -278,23 +280,27 @@ function extractProvider(modelId: string): string {
 
 // Models we want to track (curated list for grading quality)
 const TRACKED_MODEL_PATTERNS = [
-  'openai/gpt-4o',
-  'openai/gpt-4o-mini',
-  'openai/gpt-4-turbo',
-  'openai/o1',
-  'openai/o1-mini',
-  'anthropic/claude-3.5-sonnet',
-  'anthropic/claude-3-opus',
-  'anthropic/claude-sonnet-4',
-  'anthropic/claude-opus-4',
-  'google/gemini-2.0-flash',
-  'google/gemini-pro-1.5',
-  'x-ai/grok-4.1',
-  'x-ai/grok-3',
-  'meta-llama/llama-3.3-70b',
-  'deepseek/deepseek-chat-v3',
-  'mistralai/mistral-large',
+  'x-ai/grok-code-fast-1',
+  'google/gemini-3-flash-preview',
+  'openai/gpt-5.2-pro',
+  'google/gemini-3-pro-preview',
+  'anthropic/claude-opus-4.5',
+  'anthropic/claude-haiku-4.5',
 ];
+
+/**
+ * Safely parse pricing string to number, returning undefined if invalid
+ */
+function parsePricing(value: string | undefined | null): number | undefined {
+  if (value == null) {
+    return undefined;
+  }
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed) || !Number.isFinite(parsed)) {
+    return undefined;
+  }
+  return parsed * 1_000_000; // Convert per-token to per-1M tokens
+}
 
 /**
  * Sync model catalog from OpenRouter API
@@ -326,40 +332,55 @@ export const syncFromOpenRouter = internalAction({
 
     const results: Array<{ slug: string; status: string }> = [];
 
+    const errors: Array<{ slug: string; error: string }> = [];
+
     for (const model of trackedModels) {
-      // Check if model already exists
-      const existing = await ctx.runQuery(internal.modelCatalog.getBySlug, {
-        slug: model.id,
-      });
+      try {
+        // Check if model already exists
+        const existing = await ctx.runQuery(internal.modelCatalog.getBySlug, {
+          slug: model.id,
+        });
 
-      // Convert pricing from per-token to per-1M tokens
-      const pricingInputPer1M = Number.parseFloat(model.pricing.prompt) * 1_000_000;
-      const pricingOutputPer1M = Number.parseFloat(model.pricing.completion) * 1_000_000;
+        // Safely parse pricing (returns undefined if invalid)
+        const pricingInputPer1M = parsePricing(model.pricing?.prompt);
+        const pricingOutputPer1M = parsePricing(model.pricing?.completion);
 
-      // Determine capabilities (all tracked models support grading)
-      const capabilities: ModelCapability[] = ['grading'];
-      // Smaller/cheaper models also good for title generation
-      if (model.id.includes('mini') || model.id.includes('flash') || pricingInputPer1M < 1) {
-        capabilities.push('title');
+        // Determine capabilities (all tracked models support grading)
+        const capabilities: ModelCapability[] = ['grading'];
+        // Smaller/cheaper models also good for title generation
+        const isSmallModel
+          = model.id.includes('mini')
+          || model.id.includes('flash')
+          || model.id.includes('haiku')
+          || (pricingInputPer1M != null && pricingInputPer1M < 1);
+        if (isSmallModel) {
+          capabilities.push('title');
+        }
+
+        const result = await ctx.runMutation(internal.modelCatalog.upsert, {
+          slug: model.id,
+          name: model.name,
+          provider: extractProvider(model.id),
+          enabled: existing ? existing.enabled : enableNew,
+          capabilities,
+          contextLength: model.context_length,
+          pricingInputPer1M,
+          pricingOutputPer1M,
+        });
+
+        results.push({ slug: model.id, status: result.status });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push({ slug: model.id, error: message });
+        console.error(`Failed to sync model ${model.id}:`, message);
       }
-
-      const result = await ctx.runMutation(internal.modelCatalog.upsert, {
-        slug: model.id,
-        name: model.name,
-        provider: extractProvider(model.id),
-        enabled: existing ? existing.enabled : enableNew,
-        capabilities,
-        contextLength: model.context_length,
-        pricingInputPer1M,
-        pricingOutputPer1M,
-      });
-
-      results.push({ slug: model.id, status: result.status });
     }
 
     return {
       synced: results.length,
+      failed: errors.length,
       results,
+      errors,
     };
   },
 });
