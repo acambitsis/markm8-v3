@@ -77,10 +77,15 @@ function convexToJsonSchema(convexJson: ConvexValidatorJSON): JSONSchema {
       return result;
     }
 
-    case 'union':
+    case 'union': {
       // For unions, we'd need oneOf/anyOf - simplified for now
       // Most grade output unions are optional fields handled above
-      return convexToJsonSchema(convexJson.value[0]!);
+      const firstMember = convexJson.value[0];
+      if (!firstMember) {
+        return { type: 'object' }; // Fallback for empty union (shouldn't happen)
+      }
+      return convexToJsonSchema(firstMember);
+    }
 
     case 'literal': {
       const valueType = typeof convexJson.value;
