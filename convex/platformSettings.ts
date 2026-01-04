@@ -1,9 +1,9 @@
 // Platform settings queries and mutations
 // Handles admin-configurable platform values
 
-import { v } from 'convex/values';
-
 import { internalAction, internalMutation, internalQuery } from './_generated/server';
+import { DEFAULT_AI_CONFIG, validateAiConfig } from './lib/aiConfig';
+import { type AiConfig, aiConfigValidator } from './schema';
 
 const DEFAULT_SIGNUP_BONUS = '1.00';
 
@@ -49,36 +49,67 @@ export const getSignupBonus = internalQuery({
 
 /**
  * Get AI model configuration (internal use)
- * Returns config with defaults if not exists
- * TODO: Implement full config structure and defaults (see TECHNICAL_DESIGN.md)
+ * Returns validated config from database, or throws if not seeded
+ *
+ * Run seed script to initialize: npx convex run seed/platformSettings:seed
  */
 export const getAiConfig = internalQuery({
   args: {},
-  handler: async (ctx) => {
+  handler: async (ctx): Promise<AiConfig> => {
     const settings = await ctx.db
       .query('platformSettings')
       .withIndex('by_key', q => q.eq('key', 'singleton'))
       .unique();
 
-    // TODO: Return structured config with defaults
-    // For now, return undefined to indicate not yet implemented
-    return settings?.aiConfig ?? undefined;
+    if (!settings) {
+      // platformSettings not seeded - provide helpful error message
+      console.error(
+        '[aiConfig] platformSettings not found. Run: npx convex run seed/platformSettings:seed',
+      );
+      // Return defaults to allow development, but log warning
+      console.warn('[aiConfig] Using default configuration (not persisted)');
+      return DEFAULT_AI_CONFIG;
+    }
+
+    const config = settings.aiConfig;
+    const validation = validateAiConfig(config);
+
+    // Log warnings (non-fatal, config still usable)
+    for (const warning of validation.warnings) {
+      console.warn(`[aiConfig] ${warning}`);
+    }
+
+    // Throw on critical errors (config unusable)
+    if (!validation.valid) {
+      const errorMsg = validation.errors.join('; ');
+      console.error(`[aiConfig] Invalid configuration: ${errorMsg}`);
+      throw new Error(`Invalid AI configuration: ${errorMsg}`);
+    }
+
+    return config;
   },
 });
 
 /**
  * Update AI model configuration (admin only)
- * TODO: Implement email allowlist check and full config validation
+ * Validates config before saving; throws on invalid configuration
  */
 export const updateAiConfig = internalMutation({
   args: {
-    aiConfig: v.any(), // TODO: Add proper validator based on AiConfig type
-    adminEmail: v.string(), // For allowlist check and audit log
+    aiConfig: aiConfigValidator,
   },
-  handler: async (ctx, { aiConfig: _aiConfig, adminEmail: _adminEmail }) => {
-    // TODO: Check adminEmail against aiConfig.adminEmails allowlist
-    // TODO: Validate aiConfig structure
-    // TODO: Update singleton document with new config + audit fields
+  handler: async (ctx, { aiConfig }) => {
+    // Validate before saving
+    const validation = validateAiConfig(aiConfig);
+    if (!validation.valid) {
+      const errorMsg = validation.errors.join('; ');
+      throw new Error(`Invalid AI configuration: ${errorMsg}`);
+    }
+
+    // Log warnings
+    for (const warning of validation.warnings) {
+      console.warn(`[aiConfig] ${warning}`);
+    }
 
     const settings = await ctx.db
       .query('platformSettings')
@@ -86,18 +117,17 @@ export const updateAiConfig = internalMutation({
       .unique();
 
     if (settings) {
-      // TODO: Implement update
-      // await ctx.db.patch(settings._id, {
-      //   aiConfig,
-      //   // lastUpdatedBy: adminEmail,
-      //   // lastUpdatedAt: Date.now(),
-      // });
+      await ctx.db.patch(settings._id, { aiConfig });
     } else {
-      // TODO: Create singleton if doesn't exist
+      // Create singleton if doesn't exist (shouldn't happen if seeded)
+      await ctx.db.insert('platformSettings', {
+        key: 'singleton',
+        signupBonusAmount: DEFAULT_SIGNUP_BONUS,
+        aiConfig,
+      });
     }
 
-    // Stub: return success for now
-    return { success: true };
+    return { success: true, warnings: validation.warnings };
   },
 });
 

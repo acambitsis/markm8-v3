@@ -6,6 +6,7 @@ import { generateObject } from 'ai';
 import type {
   CategoryScores,
   GradeFeedback,
+  GradingConfig,
   ModelResult,
   PercentageRange,
 } from '../../schema';
@@ -22,6 +23,9 @@ import {
 /**
  * Run real AI grading with multi-model consensus
  * Executes N parallel AI calls, applies outlier detection, and aggregates results
+ *
+ * @param essay - Essay data with assignment brief, rubric, and content
+ * @param config - Grading configuration from platformSettings.aiConfig.grading
  */
 export async function runAIGrading(
   essay: {
@@ -33,7 +37,7 @@ export async function runAIGrading(
     focusAreas?: string[];
     content?: string | null;
   },
-  runModels: string[],
+  config: GradingConfig,
 ): Promise<{
     letterGradeRange: string;
     percentageRange: PercentageRange;
@@ -53,6 +57,9 @@ export async function runAIGrading(
     );
   }
 
+  // Extract config values
+  const { runs, temperature, outlierThresholdPercent, retry } = config;
+
   // Build grading prompt
   const prompt = buildGradingPrompt({
     instructions: essay.assignmentBrief.instructions,
@@ -63,23 +70,27 @@ export async function runAIGrading(
   });
 
   // Run parallel AI calls with retry logic
-  const gradingPromises = runModels.map(async (modelId, index) => {
-    return retryWithBackoff(async () => {
-      const model = getGradingModel(modelId);
-      const result = await generateObject({
-        model,
-        schema: gradeOutputSchema,
-        prompt,
-        temperature: 0.7, // Consistent grading
-      });
+  const gradingPromises = runs.map(async (run, index) => {
+    return retryWithBackoff(
+      async () => {
+        const model = getGradingModel(run.model);
+        const result = await generateObject({
+          model,
+          schema: gradeOutputSchema,
+          prompt,
+          temperature,
+        });
 
-      return {
-        model: modelId,
-        index,
-        result: result.object,
-        usage: result.usage,
-      };
-    });
+        return {
+          model: run.model,
+          index,
+          result: result.object,
+          usage: result.usage,
+        };
+      },
+      retry.maxRetries,
+      retry.backoffMs,
+    );
   });
 
   // Wait for all calls to complete (or fail)
@@ -93,7 +104,7 @@ export async function runAIGrading(
       }
       // Failed - log error but continue with other results
       console.error(
-        `Grading failed for model ${runModels[i]}:`,
+        `Grading failed for model ${runs[i]?.model}:`,
         r.reason,
       );
       return null;
@@ -112,8 +123,8 @@ export async function runAIGrading(
     percentage: clampPercentage(r.result.percentage),
   }));
 
-  // Apply outlier detection
-  const outlierResults = detectOutliers(scores);
+  // Apply outlier detection with configured threshold
+  const outlierResults = detectOutliers(scores, outlierThresholdPercent);
 
   // Filter to included scores only
   const includedResults = successfulResults.filter((_, i) =>

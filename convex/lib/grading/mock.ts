@@ -4,6 +4,7 @@
 import type {
   CategoryScores,
   GradeFeedback,
+  GradingConfig,
   ModelResult,
   PercentageRange,
 } from '../../schema';
@@ -11,22 +12,25 @@ import { clampPercentage } from './utils';
 
 /**
  * Generate mock grading results for testing
+ * Uses the configured runs from GradingConfig
  */
-export function generateMockGrade(runModels: string[]): {
+export function generateMockGrade(config: GradingConfig): {
   letterGradeRange: string;
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
   categoryScores: CategoryScores;
   modelResults: ModelResult[];
 } {
+  const { runs } = config;
+
   // Generate random percentage between 70-95
   const basePercentage = Math.floor(Math.random() * 26) + 70;
   const lowerBound = Math.max(0, basePercentage - 3);
   const upperBound = Math.min(100, basePercentage + 3);
 
   // Small per-run variation to mimic model variance.
-  const centerIndex = Math.floor(runModels.length / 2);
-  const deviations = runModels.map((_, i) => (i - centerIndex) * 2);
+  const centerIndex = Math.floor(runs.length / 2);
+  const deviations = runs.map((_, i) => (i - centerIndex) * 2);
 
   // Generate category scores aligned with overall percentage
   // Add some variation to make it realistic (scores vary by ±5-10 points)
@@ -136,8 +140,8 @@ export function generateMockGrade(runModels: string[]): {
       ],
     },
     categoryScores,
-    modelResults: runModels.map((model, i) => ({
-      model,
+    modelResults: runs.map((run, i) => ({
+      model: run.model,
       percentage: clampPercentage(basePercentage + deviations[i]!),
       included: true,
     })),
