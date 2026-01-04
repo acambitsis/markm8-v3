@@ -11,8 +11,8 @@ import type {
   PercentageRange,
 } from '../../schema';
 import { getGradingModel } from '../ai';
+import { gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt } from '../gradingPrompt';
-import { gradeOutputSchema } from '../gradingSchema';
 import {
   clampPercentage,
   convertToLetterGrade,
