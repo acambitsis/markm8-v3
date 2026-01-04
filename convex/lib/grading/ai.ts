@@ -35,14 +35,14 @@ export async function runAIGrading(
   },
   runModels: string[],
 ): Promise<{
-  letterGradeRange: string;
-  percentageRange: PercentageRange;
-  feedback: GradeFeedback;
-  categoryScores: CategoryScores;
-  modelResults: ModelResult[];
-  totalTokens?: number;
-  apiCost?: string;
-}> {
+    letterGradeRange: string;
+    percentageRange: PercentageRange;
+    feedback: GradeFeedback;
+    categoryScores: CategoryScores;
+    modelResults: ModelResult[];
+    totalTokens?: number;
+    apiCost?: string;
+  }> {
   if (
     !essay.assignmentBrief?.instructions
     || !essay.content
