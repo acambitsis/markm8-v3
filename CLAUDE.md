@@ -230,7 +230,7 @@ STRIPE_SECRET_KEY=sk_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
 
-**Setup:** See `SETUP.md` for Clerk + Convex initial configuration.
+**Setup:** See `README.md` for Clerk + Convex initial configuration.
 
 ---
 
@@ -279,22 +279,7 @@ Locations:
 
 ## Implementation Status
 
-**Complete:**
-- Clerk authentication + Convex integration
-- Convex schema and functions (users, credits, essays, grades)
-- Clerk webhook handler (user sync + signup bonus)
-- Essay submission (3-tab form with autosave)
-- Real-time grade status display
-- History page (paginated table)
-- Onboarding page (grading scale preferences)
-- Credits display (real-time balance)
-- AI grading (multi-model consensus via OpenRouter)
-- Stripe credit purchase integration
-
-**Pending Implementation:**
-| Module | Status |
-|--------|--------|
-| — | All core features complete |
+See `docs/STATUS.md` for detailed phase status, section status, and remaining work.
 
 ---
 

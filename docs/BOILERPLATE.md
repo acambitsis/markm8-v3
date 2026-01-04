@@ -88,7 +88,7 @@ The project uses Convex for the database and serverless functions. Set up your C
 NEXT_PUBLIC_CONVEX_URL=https://your-project.convex.cloud
 ```
 
-See `SETUP.md` for detailed Convex setup instructions.
+See `README.md` for detailed Convex setup instructions.
 
 ### Translation (i18n)
 
