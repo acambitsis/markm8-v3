@@ -170,3 +170,68 @@ export function validateAiConfig(config: AiConfig): ValidationResult {
     ],
   };
 }
+
+// =============================================================================
+// Catalog Validation (requires database context)
+// =============================================================================
+
+/**
+ * Options for catalog validation
+ */
+export type CatalogValidationOptions = {
+  /** Enabled model slugs for grading capability */
+  gradingSlugs: string[];
+  /** Enabled model slugs for title capability */
+  titleSlugs: string[];
+  /** If true, validation fails for missing models; if false, only warns */
+  strict?: boolean;
+};
+
+/**
+ * Validate AI config models against the model catalog
+ * Call this after fetching enabled slugs from the database
+ *
+ * @example
+ * const gradingSlugs = await ctx.runQuery(internal.modelCatalog.getEnabledSlugs, { capability: 'grading' });
+ * const titleSlugs = await ctx.runQuery(internal.modelCatalog.getEnabledSlugs, { capability: 'title' });
+ * const result = validateAiConfigAgainstCatalog(config, { gradingSlugs, titleSlugs, strict: true });
+ */
+export function validateAiConfigAgainstCatalog(
+  config: AiConfig,
+  options: CatalogValidationOptions,
+): ValidationResult {
+  const { gradingSlugs, titleSlugs, strict = false } = options;
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  const gradingSet = new Set(gradingSlugs);
+  const titleSet = new Set(titleSlugs);
+
+  // Check grading models
+  for (const run of config.grading.runs) {
+    if (!gradingSet.has(run.model)) {
+      const msg = `Grading model "${run.model}" not in catalog or not enabled for grading`;
+      if (strict) {
+        errors.push(msg);
+      } else {
+        warnings.push(msg);
+      }
+    }
+  }
+
+  // Check title generation model
+  if (!titleSet.has(config.titleGeneration.model)) {
+    const msg = `Title model "${config.titleGeneration.model}" not in catalog or not enabled for title generation`;
+    if (strict) {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    warnings,
+    errors,
+  };
+}

@@ -25,7 +25,9 @@ import type * as lib_grading_mock from "../lib/grading/mock.js";
 import type * as lib_grading_utils from "../lib/grading/utils.js";
 import type * as lib_gradingPrompt from "../lib/gradingPrompt.js";
 import type * as lib_gradingSchema from "../lib/gradingSchema.js";
+import type * as modelCatalog from "../modelCatalog.js";
 import type * as platformSettings from "../platformSettings.js";
+import type * as seed_modelCatalog from "../seed/modelCatalog.js";
 import type * as seed_platformSettings from "../seed/platformSettings.js";
 import type * as users from "../users.js";
 
@@ -53,7 +55,9 @@ declare const fullApi: ApiFromModules<{
   "lib/grading/utils": typeof lib_grading_utils;
   "lib/gradingPrompt": typeof lib_gradingPrompt;
   "lib/gradingSchema": typeof lib_gradingSchema;
+  modelCatalog: typeof modelCatalog;
   platformSettings: typeof platformSettings;
+  "seed/modelCatalog": typeof seed_modelCatalog;
   "seed/platformSettings": typeof seed_platformSettings;
   users: typeof users;
 }>;
