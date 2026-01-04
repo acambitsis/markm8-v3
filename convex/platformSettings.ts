@@ -1,11 +1,51 @@
 // Platform settings queries and mutations
 // Handles admin-configurable platform values
 
-import { internalAction, internalMutation, internalQuery } from './_generated/server';
-import { validateAiConfig } from './lib/aiConfig';
-import { type AiConfig, aiConfigValidator } from './schema';
+import type { DatabaseReader } from './_generated/server';
+import { internalMutation, internalQuery } from './_generated/server';
+import {
+  type CatalogValidationOptions,
+  validateAiConfig,
+  validateAiConfigAgainstCatalog,
+} from './lib/aiConfig';
+import { type AiConfig, aiConfigValidator, type ModelCapability } from './schema';
 
 export const DEFAULT_SIGNUP_BONUS = '1.00';
+
+/**
+ * Helper to fetch enabled model slugs by capability
+ * Extracts common catalog query logic used in validation
+ */
+async function getEnabledSlugsByCapability(
+  db: DatabaseReader,
+  capability: ModelCapability,
+): Promise<string[]> {
+  const models = await db
+    .query('modelCatalog')
+    .withIndex('by_enabled', q => q.eq('enabled', true))
+    .take(100); // Defensive bound
+
+  return models
+    .filter(m => m.capabilities.includes(capability))
+    .map(m => m.slug);
+}
+
+/**
+ * Helper to get catalog validation options from database
+ */
+async function getCatalogValidationOptions(
+  db: DatabaseReader,
+): Promise<CatalogValidationOptions | null> {
+  const gradingSlugs = await getEnabledSlugsByCapability(db, 'grading');
+  const titleSlugs = await getEnabledSlugsByCapability(db, 'title');
+
+  // Return null if catalog not seeded
+  if (gradingSlugs.length === 0 && titleSlugs.length === 0) {
+    return null;
+  }
+
+  return { gradingSlugs, titleSlugs, strict: false };
+}
 
 /**
  * Get platform settings (internal use)
@@ -69,6 +109,8 @@ export const getAiConfig = internalQuery({
     }
 
     const config = settings.aiConfig;
+
+    // Schema validation (structure, ranges, etc.)
     const validation = validateAiConfig(config);
 
     // Log warnings (non-fatal, config still usable)
@@ -83,6 +125,16 @@ export const getAiConfig = internalQuery({
       throw new Error(`Invalid AI configuration: ${errorMsg}`);
     }
 
+    // Catalog validation (check models exist and are enabled)
+    // This is a soft check - warns but doesn't fail
+    const catalogOptions = await getCatalogValidationOptions(ctx.db);
+    if (catalogOptions) {
+      const catalogValidation = validateAiConfigAgainstCatalog(config, catalogOptions);
+      for (const warning of catalogValidation.warnings) {
+        console.warn(`[aiConfig] ${warning}`);
+      }
+    }
+
     return config;
   },
 });
@@ -90,21 +142,32 @@ export const getAiConfig = internalQuery({
 /**
  * Update AI model configuration (admin only)
  * Validates config before saving; throws on invalid configuration
+ * Optionally validates against model catalog if strict mode enabled
  */
 export const updateAiConfig = internalMutation({
   args: {
     aiConfig: aiConfigValidator,
   },
   handler: async (ctx, { aiConfig }) => {
-    // Validate before saving
+    const allWarnings: string[] = [];
+
+    // Schema validation (structure, ranges, etc.)
     const validation = validateAiConfig(aiConfig);
     if (!validation.valid) {
       const errorMsg = validation.errors.join('; ');
       throw new Error(`Invalid AI configuration: ${errorMsg}`);
     }
+    allWarnings.push(...validation.warnings);
 
-    // Log warnings
-    for (const warning of validation.warnings) {
+    // Catalog validation (check models exist and are enabled)
+    const catalogOptions = await getCatalogValidationOptions(ctx.db);
+    if (catalogOptions) {
+      const catalogValidation = validateAiConfigAgainstCatalog(aiConfig, catalogOptions);
+      allWarnings.push(...catalogValidation.warnings);
+    }
+
+    // Log all warnings
+    for (const warning of allWarnings) {
       console.warn(`[aiConfig] ${warning}`);
     }
 
@@ -124,27 +187,6 @@ export const updateAiConfig = internalMutation({
       });
     }
 
-    return { success: true, warnings: validation.warnings };
-  },
-});
-
-/**
- * Refresh AI model catalog from OpenRouter (internal action)
- * Fetches latest models and validates configured model IDs
- * TODO: Implement OpenRouter API call and validation logic
- */
-export const refreshAiModelCatalog = internalAction({
-  args: {},
-  handler: async (_ctx) => {
-    // TODO: Fetch from https://openrouter.ai/api/v1/models
-    // TODO: Validate existing aiConfig model IDs exist
-    // TODO: Suggest updates if newer SOTA models available
-    // TODO: Return catalog + validation results (does NOT auto-update)
-
-    return {
-      catalog: [],
-      validationResults: [],
-      suggestions: [],
-    };
+    return { success: true, warnings: allWarnings };
   },
 });

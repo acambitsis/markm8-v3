@@ -112,6 +112,27 @@ export const categoryScoresValidator = v.object({
 });
 
 // =============================================================================
+// Model Catalog Validators
+// =============================================================================
+
+export const modelCapabilityValidator = v.union(
+  v.literal('grading'),
+  v.literal('title'),
+);
+
+export const modelCatalogEntryValidator = v.object({
+  slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
+  name: v.string(), // Display name, e.g., "Grok 4.1"
+  provider: v.string(), // Provider name, e.g., "xAI"
+  enabled: v.boolean(), // Whether model is available for selection
+  capabilities: v.array(modelCapabilityValidator), // Which features can use this model
+  contextLength: v.optional(v.number()), // Max context window
+  pricingInputPer1M: v.optional(v.number()), // Cost per 1M input tokens
+  pricingOutputPer1M: v.optional(v.number()), // Cost per 1M output tokens
+  lastSyncedAt: v.optional(v.number()), // Last sync from OpenRouter API
+});
+
+// =============================================================================
 // AI Configuration Validators
 // =============================================================================
 
@@ -121,7 +142,7 @@ export const gradingModeValidator = v.union(
 );
 
 export const gradingRunValidator = v.object({
-  model: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1"
+  model: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
 });
 
 export const retryConfigValidator = v.object({
@@ -246,6 +267,24 @@ export default defineSchema({
     aiConfig: aiConfigValidator,
   }).index('by_key', ['key']),
 
+  // Model Catalog (available AI models from OpenRouter)
+  // Seed with: npx convex run seed/modelCatalog:seed
+  // Sync from OpenRouter: npx convex run modelCatalog:syncFromOpenRouter
+  modelCatalog: defineTable({
+    slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
+    name: v.string(), // Display name, e.g., "Grok 4.1"
+    provider: v.string(), // Provider name, e.g., "xAI"
+    enabled: v.boolean(), // Whether model is available for selection
+    capabilities: v.array(modelCapabilityValidator), // Which features can use this model
+    contextLength: v.optional(v.number()), // Max context window
+    pricingInputPer1M: v.optional(v.number()), // Cost per 1M input tokens
+    pricingOutputPer1M: v.optional(v.number()), // Cost per 1M output tokens
+    lastSyncedAt: v.optional(v.number()), // Last sync from OpenRouter API
+  })
+    .index('by_slug', ['slug'])
+    .index('by_enabled', ['enabled'])
+    .index('by_provider', ['provider']),
+
   // Grade Failures (internal-only error tracking for debugging)
   // Raw error details stored here, never exposed to users
   gradeFailures: defineTable({
@@ -275,6 +314,10 @@ export type PercentageRange = Infer<typeof percentageRangeValidator>;
 export type GradeFeedback = Infer<typeof feedbackValidator>;
 export type CategoryScores = Infer<typeof categoryScoresValidator>;
 export type ModelResult = Infer<typeof modelResultValidator>;
+
+// Model Catalog Types
+export type ModelCapability = Infer<typeof modelCapabilityValidator>;
+export type ModelCatalogEntry = Infer<typeof modelCatalogEntryValidator>;
 
 // AI Configuration Types
 export type GradingMode = Infer<typeof gradingModeValidator>;

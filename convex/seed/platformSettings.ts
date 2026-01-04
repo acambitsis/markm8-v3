@@ -22,11 +22,11 @@ const PROD_AI_CONFIG: AiConfig = {
     mode: 'live',
     temperature: 0.4,
     runs: [
-      { model: 'x-ai/grok-4.1' },
-      { model: 'x-ai/grok-4.1' },
-      { model: 'openai/gpt-4o' },
-      { model: 'openai/gpt-4o' },
-      { model: 'anthropic/claude-sonnet-4' },
+      { model: 'x-ai/grok-4.1-fast' },
+      { model: 'x-ai/grok-4.1-fast' },
+      { model: 'openai/gpt-5.2-pro' },
+      { model: 'openai/gpt-5.2-pro' },
+      { model: 'anthropic/claude-opus-4.5' },
     ],
     outlierThresholdPercent: 10,
     retry: {
@@ -35,7 +35,7 @@ const PROD_AI_CONFIG: AiConfig = {
     },
   },
   titleGeneration: {
-    model: 'openai/gpt-4o-mini',
+    model: 'anthropic/claude-haiku-4.5',
     temperature: 0.4,
     maxTokens: 14,
   },

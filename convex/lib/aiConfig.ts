@@ -15,9 +15,9 @@ export const DEFAULT_GRADING_CONFIG: GradingConfig = {
   mode: 'mock', // Override to 'live' for production via seed script
   temperature: 0.4, // Lower temperature for consistent grading (0.3-0.5 recommended)
   runs: [
-    { model: 'x-ai/grok-4.1' },
-    { model: 'x-ai/grok-4.1' },
-    { model: 'x-ai/grok-4.1' },
+    { model: 'x-ai/grok-4.1-fast' },
+    { model: 'x-ai/grok-4.1-fast' },
+    { model: 'x-ai/grok-4.1-fast' },
   ],
   outlierThresholdPercent: 10,
   retry: {
@@ -27,7 +27,7 @@ export const DEFAULT_GRADING_CONFIG: GradingConfig = {
 };
 
 export const DEFAULT_TITLE_GENERATION_CONFIG: TitleGenerationConfig = {
-  model: 'openai/gpt-4o-mini',
+  model: 'anthropic/claude-haiku-4.5',
   temperature: 0.4,
   maxTokens: 14, // ~10 words
 };
@@ -168,5 +168,70 @@ export function validateAiConfig(config: AiConfig): ValidationResult {
       ...gradingResult.errors.map(e => `[grading] ${e}`),
       ...titleResult.errors.map(e => `[titleGeneration] ${e}`),
     ],
+  };
+}
+
+// =============================================================================
+// Catalog Validation (requires database context)
+// =============================================================================
+
+/**
+ * Options for catalog validation
+ */
+export type CatalogValidationOptions = {
+  /** Enabled model slugs for grading capability */
+  gradingSlugs: string[];
+  /** Enabled model slugs for title capability */
+  titleSlugs: string[];
+  /** If true, validation fails for missing models; if false, only warns */
+  strict?: boolean;
+};
+
+/**
+ * Validate AI config models against the model catalog
+ * Call this after fetching enabled slugs from the database
+ *
+ * @example
+ * const gradingSlugs = await ctx.runQuery(internal.modelCatalog.getEnabledSlugs, { capability: 'grading' });
+ * const titleSlugs = await ctx.runQuery(internal.modelCatalog.getEnabledSlugs, { capability: 'title' });
+ * const result = validateAiConfigAgainstCatalog(config, { gradingSlugs, titleSlugs, strict: true });
+ */
+export function validateAiConfigAgainstCatalog(
+  config: AiConfig,
+  options: CatalogValidationOptions,
+): ValidationResult {
+  const { gradingSlugs, titleSlugs, strict = false } = options;
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  const gradingSet = new Set(gradingSlugs);
+  const titleSet = new Set(titleSlugs);
+
+  // Check grading models
+  for (const run of config.grading.runs) {
+    if (!gradingSet.has(run.model)) {
+      const msg = `Grading model "${run.model}" not in catalog or not enabled for grading`;
+      if (strict) {
+        errors.push(msg);
+      } else {
+        warnings.push(msg);
+      }
+    }
+  }
+
+  // Check title generation model
+  if (!titleSet.has(config.titleGeneration.model)) {
+    const msg = `Title model "${config.titleGeneration.model}" not in catalog or not enabled for title generation`;
+    if (strict) {
+      errors.push(msg);
+    } else {
+      warnings.push(msg);
+    }
+  }
+
+  return {
+    valid: errors.length === 0,
+    warnings,
+    errors,
   };
 }
