@@ -65,6 +65,13 @@ export const percentageRangeValidator = v.object({
   upper: v.number(),
 });
 
+// =============================================================================
+// AI Grading Output Validators
+// These validators define the structure for AI-generated grade feedback.
+// They are the single source of truth - convex/lib/gradeSchema.ts derives
+// the AI SDK schema from these validators at runtime.
+// =============================================================================
+
 export const strengthValidator = v.object({
   title: v.string(),
   description: v.string(),
