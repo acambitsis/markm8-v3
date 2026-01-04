@@ -50,7 +50,9 @@ credits    // balance + reserved per user (starts at 1.00 balance, 0.00 reserved
 creditTransactions  // Audit log (signup_bonus, purchase, grading, refund)
 essays     // userId, status (draft/submitted/archived), assignmentBrief, rubric, content
 grades     // userId, essayId, status (queued→processing→complete/failed)
-platformSettings    // Singleton config
+platformSettings    // Singleton config (signup bonus, aiConfig)
+modelCatalog        // Available AI models (slug, provider, pricing, capabilities)
+gradeFailures       // Internal error tracking for debugging (not user-facing)
 ```
 
 **Key constraints:**
@@ -128,7 +130,7 @@ convex/                          # Convex backend (serverless)
 ├── lib/                         # Shared helpers (auth.ts, decimal.ts, aiConfig.ts)
 ├── seed/                        # Database seeding scripts (run via: npx convex run seed/...)
 ├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig)
-└── [domain].ts                  # Function files: users, credits, essays, grades, grading
+└── [domain].ts                  # Function files: users, credits, essays, grades, grading, modelCatalog
 
 src/
 ├── app/[locale]/

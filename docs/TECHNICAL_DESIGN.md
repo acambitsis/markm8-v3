@@ -449,121 +449,26 @@ bun add ai @ai-sdk/openai
 
 **Storage:** `platformSettings.aiConfig` (singleton document in Convex)
 
-**Configuration Structure:**
+**Configuration:**
 
-```typescript
-type ReasoningEffort = 'low' | 'medium' | 'high';
-
-type AiModelSpec = {
-  model: string;                 // OpenRouter model ID (e.g., "x-ai/grok-4.1", "anthropic/claude-opus-4.5")
-  reasoningEffort?: ReasoningEffort; // Provider-specific reasoning setting (converted at call time)
-  enabled?: boolean;            // Allow disabling specific runs without removing from config
-};
-
-type TitleGenConfig = {
-  primary: AiModelSpec;
-  fallbacks: AiModelSpec[];     // Fallback models if primary fails
-  temperature: number;            // Default: 0.7
-  maxTokens: number;             // Default: 20
-};
-
-type GradingConfig = {
-  mode: 'mock' | 'live';
-  runs: AiModelSpec[];           // Length 3..5, supports mixed models
-  outlierThresholdPercent: number; // Default: 10
-  retries: {
-    maxRetries: number;          // Default: 3
-    backoffMs: number[];         // Default: [5000, 15000, 45000]
-  };
-  temperature?: number;          // Optional override for all runs
-  maxTokens?: number;            // Optional override for all runs
-};
-
-type TestingConfig = {
-  enabled: boolean;              // Master switch for testing mode
-  grading?: Partial<GradingConfig>; // Overrides production grading config
-  titleGeneration?: Partial<TitleGenConfig>; // Overrides production title config
-  // Testing config allows fast variants (e.g., "x-ai/grok-4.1-fast")
-  // Production config should never use fast variants
-};
-
-type AiConfig = {
-  titleGeneration: TitleGenConfig;
-  grading: GradingConfig;
-  testing?: TestingConfig;       // Optional testing overrides
-  adminEmails: string[];         // Email allowlist for admin access
-  lastUpdatedBy?: string;        // Email of admin who last updated
-  lastUpdatedAt?: number;        // Unix timestamp in ms
-};
-```
-
-**Default Configuration:**
-
-```typescript
-const DEFAULT_AI_CONFIG: AiConfig = {
-  titleGeneration: {
-    primary: { model: 'anthropic/claude-haiku-4.5' },
-    fallbacks: [
-      { model: 'openai/gpt-mini' } // Update with latest GPT Mini identifier
-    ],
-    temperature: 0.7,
-    maxTokens: 20,
-  },
-  grading: {
-    mode: 'mock', // Switch to 'live' when OpenRouter integration is ready
-    runs: [
-      { model: 'x-ai/grok-4.1', reasoningEffort: 'medium' },
-      { model: 'x-ai/grok-4.1', reasoningEffort: 'medium' },
-      { model: 'google/gemini-3', reasoningEffort: 'medium' },
-    ],
-    outlierThresholdPercent: 10,
-    retries: {
-      maxRetries: 3,
-      backoffMs: [5000, 15000, 45000],
-    },
-  },
-  adminEmails: [], // Set via Convex Dashboard or admin UI
-};
-```
-
-**Production vs Testing:**
-
-- **Production grading:** Full models only (e.g., `x-ai/grok-4.1`, `anthropic/claude-opus-4.5`, `google/gemini-3`, `openai/gpt-5.2`)
-- **Testing grading:** Fast variants allowed (e.g., `x-ai/grok-4.1-fast`) via `testing.grading` override
-- **Testing mode:** Controlled by `testing.enabled` flag; when enabled, testing configs override production configs
-
-**Model Selection Priority (for grading):**
-
-1. **Environment override** (highest priority): `MARKM8_GRADING_MODE` and `MARKM8_GRADING_MODELS` env vars (for emergency/testing)
-2. **Testing config** (if `testing.enabled === true`): `platformSettings.aiConfig.testing.grading`
-3. **Production config**: `platformSettings.aiConfig.grading`
-4. **Hardcoded defaults**: Fallback if config missing
+- All AI configuration is stored in `platformSettings.aiConfig` (database-driven, no env vars)
+- Grading config: `mode` (mock/live), `temperature`, `runs[]` (1-10 models), `outlierThresholdPercent`, `retry`
+- Title generation config: `model`, `temperature`, `maxTokens`
+- Initialize via seed script: `npx convex run seed/platformSettings:seed`
 
 **Admin Access:**
 
-- **Email allowlist:** `platformSettings.aiConfig.adminEmails` (array of email addresses)
-- **Admin mutations:** Check user email against allowlist before allowing config updates
 - **For v3 launch:** Update config via Convex Dashboard (manual edit of singleton document)
-- **Future (v3.1+):** Admin UI at `/admin/settings` with mutation gated by email allowlist
+- **Future (v3.1+):** Admin UI with role-based access
 
-**Updating Models (Backend Function):**
+**Model Catalog (Backend Function):**
 
-**Planned:** `internalAction platformSettings.refreshAiModelCatalog`
+`internalAction modelCatalog.syncFromOpenRouter`
 
 - Fetches latest models from OpenRouter API (`GET https://openrouter.ai/api/v1/models`)
-- Validates configured model IDs exist
-- Suggests updates if newer SOTA models are available
-- Does NOT auto-update (requires admin approval)
-- Can be called manually or scheduled periodically
-
-**Reasoning Effort Mapping:**
-
-Provider-specific conversion from canonical `reasoningEffort` to API parameters:
-
-- **OpenAI (GPT-5.2):** Maps to `reasoning_effort` parameter (if supported)
-- **xAI (Grok-4.1):** Maps to reasoning toggle/effort settings (varies by model variant)
-- **Google (Gemini-3):** Maps to thinking/reasoning parameters (varies by model version)
-- **Anthropic (Claude):** Maps to reasoning settings (if available)
+- Updates pricing and context length for tracked models in `modelCatalog` table
+- Run manually: `npx convex run modelCatalog:syncFromOpenRouter`
+- Seed curated models: `npx convex run seed/modelCatalog:seed`
 
 ### Title Generation API
 
@@ -581,52 +486,34 @@ Provider-specific conversion from canonical `reasoningEffort` to API parameters:
 
 ### Usage in Convex Actions
 
-**CRITICAL: Always use `generateObject` with Zod schema validation.**
+**CRITICAL: Always use `generateObject` with schema validation.**
 
-Without schema validation, malformed JSON responses from AI models cause production debugging nightmares. Using `generateObject` with Zod ensures type-safety, automatic validation, clear error messages, and eliminates parsing errors.
+Without schema validation, malformed JSON responses from AI models cause production debugging nightmares. Using `generateObject` ensures type-safety, automatic validation, clear error messages, and eliminates parsing errors.
 
 **Note:** AI calls run in Convex actions (not mutations) because:
 - Actions can call external APIs (OpenRouter)
 - Actions have 10-minute timeout (sufficient for AI grading)
 - Mutations cannot call external APIs directly
 
-**Required Zod Schema Structure:**
+**Schema Approach (Single Source of Truth):**
+
+Schemas are defined as Convex validators in `convex/schema.ts` and converted to JSON Schema for AI SDK:
+
 ```typescript
-const GradeSchema = z.object({
-  percentage: z.number().min(0).max(100),
-  feedback: z.object({
-    strengths: z.array(z.object({
-      title: z.string(),
-      description: z.string(),
-      evidence: z.string().optional(),
-    })),
-    improvements: z.array(z.object({
-      title: z.string(),
-      description: z.string(),
-      suggestion: z.string(),
-      detailedSuggestions: z.array(z.string()).optional(),
-    })),
-    languageTips: z.array(z.object({
-      category: z.string(),
-      feedback: z.string(),
-    })),
-    resources: z.array(z.object({
-      title: z.string(),
-      url: z.string().optional(),
-      description: z.string(),
-    })).optional(),
-  }),
-  categoryScores: z.object({
-    contentUnderstanding: z.number().min(0).max(100),
-    structureOrganization: z.number().min(0).max(100),
-    criticalAnalysis: z.number().min(0).max(100),
-    languageStyle: z.number().min(0).max(100),
-    citationsReferences: z.number().min(0).max(100).optional(),
-  }),
+// convex/schema.ts - validators are the source of truth
+export const feedbackValidator = v.object({
+  strengths: v.array(strengthValidator),
+  improvements: v.array(improvementValidator),
+  // ...
 });
+
+// convex/lib/gradeSchema.ts - converts to JSON Schema for AI SDK
+export const gradeOutputSchema = jsonSchema<GradeOutput>(
+  validatorToJsonSchema(gradeOutputValidator),
+);
 ```
 
-Use: `await generateObject({ model: getGradingModel(), schema: GradeSchema, prompt })`
+Use: `await generateObject({ model, schema: gradeOutputSchema, prompt })`
 
 ---
 
@@ -1066,7 +953,6 @@ See README.md for complete environment variable configuration including:
 - Convex deployment URLs and keys
 - Stripe payment keys
 - OpenRouter API key for AI grading
-- Grading mode configuration (`MARKM8_GRADING_MODE`, `MARKM8_GRADING_MODELS`)
 
 Environment variables are set in:
 - `.env.local` for local development
