@@ -210,6 +210,11 @@ feature/* ──PR──► dev ──promote──► main
 - `main` or `dev` branch → Deploys Convex + builds Next.js
 - Other branches (PRs) → Builds Next.js only (no Convex deploy)
 
+**Commit/PR conventions:**
+- Use `Closes #XX` in PR body or commit message to auto-close issues on merge
+- Valid keywords: `Closes`, `Fixes`, `Resolves` (not "Addresses", "Related to")
+- Commit messages must follow commitlint rules (max 100 chars per line in footer)
+
 ---
 
 ## Environment Variables
