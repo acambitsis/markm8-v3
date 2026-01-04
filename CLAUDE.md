@@ -125,8 +125,9 @@ export const createFromClerk = internalMutation({ ... });
 convex/                          # Convex backend (serverless)
 ├── schema.ts                    # Document schema + exported validators (single source of truth)
 ├── http.ts                      # Webhook endpoints (Clerk, Stripe)
-├── lib/                         # Shared helpers (auth.ts, decimal.ts)
-├── platformSettings.ts          # Admin-configurable settings (signup bonus)
+├── lib/                         # Shared helpers (auth.ts, decimal.ts, aiConfig.ts)
+├── seed/                        # Database seeding scripts (run via: npx convex run seed/...)
+├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig)
 └── [domain].ts                  # Function files: users, credits, essays, grades, grading
 
 src/

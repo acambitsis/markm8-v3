@@ -5,7 +5,7 @@ import { internalAction, internalMutation, internalQuery } from './_generated/se
 import { DEFAULT_AI_CONFIG, validateAiConfig } from './lib/aiConfig';
 import { type AiConfig, aiConfigValidator } from './schema';
 
-const DEFAULT_SIGNUP_BONUS = '1.00';
+export const DEFAULT_SIGNUP_BONUS = '1.00';
 
 /**
  * Get platform settings (internal use)

@@ -11,7 +11,8 @@
 import { v } from 'convex/values';
 
 import { internalMutation } from '../_generated/server';
-import { DEFAULT_AI_CONFIG } from '../lib/aiConfig';
+import { DEFAULT_AI_CONFIG, validateAiConfig } from '../lib/aiConfig';
+import { DEFAULT_SIGNUP_BONUS } from '../platformSettings';
 import type { AiConfig } from '../schema';
 
 // Production configuration overrides
@@ -40,8 +41,6 @@ const PROD_AI_CONFIG: AiConfig = {
   },
 };
 
-const DEFAULT_SIGNUP_BONUS = '1.00';
-
 /**
  * Seed platform settings with AI configuration
  * Creates singleton if not exists, skips if already seeded
@@ -65,6 +64,15 @@ export const seed = internalMutation({
     }
 
     const aiConfig = isProd ? PROD_AI_CONFIG : DEFAULT_AI_CONFIG;
+
+    // Validate config before inserting
+    const validation = validateAiConfig(aiConfig);
+    if (!validation.valid) {
+      throw new Error(`Invalid AI config: ${validation.errors.join('; ')}`);
+    }
+    for (const warning of validation.warnings) {
+      console.warn(`[seed] ${warning}`);
+    }
 
     const id = await ctx.db.insert('platformSettings', {
       key: 'singleton',
@@ -103,6 +111,15 @@ export const reset = internalMutation({
     // Create new with specified config
     const aiConfig = isProd ? PROD_AI_CONFIG : DEFAULT_AI_CONFIG;
 
+    // Validate config before inserting
+    const validation = validateAiConfig(aiConfig);
+    if (!validation.valid) {
+      throw new Error(`Invalid AI config: ${validation.errors.join('; ')}`);
+    }
+    for (const warning of validation.warnings) {
+      console.warn(`[reset] ${warning}`);
+    }
+
     const id = await ctx.db.insert('platformSettings', {
       key: 'singleton',
       signupBonusAmount: DEFAULT_SIGNUP_BONUS,
@@ -131,6 +148,15 @@ export const updateAiConfigOnly = internalMutation({
       .unique();
 
     const aiConfig = isProd ? PROD_AI_CONFIG : DEFAULT_AI_CONFIG;
+
+    // Validate config before inserting/updating
+    const validation = validateAiConfig(aiConfig);
+    if (!validation.valid) {
+      throw new Error(`Invalid AI config: ${validation.errors.join('; ')}`);
+    }
+    for (const warning of validation.warnings) {
+      console.warn(`[updateAiConfigOnly] ${warning}`);
+    }
 
     if (existing) {
       await ctx.db.patch(existing._id, { aiConfig });
