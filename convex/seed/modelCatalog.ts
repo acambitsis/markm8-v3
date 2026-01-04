@@ -29,8 +29,8 @@ type SeedModel = {
 const INITIAL_MODELS: SeedModel[] = [
   // xAI - Grok models
   {
-    slug: 'x-ai/grok-code-fast-1',
-    name: 'Grok Code Fast 1',
+    slug: 'x-ai/grok-4.1-fast',
+    name: 'Grok 4.1 Fast',
     provider: 'xAI',
     capabilities: ['grading', 'title'],
   },

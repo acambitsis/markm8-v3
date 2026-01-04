@@ -280,7 +280,7 @@ function extractProvider(modelId: string): string {
 
 // Models we want to track (curated list for grading quality)
 const TRACKED_MODEL_PATTERNS = [
-  'x-ai/grok-code-fast-1',
+  'x-ai/grok-4.1-fast',
   'google/gemini-3-flash-preview',
   'openai/gpt-5.2-pro',
   'google/gemini-3-pro-preview',
