@@ -93,7 +93,7 @@ convex/                              # Convex backend (serverless)
 ├── schema.ts                        # Document schema + exported validators (single source of truth)
 ├── auth.config.ts                   # Convex auth configuration (Clerk integration)
 ├── http.ts                          # HTTP endpoints (Clerk webhook, Stripe webhook)
-├── lib/                             # Shared helpers (auth, decimal, ai, gradingPrompt, gradingSchema)
+├── lib/                             # Shared helpers (auth, decimal, ai, gradingPrompt, gradeSchema)
 ├── platformSettings.ts              # Admin-configurable settings (signup bonus)
 ├── users.ts                         # User sync from Clerk
 ├── credits.ts                       # Balance, reservations, transactions
