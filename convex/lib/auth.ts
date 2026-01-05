@@ -73,3 +73,81 @@ export async function optionalAuth(
 
   return user?._id ?? null;
 }
+
+/**
+ * Require admin access - checks if user's email is in the admin allowlist
+ * Returns the user ID and email if authorized
+ *
+ * Admin allowlist is stored in platformSettings.adminEmails
+ * @throws Error if user is not authenticated or not an admin
+ */
+export async function requireAdmin(
+  ctx: QueryCtx | MutationCtx,
+): Promise<{ userId: Id<'users'>; email: string }> {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity) {
+    throw new Error('Unauthorized: Not authenticated');
+  }
+
+  const email = identity.email;
+  if (!email) {
+    throw new Error('Unauthorized: No email in identity');
+  }
+
+  // Get admin allowlist from platform settings
+  const settings = await ctx.db
+    .query('platformSettings')
+    .withIndex('by_key', q => q.eq('key', 'singleton'))
+    .unique();
+
+  const allowlist = settings?.adminEmails ?? [];
+
+  // Case-insensitive email comparison
+  const normalizedEmail = email.toLowerCase();
+  const isAdmin = allowlist.some(
+    adminEmail => adminEmail.toLowerCase() === normalizedEmail,
+  );
+
+  if (!isAdmin) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+
+  // Get user record
+  const user = await ctx.db
+    .query('users')
+    .withIndex('by_clerk_id', q => q.eq('clerkId', identity.subject))
+    .unique();
+
+  if (!user) {
+    throw new Error('Unauthorized: User not found in database');
+  }
+
+  return { userId: user._id, email: normalizedEmail };
+}
+
+/**
+ * Check if a user is an admin (non-throwing version)
+ * Returns true if the user's email is in the admin allowlist
+ */
+export async function isAdmin(
+  ctx: QueryCtx | MutationCtx,
+): Promise<boolean> {
+  const identity = await ctx.auth.getUserIdentity();
+
+  if (!identity?.email) {
+    return false;
+  }
+
+  const settings = await ctx.db
+    .query('platformSettings')
+    .withIndex('by_key', q => q.eq('key', 'singleton'))
+    .unique();
+
+  const allowlist = settings?.adminEmails ?? [];
+  const normalizedEmail = identity.email.toLowerCase();
+
+  return allowlist.some(
+    adminEmail => adminEmail.toLowerCase() === normalizedEmail,
+  );
+}

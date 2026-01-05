@@ -6,8 +6,6 @@
 
 **Current scope:** Individual users only, simple launch
 
-**Note:** Admin functionality (admin dashboard, user management, analytics) is specified in FUNCTIONAL_REQUIREMENTS.md but **deferred to v3.1+**. For v3 launch, use Convex Dashboard for operational tasks.
-
 ---
 
 ## Tech Stack
@@ -39,18 +37,48 @@
 
 ---
 
+## Admin Access Model
+
+Admin access uses an **email allowlist** stored in `platformSettings.adminEmails`:
+
+- **No `isAdmin` flag on users** - Single source of truth in platformSettings
+- **Use `requireAdmin(ctx)`** in admin queries/mutations (returns `{ userId, email }`)
+- **Use `isAdmin(ctx)`** for non-throwing admin checks (returns `boolean`)
+- **Admin routes:** `/admin/*` - Protected by layout-level guard (`AdminGuard` component)
+- **All admin actions logged** with `performedBy` for audit trail
+
+**Key files:**
+- `convex/lib/auth.ts` - `requireAdmin()` and `isAdmin()` helpers
+- `convex/admin.ts` - Admin queries and mutations
+- `src/hooks/useAdmin.ts` - React hooks for admin data
+- `src/features/admin/` - Admin UI components
+
+**Allowlist management:**
+```bash
+# Set admin emails via seed script
+npx convex run seed/platformSettings:setAdminEmails '{"emails": ["admin@example.com"]}'
+
+# Or via Admin Settings UI at /admin/settings
+```
+
+**Transaction types for admin:**
+- `admin_adjustment` - Credit adjustments with required reason (≥10 chars)
+- Logged with `adminNote` and `performedBy` fields
+
+---
+
 ## Database Schema (Convex)
 
 **Documents (convex/schema.ts):**
 
 ```typescript
 // Core documents
-users      // Synced from Clerk webhook (indexed by clerkId)
+users      // Synced from Clerk webhook (indexed by clerkId, email)
 credits    // balance + reserved per user (starts at 1.00 balance, 0.00 reserved)
-creditTransactions  // Audit log (signup_bonus, purchase, grading, refund)
+creditTransactions  // Audit log (signup_bonus, purchase, grading, refund, admin_adjustment)
 essays     // userId, status (draft/submitted/archived), assignmentBrief, rubric, content
 grades     // userId, essayId, status (queued→processing→complete/failed)
-platformSettings    // Singleton config (signup bonus, aiConfig)
+platformSettings    // Singleton config (signup bonus, adminEmails, aiConfig)
 modelCatalog        // Available AI models (slug, provider, pricing, capabilities)
 gradeFailures       // Internal error tracking for debugging (not user-facing)
 ```
@@ -129,16 +157,18 @@ convex/                          # Convex backend (serverless)
 ├── http.ts                      # Webhook endpoints (Clerk, Stripe)
 ├── lib/                         # Shared helpers (auth.ts, decimal.ts, aiConfig.ts)
 ├── seed/                        # Database seeding scripts (run via: npx convex run seed/...)
-├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig)
+├── admin.ts                     # Admin queries and mutations (uses requireAdmin guard)
+├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig, adminEmails)
 └── [domain].ts                  # Function files: users, credits, essays, grades, grading, modelCatalog
 
 src/
 ├── app/[locale]/
 │   ├── (auth)/                  # Protected routes (dashboard, submit, grades, history, settings)
+│   │   └── admin/               # Admin routes (uses AdminGuard for access control)
 │   └── (unauth)/                # Public routes (landing, pricing)
 ├── components/                  # Shared UI components
-├── features/                    # Feature modules (essays/, grading/, dashboard/)
-├── hooks/                       # Custom hooks (useCredits, useGradeStatus, useAutosave)
+├── features/                    # Feature modules (essays/, grading/, dashboard/, admin/)
+├── hooks/                       # Custom hooks (useCredits, useGradeStatus, useAutosave, useAdmin)
 ├── libs/                        # Third-party configs (Env.ts, Logger.ts)
 └── utils/                       # Utilities (Helpers.ts with cn())
 ```
@@ -269,6 +299,7 @@ Locations:
 
 **DO:**
 - ✅ Use `requireAuth()` helper in all queries/mutations
+- ✅ Use `requireAdmin()` helper in all admin queries/mutations
 - ✅ Import validators from `convex/schema.ts` (single source of truth)
 - ✅ Use `internalQuery`/`internalMutation` for functions not exposed to clients
 - ✅ Implement explicit cascade delete (Convex does NOT auto-cascade)
