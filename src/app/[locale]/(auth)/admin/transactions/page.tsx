@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useAdminTransactions } from '@/hooks/useAdmin';
+import { cn } from '@/utils/Helpers';
 
 import type { TransactionType } from '../../../../../../convex/schema';
 
@@ -125,11 +126,12 @@ export default function AdminTransactionsPage() {
                               </Badge>
                             </TableCell>
                             <TableCell
-                              className={`text-right font-medium ${
+                              className={cn(
+                                'text-right font-medium',
                                 tx.amount.startsWith('-')
                                   ? 'text-red-600'
-                                  : 'text-green-600'
-                              }`}
+                                  : 'text-green-600',
+                              )}
                             >
                               {tx.amount.startsWith('-') ? '' : '+'}
                               {tx.amount}

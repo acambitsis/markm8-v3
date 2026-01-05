@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/table';
 import { CreditAdjustForm } from '@/features/admin/CreditAdjustForm';
 import { useAdminUserDetail } from '@/hooks/useAdmin';
+import { cn } from '@/utils/Helpers';
 
 export default function AdminUserDetailPage() {
   const t = useTranslations('AdminUserDetail');
@@ -181,11 +182,12 @@ export default function AdminUserDetailPage() {
                             </Badge>
                           </TableCell>
                           <TableCell
-                            className={`text-right font-medium ${
+                            className={cn(
+                              'text-right font-medium',
                               tx.amount.startsWith('-')
                                 ? 'text-red-600'
-                                : 'text-green-600'
-                            }`}
+                                : 'text-green-600',
+                            )}
                           >
                             {tx.amount.startsWith('-') ? '' : '+'}
                             {tx.amount}

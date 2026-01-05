@@ -28,7 +28,7 @@ export function StatsCard({
 }: StatsCardProps) {
   if (isLoading) {
     return (
-      <Card className={cn('', className)}>
+      <Card className={cn(className)}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <Skeleton className="h-4 w-24" />
           <Skeleton className="size-4" />
@@ -42,7 +42,7 @@ export function StatsCard({
   }
 
   return (
-    <Card className={cn('', className)}>
+    <Card className={cn(className)}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
