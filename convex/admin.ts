@@ -3,7 +3,7 @@
 
 import { v } from 'convex/values';
 
-import type { Id } from './_generated/dataModel';
+import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { isAdmin, requireAdmin } from './lib/auth';
 import { addDecimal, isNegative, isZero } from './lib/decimal';
@@ -201,7 +201,7 @@ export const getRecentActivity = query({
 
 /**
  * Get paginated list of users
- * Supports search by email or name
+ * Supports search by email (exact match via index) or name (partial match)
  */
 export const getUsers = query({
   args: {
@@ -211,16 +211,34 @@ export const getUsers = query({
   handler: async (ctx, { search, limit = 50 }) => {
     await requireAdmin(ctx);
 
-    let users = await ctx.db.query('users').order('desc').take(100);
+    let users: Doc<'users'>[] = [];
 
-    // Filter by search if provided
     if (search) {
-      const searchLower = search.toLowerCase();
-      users = users.filter(
-        u =>
-          u.email.toLowerCase().includes(searchLower)
-          || u.name?.toLowerCase().includes(searchLower),
-      );
+      const searchLower = search.toLowerCase().trim();
+
+      // Try exact email match first (uses by_email index - works at any scale)
+      if (searchLower.includes('@')) {
+        const exactMatch = await ctx.db
+          .query('users')
+          .withIndex('by_email', q => q.eq('email', searchLower))
+          .first();
+        if (exactMatch) {
+          users = [exactMatch];
+        }
+      }
+
+      // If no exact email match, search recent users by partial email/name
+      if (users.length === 0) {
+        const recentUsers = await ctx.db.query('users').order('desc').take(500);
+        users = recentUsers.filter(
+          u =>
+            u.email.toLowerCase().includes(searchLower)
+            || u.name?.toLowerCase().includes(searchLower),
+        );
+      }
+    } else {
+      // No search - return recent users
+      users = await ctx.db.query('users').order('desc').take(500);
     }
 
     // Get credit balances for each user
