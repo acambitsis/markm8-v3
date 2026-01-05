@@ -3,7 +3,7 @@
  * This module is only used in development mode and will be tree-shaken in production.
  */
 
-import type { AcademicLevel } from '../../convex/schema';
+import type { AcademicLevel } from '../../../convex/schema';
 
 export type SampleEssay = {
   id: string;

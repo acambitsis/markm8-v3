@@ -16,9 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { getSampleEssayById, getSampleEssays } from '@/lib/sampleEssays';
+import { cn } from '@/utils/Helpers';
 
 import type { AssignmentBrief, Rubric } from '../../../convex/schema';
+import { getSampleEssayById, getSampleEssays } from './sampleEssays';
 
 type Props = {
   onLoad: (data: {
@@ -90,7 +91,7 @@ function DevSampleLoaderInner({ onLoad }: Props) {
               Dev Tools
             </span>
             <ChevronDown
-              className={`size-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+              className={cn('size-4 transition-transform', isOpen && 'rotate-180')}
             />
           </button>
         </CollapsibleTrigger>
