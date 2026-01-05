@@ -64,28 +64,33 @@ export function SubmitForm() {
     }
   }, [existingDraft]);
 
+  // Helper: Transform draft data to saveDraft format
+  const transformDraftForSave = useCallback((data: DraftData) => {
+    return {
+      assignmentBrief: data.assignmentBrief
+        ? {
+            title: data.assignmentBrief.title ?? undefined,
+            instructions: data.assignmentBrief.instructions ?? undefined,
+            subject: data.assignmentBrief.subject ?? undefined,
+            academicLevel: data.assignmentBrief.academicLevel as AcademicLevel,
+          }
+        : undefined,
+      rubric: data.rubric
+        ? {
+            customCriteria: data.rubric.customCriteria ?? undefined,
+            focusAreas: data.rubric.focusAreas ?? undefined,
+          }
+        : undefined,
+      content: data.content ?? undefined,
+      focusAreas: data.focusAreas ?? undefined,
+    };
+  }, []);
+
   // Autosave hook - now uses Convex mutation
   const { status: saveStatus } = useAutosave({
     data: draft,
     onSave: async (data) => {
-      await saveDraft({
-        assignmentBrief: data.assignmentBrief
-          ? {
-              title: data.assignmentBrief.title,
-              instructions: data.assignmentBrief.instructions,
-              subject: data.assignmentBrief.subject,
-              academicLevel: data.assignmentBrief.academicLevel as AcademicLevel,
-            }
-          : undefined,
-        rubric: data.rubric
-          ? {
-              customCriteria: data.rubric.customCriteria,
-              focusAreas: data.rubric.focusAreas,
-            }
-          : undefined,
-        content: data.content ?? undefined,
-        focusAreas: data.focusAreas ?? undefined,
-      });
+      await saveDraft(transformDraftForSave(data));
     },
   });
 
@@ -161,24 +166,16 @@ export function SubmitForm() {
 
     try {
       // Explicitly save before submitting to ensure draft exists
-      await saveDraft({
-        assignmentBrief: draft.assignmentBrief
-          ? {
-              title: draft.assignmentBrief.title ?? undefined,
-              instructions: draft.assignmentBrief.instructions ?? undefined,
-              subject: draft.assignmentBrief.subject ?? undefined,
-              academicLevel: draft.assignmentBrief.academicLevel as AcademicLevel,
-            }
-          : undefined,
-        rubric: draft.rubric
-          ? {
-              customCriteria: draft.rubric.customCriteria ?? undefined,
-              focusAreas: draft.rubric.focusAreas ?? undefined,
-            }
-          : undefined,
-        content: draft.content ?? undefined,
-        focusAreas: draft.focusAreas ?? undefined,
-      });
+      // Note: This is a pragmatic fix for autosave debounce timing issue.
+      // Long-term: Consider making submitEssay accept draft data directly to avoid
+      // non-atomic two-mutation pattern.
+      try {
+        await saveDraft(transformDraftForSave(draft));
+      } catch (saveErr) {
+        throw new Error(
+          `Failed to save draft: ${saveErr instanceof Error ? saveErr.message : String(saveErr)}`,
+        );
+      }
 
       const result = await submitEssay({});
 
