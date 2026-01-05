@@ -49,6 +49,7 @@ export default function GlobalError({
         generic error message. */}
         <NextError statusCode={0} />
         <button
+          type="button"
           onClick={reset}
           style={{
             display: 'block',

@@ -123,55 +123,56 @@
   --color-brand-peach: #f5c38e;
 
   /* ============================================
-     Semantic Color Variables (HSL format)
+     Semantic Color Variables
+     Tailwind 4 CSS-first requires --color-* prefix
      ============================================ */
 
   /* Primary - Violet 500 (#7c3aed) */
-  --primary: 263 84% 58%;
-  --primary-foreground: 0 0% 100%;
+  --color-primary: hsl(263 84% 58%);
+  --color-primary-foreground: hsl(0 0% 100%);
 
   /* Secondary - Slate 100 */
-  --secondary: 210 40% 96%;
-  --secondary-foreground: 243 47% 20%;
+  --color-secondary: hsl(210 40% 96%);
+  --color-secondary-foreground: hsl(243 47% 20%);
 
   /* Background & Foreground */
-  --background: 0 0% 100%;
-  --foreground: 243 47% 20%;
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(243 47% 20%);
 
   /* Card */
-  --card: 0 0% 100%;
-  --card-foreground: 243 47% 20%;
+  --color-card: hsl(0 0% 100%);
+  --color-card-foreground: hsl(243 47% 20%);
 
   /* Popover */
-  --popover: 0 0% 100%;
-  --popover-foreground: 243 47% 20%;
+  --color-popover: hsl(0 0% 100%);
+  --color-popover-foreground: hsl(243 47% 20%);
 
   /* Muted */
-  --muted: 210 40% 96%;
-  --muted-foreground: 215 19% 35%;
+  --color-muted: hsl(210 40% 96%);
+  --color-muted-foreground: hsl(215 19% 35%);
 
   /* Accent - Peach for warmth */
-  --accent: 34 84% 76%;
-  --accent-foreground: 243 47% 20%;
+  --color-accent: hsl(34 84% 76%);
+  --color-accent-foreground: hsl(243 47% 20%);
 
   /* Destructive */
-  --destructive: 0 84% 60%;
-  --destructive-foreground: 0 0% 100%;
+  --color-destructive: hsl(0 84% 60%);
+  --color-destructive-foreground: hsl(0 0% 100%);
 
   /* Success */
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
+  --color-success: hsl(142 71% 45%);
+  --color-success-foreground: hsl(0 0% 100%);
 
   /* Warning */
-  --warning: 43 96% 56%;
-  --warning-foreground: 243 47% 20%;
+  --color-warning: hsl(43 96% 56%);
+  --color-warning-foreground: hsl(243 47% 20%);
 
   /* Border & Input */
-  --border: 214 32% 91%;
-  --input: 214 32% 91%;
+  --color-border: hsl(214 32% 91%);
+  --color-input: hsl(214 32% 91%);
 
   /* Focus Ring - matches primary */
-  --ring: 263 84% 58%;
+  --color-ring: hsl(263 84% 58%);
 
   /* Border Radius - friendlier 12px default */
   --radius: 0.75rem;
