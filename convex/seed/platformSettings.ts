@@ -5,6 +5,9 @@
 //   Dev:  npx convex run seed/platformSettings:seed
 //   Prod: npx convex run seed/platformSettings:seed '{"isProd": true}'
 //   Reset: npx convex run seed/platformSettings:reset
+//
+// Admin emails can be passed as argument:
+//   npx convex run seed/platformSettings:seed '{"adminEmails": ["admin@example.com"]}'
 
 /* eslint-disable no-console -- Seed scripts use console for Convex logs */
 
@@ -46,12 +49,14 @@ const PROD_AI_CONFIG: AiConfig = {
  * Creates singleton if not exists, skips if already seeded
  *
  * @param isProd - If true, uses production config (live mode, mixed models)
+ * @param adminEmails - Initial admin email allowlist (optional)
  */
 export const seed = internalMutation({
   args: {
     isProd: v.optional(v.boolean()),
+    adminEmails: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { isProd = false }) => {
+  handler: async (ctx, { isProd = false, adminEmails }) => {
     const existing = await ctx.db
       .query('platformSettings')
       .withIndex('by_key', q => q.eq('key', 'singleton'))
@@ -60,6 +65,7 @@ export const seed = internalMutation({
     if (existing) {
       console.log('platformSettings already exists, skipping seed');
       console.log('Current aiConfig:', JSON.stringify(existing.aiConfig, null, 2));
+      console.log('Current adminEmails:', existing.adminEmails ?? []);
       return { status: 'skipped', id: existing._id };
     }
 
@@ -74,14 +80,19 @@ export const seed = internalMutation({
       console.warn(`[seed] ${warning}`);
     }
 
+    // Normalize admin emails to lowercase
+    const normalizedEmails = adminEmails?.map(e => e.toLowerCase().trim());
+
     const id = await ctx.db.insert('platformSettings', {
       key: 'singleton',
       signupBonusAmount: DEFAULT_SIGNUP_BONUS,
+      adminEmails: normalizedEmails,
       aiConfig,
     });
 
     console.log(`Seeded platformSettings (isProd=${isProd})`);
     console.log('aiConfig:', JSON.stringify(aiConfig, null, 2));
+    console.log('adminEmails:', normalizedEmails ?? []);
 
     return { status: 'created', id };
   },
@@ -96,8 +107,9 @@ export const seed = internalMutation({
 export const reset = internalMutation({
   args: {
     isProd: v.optional(v.boolean()),
+    adminEmails: v.optional(v.array(v.string())),
   },
-  handler: async (ctx, { isProd = false }) => {
+  handler: async (ctx, { isProd = false, adminEmails }) => {
     const existing = await ctx.db
       .query('platformSettings')
       .withIndex('by_key', q => q.eq('key', 'singleton'))
@@ -120,14 +132,19 @@ export const reset = internalMutation({
       console.warn(`[reset] ${warning}`);
     }
 
+    // Normalize admin emails to lowercase
+    const normalizedEmails = adminEmails?.map(e => e.toLowerCase().trim());
+
     const id = await ctx.db.insert('platformSettings', {
       key: 'singleton',
       signupBonusAmount: DEFAULT_SIGNUP_BONUS,
+      adminEmails: normalizedEmails,
       aiConfig,
     });
 
     console.log(`Reset platformSettings (isProd=${isProd})`);
     console.log('aiConfig:', JSON.stringify(aiConfig, null, 2));
+    console.log('adminEmails:', normalizedEmails ?? []);
 
     return { status: 'reset', id };
   },
@@ -173,5 +190,37 @@ export const updateAiConfigOnly = internalMutation({
       console.log(`Created platformSettings with aiConfig (isProd=${isProd})`);
       return { status: 'created', id };
     }
+  },
+});
+
+/**
+ * Set admin emails on existing platform settings
+ * Preserves all other settings
+ *
+ * Usage: npx convex run seed/platformSettings:setAdminEmails '{"emails": ["admin@example.com"]}'
+ */
+export const setAdminEmails = internalMutation({
+  args: {
+    emails: v.array(v.string()),
+  },
+  handler: async (ctx, { emails }) => {
+    const existing = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!existing) {
+      throw new Error('platformSettings not found. Run seed first.');
+    }
+
+    // Normalize emails to lowercase
+    const normalizedEmails = emails.map(e => e.toLowerCase().trim());
+
+    await ctx.db.patch(existing._id, {
+      adminEmails: normalizedEmails,
+    });
+
+    console.log('Set admin emails:', normalizedEmails);
+    return { status: 'updated', adminEmails: normalizedEmails };
   },
 });

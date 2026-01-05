@@ -36,6 +36,7 @@ export const transactionTypeValidator = v.union(
   v.literal('purchase'),
   v.literal('grading'),
   v.literal('refund'),
+  v.literal('admin_adjustment'),
 );
 
 export const academicLevelValidator = v.union(
@@ -190,7 +191,9 @@ export default defineSchema({
     institution: v.optional(v.string()), // User's institution (free text)
     course: v.optional(v.string()), // User's course (free text)
     defaultGradingScale: v.optional(gradingScaleValidator), // Preferred grading scale
-  }).index('by_clerk_id', ['clerkId']),
+  })
+    .index('by_clerk_id', ['clerkId'])
+    .index('by_email', ['email']),
 
   // Credits (user-scoped balance tracking)
   credits: defineTable({
@@ -207,6 +210,9 @@ export default defineSchema({
     description: v.optional(v.string()),
     gradeId: v.optional(v.id('grades')),
     stripePaymentIntentId: v.optional(v.string()),
+    // Admin adjustment fields
+    adminNote: v.optional(v.string()), // Required for admin_adjustment (min 10 chars)
+    performedBy: v.optional(v.id('users')), // Admin who performed the action
   })
     .index('by_user_id', ['userId'])
     .index('by_stripe_payment_intent_id', ['stripePaymentIntentId']),
@@ -268,6 +274,9 @@ export default defineSchema({
     key: v.literal('singleton'), // Only one row
     signupBonusAmount: v.string(), // Decimal as string (e.g., "1.00")
     updatedBy: v.optional(v.id('users')), // Admin who made the change
+
+    // Admin access control (email allowlist)
+    adminEmails: v.optional(v.array(v.string())), // Email addresses with admin access
 
     // AI Model Configuration (admin-configurable)
     // Required field - use seed script to initialize: npx convex run seed/platformSettings:seed

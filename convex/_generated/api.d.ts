@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as credits from "../credits.js";
 import type * as essays from "../essays.js";
 import type * as gradeFailures from "../gradeFailures.js";
@@ -38,6 +39,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   credits: typeof credits;
   essays: typeof essays;
   gradeFailures: typeof gradeFailures;
