@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AssignmentBriefTab } from '@/features/essays/AssignmentBriefTab';
+import { DevSampleLoader } from '@/features/essays/DevSampleLoader';
 import { EssayContentTab } from '@/features/essays/EssayContentTab';
 import { FocusAreasTab } from '@/features/essays/FocusAreasTab';
 import { useAutosave } from '@/hooks/useAutosave';
@@ -114,6 +115,24 @@ export function SubmitForm() {
     setDraft(prev => ({ ...prev, focusAreas }));
   }, []);
 
+  // Handler for loading sample essays (dev only)
+  const handleLoadSample = useCallback(
+    (data: {
+      assignmentBrief: Partial<AssignmentBrief>;
+      rubric: Partial<Rubric>;
+      content: string;
+      focusAreas: string[];
+    }) => {
+      setDraft({
+        assignmentBrief: data.assignmentBrief,
+        rubric: data.rubric,
+        content: data.content,
+        focusAreas: data.focusAreas,
+      });
+    },
+    [],
+  );
+
   // Word count calculation
   const wordCount
     = draft.content?.trim().split(/\s+/).filter(Boolean).length ?? 0;
@@ -156,6 +175,9 @@ export function SubmitForm() {
 
   return (
     <div className="space-y-6">
+      {/* Dev Tools - Only renders in development */}
+      <DevSampleLoader onLoad={handleLoadSample} />
+
       {/* Save Status */}
       <div className="flex items-center justify-end text-sm text-muted-foreground">
         {saveStatus === 'saving' && (
