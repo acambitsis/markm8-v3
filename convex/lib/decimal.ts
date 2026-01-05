@@ -58,6 +58,20 @@ export function isPositive(amount: string): boolean {
 }
 
 /**
+ * Check if a decimal string is negative (less than zero)
+ */
+export function isNegative(amount: string): boolean {
+  return toCents(amount) < 0;
+}
+
+/**
+ * Check if a decimal string is zero
+ */
+export function isZero(amount: string): boolean {
+  return toCents(amount) === 0;
+}
+
+/**
  * Format a decimal string for display
  */
 export function formatCredits(amount: string): string {

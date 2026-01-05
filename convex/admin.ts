@@ -3,10 +3,35 @@
 
 import { v } from 'convex/values';
 
+import type { Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { isAdmin, requireAdmin } from './lib/auth';
-import { addDecimal } from './lib/decimal';
+import { addDecimal, isNegative, isZero } from './lib/decimal';
 import { aiConfigValidator, transactionTypeValidator } from './schema';
+
+/**
+ * Simple email validation function
+ * Avoids regex to prevent ReDoS vulnerabilities
+ * Checks: has exactly one @, non-empty local and domain parts, domain has a dot
+ */
+function isValidEmail(email: string): boolean {
+  const atIndex = email.indexOf('@');
+  if (atIndex < 1) {
+    return false;
+  } // No @ or @ at start
+  if (email.includes('@', atIndex + 1)) {
+    return false;
+  } // Multiple @
+  const domain = email.slice(atIndex + 1);
+  if (domain.length < 3) {
+    return false;
+  } // Domain too short (a.b minimum)
+  const dotIndex = domain.indexOf('.');
+  if (dotIndex < 1 || dotIndex === domain.length - 1) {
+    return false;
+  } // No dot, or at start/end
+  return true;
+}
 
 // =============================================================================
 // Queries
@@ -43,10 +68,12 @@ export const getDashboardStats = query({
     const startOfDayMs = startOfDay.getTime();
 
     const allEssays = await ctx.db.query('essays').collect();
-    const essaysToday = allEssays.filter(
+    // Filter out soft-deleted essays
+    const activeEssays = allEssays.filter(e => e.deletedAt === undefined);
+    const essaysToday = activeEssays.filter(
       e => e.submittedAt && e.submittedAt >= startOfDayMs,
     ).length;
-    const totalEssays = allEssays.filter(e => e.status === 'submitted').length;
+    const totalEssays = activeEssays.filter(e => e.status === 'submitted').length;
 
     // Get total credits purchased (sum of purchase transactions)
     const purchaseTransactions = await ctx.db
@@ -87,17 +114,41 @@ export const getRecentActivity = query({
     // Get recent users
     const users = await ctx.db.query('users').order('desc').take(limit);
 
-    // Get recent transactions
+    // Get recent transactions (purchases only)
     const transactions = await ctx.db
       .query('creditTransactions')
       .order('desc')
-      .take(limit);
+      .take(limit * 2); // Fetch more since we filter
+    const purchaseTransactions = transactions.filter(t => t.transactionType === 'purchase');
 
-    // Get recent essays
+    // Get recent essays (filter soft-deleted and get only submitted)
     const essays = await ctx.db
       .query('essays')
       .order('desc')
-      .take(limit);
+      .take(limit * 2); // Fetch more since we filter
+    const submittedEssays = essays.filter(
+      e => e.status === 'submitted' && e.deletedAt === undefined,
+    );
+
+    // Batch load users for transactions and essays to avoid N+1
+    const userIdsToFetch = new Set<Id<'users'>>();
+    for (const tx of purchaseTransactions) {
+      userIdsToFetch.add(tx.userId);
+    }
+    for (const essay of submittedEssays) {
+      userIdsToFetch.add(essay.userId);
+    }
+
+    // Fetch all needed users in parallel
+    const userMap = new Map<string, { email: string }>();
+    await Promise.all(
+      Array.from(userIdsToFetch).map(async (userId) => {
+        const user = await ctx.db.get(userId);
+        if (user) {
+          userMap.set(userId, { email: user.email });
+        }
+      }),
+    );
 
     // Combine and format activities
     const activities: Array<{
@@ -118,9 +169,9 @@ export const getRecentActivity = query({
       });
     }
 
-    // Add purchases
-    for (const tx of transactions.filter(t => t.transactionType === 'purchase')) {
-      const user = await ctx.db.get(tx.userId);
+    // Add purchases (using batched user lookups)
+    for (const tx of purchaseTransactions) {
+      const user = userMap.get(tx.userId);
       activities.push({
         type: 'purchase',
         timestamp: tx._creationTime,
@@ -130,9 +181,9 @@ export const getRecentActivity = query({
       });
     }
 
-    // Add essay submissions
-    for (const essay of essays.filter(e => e.status === 'submitted')) {
-      const user = await ctx.db.get(essay.userId);
+    // Add essay submissions (using batched user lookups)
+    for (const essay of submittedEssays) {
+      const user = userMap.get(essay.userId);
       activities.push({
         type: 'essay',
         timestamp: essay.submittedAt ?? essay._creationTime,
@@ -180,10 +231,15 @@ export const getUsers = query({
           .withIndex('by_user_id', q => q.eq('userId', user._id))
           .unique();
 
-        const essayCount = await ctx.db
+        const essays = await ctx.db
           .query('essays')
           .withIndex('by_user_id', q => q.eq('userId', user._id))
           .collect();
+
+        // Filter out soft-deleted essays when counting
+        const submittedEssayCount = essays.filter(
+          e => e.status === 'submitted' && e.deletedAt === undefined,
+        ).length;
 
         return {
           _id: user._id,
@@ -193,7 +249,7 @@ export const getUsers = query({
           institution: user.institution,
           createdAt: user._creationTime,
           creditBalance: credits?.balance ?? '0.00',
-          essayCount: essayCount.filter(e => e.status === 'submitted').length,
+          essayCount: submittedEssayCount,
         };
       }),
     );
@@ -229,11 +285,17 @@ export const getUserDetail = query({
       .order('desc')
       .take(20);
 
+    // Fetch more essays since we filter soft-deleted ones
     const essays = await ctx.db
       .query('essays')
       .withIndex('by_user_id', q => q.eq('userId', userId))
       .order('desc')
-      .take(10);
+      .take(20);
+
+    // Filter out soft-deleted essays
+    const activeEssays = essays
+      .filter(e => e.deletedAt === undefined)
+      .slice(0, 10);
 
     return {
       user: {
@@ -257,7 +319,7 @@ export const getUserDetail = query({
         adminNote: t.adminNote,
         createdAt: t._creationTime,
       })),
-      recentEssays: essays.map(e => ({
+      recentEssays: activeEssays.map(e => ({
         _id: e._id,
         title: e.assignmentBrief?.title ?? 'Untitled',
         status: e.status,
@@ -300,27 +362,48 @@ export const getTransactions = query({
       transactions = transactions.filter(t => t.transactionType === transactionType);
     }
 
-    // Get user emails for display
-    const transactionsWithUsers = await Promise.all(
-      transactions.slice(0, limit).map(async (tx) => {
-        const user = await ctx.db.get(tx.userId);
-        const performedByUser = tx.performedBy
-          ? await ctx.db.get(tx.performedBy)
-          : null;
+    // Slice to limit before processing
+    const limitedTransactions = transactions.slice(0, limit);
 
-        return {
-          _id: tx._id,
-          userId: tx.userId,
-          userEmail: user?.email ?? 'Unknown',
-          amount: tx.amount,
-          type: tx.transactionType,
-          description: tx.description,
-          adminNote: tx.adminNote,
-          performedBy: performedByUser?.email,
-          createdAt: tx._creationTime,
-        };
+    // Batch load all users to avoid N+1 queries
+    const userIdsToFetch = new Set<Id<'users'>>();
+    for (const tx of limitedTransactions) {
+      userIdsToFetch.add(tx.userId);
+      if (tx.performedBy) {
+        userIdsToFetch.add(tx.performedBy);
+      }
+    }
+
+    // Fetch all needed users in parallel
+    const userMap = new Map<string, { email: string }>();
+    await Promise.all(
+      Array.from(userIdsToFetch).map(async (id) => {
+        const user = await ctx.db.get(id);
+        if (user) {
+          userMap.set(id, { email: user.email });
+        }
       }),
     );
+
+    // Map transactions with user data from batch lookup
+    const transactionsWithUsers = limitedTransactions.map((tx) => {
+      const user = userMap.get(tx.userId);
+      const performedByUser = tx.performedBy
+        ? userMap.get(tx.performedBy)
+        : null;
+
+      return {
+        _id: tx._id,
+        userId: tx.userId,
+        userEmail: user?.email ?? 'Unknown',
+        amount: tx.amount,
+        type: tx.transactionType,
+        description: tx.description,
+        adminNote: tx.adminNote,
+        performedBy: performedByUser?.email,
+        createdAt: tx._creationTime,
+      };
+    });
 
     return transactionsWithUsers;
   },
@@ -378,10 +461,15 @@ export const adjustCredits = mutation({
       throw new Error('Reason must be at least 10 characters');
     }
 
-    // Validate amount format
+    // Validate amount format - must be a valid decimal string
     const amountNum = Number.parseFloat(amount);
     if (Number.isNaN(amountNum)) {
       throw new TypeError('Invalid amount format');
+    }
+
+    // Don't allow zero adjustments
+    if (isZero(amount)) {
+      throw new Error('Adjustment amount cannot be zero');
     }
 
     // Get user's current credits
@@ -394,11 +482,11 @@ export const adjustCredits = mutation({
       throw new Error('User has no credit record');
     }
 
-    // Calculate new balance
+    // Calculate new balance using decimal helpers
     const newBalance = addDecimal(credits.balance, amount);
 
-    // Don't allow negative balance
-    if (Number.parseFloat(newBalance) < 0) {
+    // Don't allow negative balance - use decimal helper instead of parseFloat
+    if (isNegative(newBalance)) {
       throw new Error(
         `Cannot reduce balance below zero. Current: ${credits.balance}, Adjustment: ${amount}`,
       );
@@ -445,8 +533,17 @@ export const updatePlatformSettings = mutation({
       .withIndex('by_key', q => q.eq('key', 'singleton'))
       .unique();
 
-    // Normalize admin emails to lowercase
-    const normalizedEmails = args.adminEmails?.map(e => e.toLowerCase().trim());
+    // Normalize and validate admin emails
+    let normalizedEmails: string[] | undefined;
+    if (args.adminEmails) {
+      normalizedEmails = args.adminEmails.map(e => e.toLowerCase().trim());
+      // Validate all email formats
+      for (const email of normalizedEmails) {
+        if (!isValidEmail(email)) {
+          throw new Error(`Invalid email format: ${email}`);
+        }
+      }
+    }
 
     // Prevent admin from removing themselves from the allowlist
     if (normalizedEmails && !normalizedEmails.includes(admin.email)) {
@@ -496,8 +593,8 @@ export const addAdminEmail = mutation({
 
     const normalizedEmail = email.toLowerCase().trim();
 
-    // Validate email format
-    if (!normalizedEmail.includes('@')) {
+    // Validate email format with proper regex
+    if (!isValidEmail(normalizedEmail)) {
       throw new Error('Invalid email format');
     }
 

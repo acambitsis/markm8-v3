@@ -1,7 +1,7 @@
 'use client';
 
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -30,15 +30,12 @@ export default function AdminSettingsPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   // Initialize form values when settings load
-  const initializeForm = () => {
+  useEffect(() => {
     if (settings && !signupBonus) {
       setSignupBonus(settings.signupBonusAmount);
       setAiConfigJson(JSON.stringify(settings.aiConfig, null, 2));
     }
-  };
-
-  // Call initialize on each render (will only set values once)
-  initializeForm();
+  }, [settings, signupBonus]);
 
   const handleSave = async () => {
     setError(null);
