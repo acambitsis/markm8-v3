@@ -160,6 +160,26 @@ export function SubmitForm() {
     setSubmitError(null);
 
     try {
+      // Explicitly save before submitting to ensure draft exists
+      await saveDraft({
+        assignmentBrief: draft.assignmentBrief
+          ? {
+              title: draft.assignmentBrief.title ?? undefined,
+              instructions: draft.assignmentBrief.instructions ?? undefined,
+              subject: draft.assignmentBrief.subject ?? undefined,
+              academicLevel: draft.assignmentBrief.academicLevel as AcademicLevel,
+            }
+          : undefined,
+        rubric: draft.rubric
+          ? {
+              customCriteria: draft.rubric.customCriteria ?? undefined,
+              focusAreas: draft.rubric.focusAreas ?? undefined,
+            }
+          : undefined,
+        content: draft.content ?? undefined,
+        focusAreas: draft.focusAreas ?? undefined,
+      });
+
       const result = await submitEssay({});
 
       // No need to refresh credits - Convex subscription auto-updates!

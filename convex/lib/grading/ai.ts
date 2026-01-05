@@ -21,10 +21,13 @@ import {
 } from './utils';
 
 /**
- * Run real AI grading with multi-model consensus
- * Executes N parallel AI calls, applies outlier detection, and aggregates results
+ * Runs AI grading using the configured ensemble approach
  *
  * @param essay - Essay data with assignment brief, rubric, and content
+ * @param essay.assignmentBrief - Assignment instructions and academic level
+ * @param essay.rubric - Grading rubric with custom criteria and focus areas
+ * @param essay.focusAreas - Specific areas to focus on during grading
+ * @param essay.content - Essay content to be graded
  * @param config - Grading configuration from platformSettings.aiConfig.grading
  */
 export async function runAIGrading(
@@ -79,6 +82,7 @@ export async function runAIGrading(
           schema: gradeOutputSchema,
           prompt,
           temperature,
+          system: 'You are an expert academic essay grader. You MUST respond with valid JSON only. Do NOT include any text before or after the JSON. Do NOT wrap the JSON in markdown code blocks (no ```json ... ```). Return raw, parseable JSON data.',
         });
 
         return {
