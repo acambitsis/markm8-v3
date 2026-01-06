@@ -1,22 +1,13 @@
-import { getTranslations } from 'next-intl/server';
+'use client';
 
+import { PenLine } from 'lucide-react';
+import Link from 'next/link';
+
+import { SlideIn } from '@/components/motion';
 import { TitleBar } from '@/components/TitleBar';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { MainLayout } from '@/features/dashboard/MainLayout';
 import { EssayHistoryTable } from '@/features/essays/EssayHistoryTable';
-
-export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
-  const { locale } = await props.params;
-  const t = await getTranslations({
-    locale,
-    namespace: 'History',
-  });
-
-  return {
-    title: t('meta_title'),
-    description: t('meta_description'),
-  };
-}
 
 export default function HistoryPage() {
   return (
@@ -24,19 +15,19 @@ export default function HistoryPage() {
       <TitleBar
         title="Essay History"
         description="View all your past essay submissions and grades"
+        action={(
+          <Button asChild>
+            <Link href="/submit">
+              <PenLine className="mr-2 size-4" />
+              New Essay
+            </Link>
+          </Button>
+        )}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Your Essays</CardTitle>
-          <CardDescription>
-            Click on any essay to view its grade and feedback
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <EssayHistoryTable />
-        </CardContent>
-      </Card>
+      <SlideIn direction="up" delay={0.1}>
+        <EssayHistoryTable />
+      </SlideIn>
     </MainLayout>
   );
 }

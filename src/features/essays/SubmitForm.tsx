@@ -1,19 +1,20 @@
 'use client';
 
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2, Coins, Loader2, Send, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AssignmentBriefTab } from '@/features/essays/AssignmentBriefTab';
 import { DevSampleLoader } from '@/features/essays/DevSampleLoader';
 import { EssayContentTab } from '@/features/essays/EssayContentTab';
 import { FocusAreasTab } from '@/features/essays/FocusAreasTab';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useCredits } from '@/hooks/useCredits';
+import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
 import type { AcademicLevel, AssignmentBrief, Rubric } from '../../../convex/schema';
@@ -190,126 +191,306 @@ export function SubmitForm() {
     }
   };
 
+  const steps = [
+    { id: 'brief', label: 'Assignment', description: 'Details & requirements' },
+    { id: 'focus', label: 'Focus Areas', description: 'What to emphasize' },
+    { id: 'content', label: 'Essay', description: 'Your writing' },
+  ];
+
+  const currentStepIndex = steps.findIndex(s => s.id === activeTab);
+
+  const slideVariants = {
+    enter: (direction: number) => ({
+      x: direction > 0 ? 20 : -20,
+      opacity: 0,
+    }),
+    center: {
+      x: 0,
+      opacity: 1,
+    },
+    exit: (direction: number) => ({
+      x: direction < 0 ? 20 : -20,
+      opacity: 0,
+    }),
+  };
+
+  const goToStep = (stepId: string) => {
+    setActiveTab(stepId);
+  };
+
+  const nextStep = () => {
+    const nextIndex = currentStepIndex + 1;
+    if (nextIndex < steps.length) {
+      setActiveTab(steps[nextIndex]!.id);
+    }
+  };
+
+  const prevStep = () => {
+    const prevIndex = currentStepIndex - 1;
+    if (prevIndex >= 0) {
+      setActiveTab(steps[prevIndex]!.id);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Dev Tools - Only renders in development */}
       <DevSampleLoader onLoad={handleLoadSample} />
 
-      {/* Save Status */}
-      <div className="flex items-center justify-end text-sm text-muted-foreground">
-        {saveStatus === 'saving' && (
-          <span className="flex items-center gap-1">
-            <Loader2 className="size-3 animate-spin" />
-            Saving...
-          </span>
-        )}
-        {saveStatus === 'saved' && (
-          <span className="flex items-center gap-1 text-green-600">
-            <CheckCircle2 className="size-3" />
-            Saved
-          </span>
-        )}
-        {saveStatus === 'error' && (
-          <span className="flex items-center gap-1 text-destructive">
-            <AlertCircle className="size-3" />
-            Save failed
-          </span>
-        )}
+      {/* Step Indicator */}
+      <div className="relative">
+        {/* Step circles with connecting lines */}
+        <div className="flex items-center justify-between">
+          {steps.map((step, index) => {
+            const isCompleted = index < currentStepIndex;
+            const isCurrent = index === currentStepIndex;
+            const isClickable = index <= currentStepIndex;
+
+            return (
+              <div key={step.id} className="flex flex-1 items-center">
+                {/* Connector line (before) */}
+                {index > 0 && (
+                  <div
+                    className={cn(
+                      'h-0.5 flex-1 transition-colors duration-300',
+                      isCompleted || isCurrent ? 'bg-primary' : 'bg-border',
+                    )}
+                  />
+                )}
+
+                {/* Step circle */}
+                <button
+                  type="button"
+                  onClick={() => isClickable && goToStep(step.id)}
+                  disabled={!isClickable}
+                  className={cn(
+                    'relative z-10 flex size-10 shrink-0 items-center justify-center rounded-full',
+                    'text-sm font-medium transition-all duration-300',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
+                    isCompleted && [
+                      'bg-primary text-primary-foreground',
+                      'hover:bg-primary/90 cursor-pointer',
+                    ],
+                    isCurrent && [
+                      'bg-primary text-primary-foreground shadow-lg shadow-primary/25',
+                      'ring-4 ring-primary/20',
+                    ],
+                    !isCompleted && !isCurrent && [
+                      'bg-muted text-muted-foreground border-2 border-border',
+                    ],
+                    !isClickable && 'cursor-default',
+                  )}
+                >
+                  {isCompleted
+                    ? (
+                        <CheckCircle2 className="size-5" />
+                      )
+                    : (
+                        <span>{index + 1}</span>
+                      )}
+                </button>
+
+                {/* Connector line (after) */}
+                {index < steps.length - 1 && (
+                  <div
+                    className={cn(
+                      'h-0.5 flex-1 transition-colors duration-300',
+                      isCompleted ? 'bg-primary' : 'bg-border',
+                    )}
+                  />
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Step labels */}
+        <div className="mt-3 flex justify-between">
+          {steps.map((step, index) => {
+            const isCurrent = index === currentStepIndex;
+            return (
+              <div
+                key={step.id}
+                className={cn(
+                  'flex-1 text-center transition-colors duration-300',
+                  index === 0 && 'text-left',
+                  index === steps.length - 1 && 'text-right',
+                )}
+              >
+                <span
+                  className={cn(
+                    'text-sm font-medium',
+                    isCurrent ? 'text-foreground' : 'text-muted-foreground',
+                  )}
+                >
+                  {step.label}
+                </span>
+                {step.description && (
+                  <span className="mt-0.5 block text-xs text-muted-foreground/60">
+                    {step.description}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="brief">1. Assignment Brief</TabsTrigger>
-          <TabsTrigger value="focus">2. Focus Areas</TabsTrigger>
-          <TabsTrigger value="content">3. Essay Content</TabsTrigger>
-        </TabsList>
+      {/* Save Status */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          {saveStatus === 'saving' && (
+            <span className="flex items-center gap-1.5 text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              Saving draft...
+            </span>
+          )}
+          {saveStatus === 'saved' && (
+            <span className="flex items-center gap-1.5 text-success">
+              <CheckCircle2 className="size-3.5" />
+              Draft saved
+            </span>
+          )}
+          {saveStatus === 'error' && (
+            <span className="flex items-center gap-1.5 text-destructive">
+              <AlertCircle className="size-3.5" />
+              Save failed
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+          <Coins className="size-3.5 text-amber-500" />
+          <span>Cost: 1.00 credit</span>
+        </div>
+      </div>
 
-        <TabsContent value="brief" className="mt-6">
-          <AssignmentBriefTab
-            assignmentBrief={draft.assignmentBrief}
-            rubric={draft.rubric}
-            onUpdateBrief={updateAssignmentBrief}
-            onUpdateRubric={updateRubric}
-          />
-          <div className="mt-6 flex justify-end">
-            <Button onClick={() => setActiveTab('focus')}>
-              Next: Focus Areas
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="focus" className="mt-6">
-          <FocusAreasTab
-            focusAreas={draft.focusAreas ?? []}
-            onUpdate={updateFocusAreas}
-          />
-          <div className="mt-6 flex justify-between">
-            <Button variant="outline" onClick={() => setActiveTab('brief')}>
-              Back
-            </Button>
-            <Button onClick={() => setActiveTab('content')}>
-              Next: Essay Content
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="content" className="mt-6">
-          <EssayContentTab
-            content={draft.content ?? ''}
-            wordCount={wordCount}
-            onUpdate={updateContent}
-          />
-
-          {/* Error Alert */}
-          {submitError && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="size-4" />
-              <AlertDescription>{submitError}</AlertDescription>
-            </Alert>
+      {/* Step Content with Animation */}
+      <div className="relative min-h-[400px]">
+        <AnimatePresence mode="wait" custom={currentStepIndex}>
+          {activeTab === 'brief' && (
+            <motion.div
+              key="brief"
+              custom={1}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <AssignmentBriefTab
+                assignmentBrief={draft.assignmentBrief}
+                rubric={draft.rubric}
+                onUpdateBrief={updateAssignmentBrief}
+                onUpdateRubric={updateRubric}
+              />
+            </motion.div>
           )}
 
-          {/* Credits Warning */}
-          {!hasEnoughCredits && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="size-4" />
-              <AlertDescription>
-                You need 1.00 credits to submit. You have
-                {' '}
-                {credits?.available ?? '0.00'}
-                {' '}
-                credits available.
-              </AlertDescription>
-            </Alert>
+          {activeTab === 'focus' && (
+            <motion.div
+              key="focus"
+              custom={currentStepIndex}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <FocusAreasTab
+                focusAreas={draft.focusAreas ?? []}
+                onUpdate={updateFocusAreas}
+              />
+            </motion.div>
           )}
 
-          <div className="mt-6 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setActiveTab('focus')}>
-              Back
-            </Button>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
-                Cost: 1.00 credits
-              </span>
+          {activeTab === 'content' && (
+            <motion.div
+              key="content"
+              custom={currentStepIndex}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <EssayContentTab
+                content={draft.content ?? ''}
+                wordCount={wordCount}
+                onUpdate={updateContent}
+              />
+
+              {/* Error Alert */}
+              {submitError && (
+                <Alert variant="destructive" className="mt-6">
+                  <AlertCircle className="size-4" />
+                  <AlertDescription>{submitError}</AlertDescription>
+                </Alert>
+              )}
+
+              {/* Credits Warning */}
+              {!hasEnoughCredits && (
+                <Alert variant="destructive" className="mt-6">
+                  <AlertCircle className="size-4" />
+                  <AlertDescription>
+                    You need 1.00 credits to submit. You have
+                    {' '}
+                    {credits?.available ?? '0.00'}
+                    {' '}
+                    credits available.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between border-t pt-6">
+        <Button
+          variant="ghost"
+          onClick={prevStep}
+          disabled={currentStepIndex === 0}
+          className={cn(
+            'gap-2',
+            currentStepIndex === 0 && 'invisible',
+          )}
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </Button>
+
+        {currentStepIndex < steps.length - 1
+          ? (
+              <Button onClick={nextStep} className="gap-2">
+                Continue
+                <ArrowRight className="size-4" />
+              </Button>
+            )
+          : (
               <Button
                 onClick={handleSubmit}
                 disabled={!isValid || !hasEnoughCredits || isSubmitting}
+                className="gap-2"
+                size="lg"
               >
                 {isSubmitting
                   ? (
                       <>
-                        <Loader2 className="mr-2 size-4 animate-spin" />
+                        <Loader2 className="size-4 animate-spin" />
                         Submitting...
                       </>
                     )
                   : (
-                      'Submit for Grading'
+                      <>
+                        <Sparkles className="size-4" />
+                        Submit for Grading
+                        <Send className="size-4" />
+                      </>
                     )}
               </Button>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+            )}
+      </div>
     </div>
   );
 }

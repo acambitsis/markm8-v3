@@ -1,30 +1,38 @@
 @import 'tailwindcss';
 
 /* ============================================
-   MarkM8 Design System
-   Based on logo colors: Navy → Purple → Violet
+   MarkM8 Premium Design System
+   World-class typography, depth, and motion
    ============================================ */
 
-/* Accordion keyframes */
+/* ============================================
+   Keyframe Animations
+   ============================================ */
+
+/* Accordion */
 @keyframes accordion-down {
   from {
     height: 0;
+    opacity: 0;
   }
   to {
     height: var(--radix-accordion-content-height);
+    opacity: 1;
   }
 }
 
 @keyframes accordion-up {
   from {
     height: var(--radix-accordion-content-height);
+    opacity: 1;
   }
   to {
     height: 0;
+    opacity: 0;
   }
 }
 
-/* tailwindcss-animate keyframes */
+/* Fade animations */
 @keyframes fade-in {
   from {
     opacity: 0;
@@ -43,6 +51,7 @@
   }
 }
 
+/* Zoom animations */
 @keyframes zoom-in {
   from {
     opacity: 0;
@@ -65,43 +74,71 @@
   }
 }
 
+/* Slide animations */
 @keyframes slide-in-from-top {
   from {
     transform: translateY(-0.5rem);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
 @keyframes slide-in-from-right {
   from {
     transform: translateX(0.5rem);
+    opacity: 0;
   }
   to {
     transform: translateX(0);
+    opacity: 1;
   }
 }
 
 @keyframes slide-in-from-bottom {
   from {
     transform: translateY(0.5rem);
+    opacity: 0;
   }
   to {
     transform: translateY(0);
+    opacity: 1;
   }
 }
 
 @keyframes slide-in-from-left {
   from {
     transform: translateX(-0.5rem);
+    opacity: 0;
   }
   to {
     transform: translateX(0);
+    opacity: 1;
   }
 }
 
-/* Progress pulse for loading states */
+/* Premium loading animations */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
 @keyframes progress-pulse {
   0%,
   100% {
@@ -112,7 +149,80 @@
   }
 }
 
+/* Grade reveal animation */
+@keyframes scale-up-center {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes bounce-subtle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Number counter animation */
+@keyframes count-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Checkmark draw animation */
+@keyframes draw-check {
+  from {
+    stroke-dashoffset: 100;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* Celebration confetti burst */
+@keyframes confetti-fall {
+  0% {
+    transform: translateY(-100%) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100vh) rotate(720deg);
+    opacity: 0;
+  }
+}
+
+/* Glow pulse for success states */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(124, 58, 237, 0.6);
+  }
+}
+
 @theme {
+  /* ============================================
+     Typography - Geist Font System
+     ============================================ */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
   /* ============================================
      Brand Colors (from MarkM8 logo)
      ============================================ */
@@ -124,32 +234,31 @@
 
   /* ============================================
      Semantic Color Variables
-     Tailwind 4 CSS-first requires --color-* prefix
      ============================================ */
 
-  /* Primary - Violet 500 (#7c3aed) */
-  --color-primary: hsl(263 84% 58%);
+  /* Primary - Violet 600 (slightly deeper for better contrast) */
+  --color-primary: hsl(263 84% 55%);
   --color-primary-foreground: hsl(0 0% 100%);
 
-  /* Secondary - Slate 100 */
-  --color-secondary: hsl(210 40% 96%);
+  /* Secondary - Warm gray */
+  --color-secondary: hsl(220 14% 96%);
   --color-secondary-foreground: hsl(243 47% 20%);
 
   /* Background & Foreground */
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(243 47% 20%);
+  --color-foreground: hsl(224 24% 16%);
 
-  /* Card */
+  /* Card - Slightly elevated */
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(243 47% 20%);
+  --color-card-foreground: hsl(224 24% 16%);
 
   /* Popover */
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(243 47% 20%);
+  --color-popover-foreground: hsl(224 24% 16%);
 
-  /* Muted */
-  --color-muted: hsl(210 40% 96%);
-  --color-muted-foreground: hsl(215 19% 35%);
+  /* Muted - Softer background */
+  --color-muted: hsl(220 14% 96%);
+  --color-muted-foreground: hsl(220 9% 46%);
 
   /* Accent - Peach for warmth */
   --color-accent: hsl(34 84% 76%);
@@ -159,46 +268,85 @@
   --color-destructive: hsl(0 84% 60%);
   --color-destructive-foreground: hsl(0 0% 100%);
 
-  /* Success */
-  --color-success: hsl(142 71% 45%);
+  /* Success - Richer green */
+  --color-success: hsl(152 69% 40%);
   --color-success-foreground: hsl(0 0% 100%);
 
   /* Warning */
   --color-warning: hsl(43 96% 56%);
   --color-warning-foreground: hsl(243 47% 20%);
 
-  /* Border & Input */
-  --color-border: hsl(214 32% 91%);
-  --color-input: hsl(214 32% 91%);
+  /* Border & Input - Softer */
+  --color-border: hsl(220 13% 91%);
+  --color-input: hsl(220 13% 91%);
 
-  /* Focus Ring - matches primary */
-  --color-ring: hsl(263 84% 58%);
+  /* Focus Ring */
+  --color-ring: hsl(263 84% 55%);
 
-  /* Border Radius - friendlier 12px default */
+  /* Border Radius */
   --radius: 0.75rem;
 
   /* ============================================
-     Custom Shadows
+     Premium Shadow System (3 tiers)
      ============================================ */
-  --shadow-purple: 0 4px 14px rgba(124, 58, 237, 0.25);
-  --shadow-purple-lg: 0 10px 25px rgba(124, 58, 237, 0.3);
+
+  /* Subtle - For cards at rest */
+  --shadow-subtle: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.06);
+
+  /* Medium - For hover states */
+  --shadow-medium: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.07);
+
+  /* Elevated - For modals, dropdowns */
+  --shadow-elevated: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+
+  /* Dramatic - For hero elements */
+  --shadow-dramatic: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+
+  /* Brand shadows with purple glow */
+  --shadow-purple: 0 4px 14px rgba(124, 58, 237, 0.15), 0 1px 3px rgba(124, 58, 237, 0.1);
+
+  --shadow-purple-lg: 0 10px 25px rgba(124, 58, 237, 0.2), 0 4px 10px rgba(124, 58, 237, 0.15);
+
+  --shadow-purple-glow: 0 0 20px rgba(124, 58, 237, 0.25), 0 0 40px rgba(124, 58, 237, 0.15);
+
+  /* Success glow */
+  --shadow-success: 0 4px 14px rgba(34, 197, 94, 0.2), 0 1px 3px rgba(34, 197, 94, 0.1);
 
   /* ============================================
-     Animations
+     Animation Tokens
      ============================================ */
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-in: fade-in 0.15s ease-out;
-  --animate-out: fade-out 0.15s ease-in;
-  --animate-fade-in-0: fade-in 0.15s ease-out;
-  --animate-fade-out-0: fade-out 0.15s ease-in;
-  --animate-zoom-in-95: zoom-in 0.15s ease-out;
-  --animate-zoom-out-95: zoom-out 0.15s ease-in;
-  --animate-slide-in-from-top-2: slide-in-from-top 0.15s ease-out;
-  --animate-slide-in-from-right-2: slide-in-from-right 0.15s ease-out;
-  --animate-slide-in-from-bottom-2: slide-in-from-bottom 0.15s ease-out;
-  --animate-slide-in-from-left-2: slide-in-from-left 0.15s ease-out;
-  --animate-progress-pulse: progress-pulse 2s ease-in-out infinite;
+
+  /* Duration scale */
+  --duration-instant: 50ms;
+  --duration-fast: 150ms;
+  --duration-normal: 250ms;
+  --duration-slow: 350ms;
+  --duration-slower: 500ms;
+
+  /* Easing curves - Premium feel */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-back: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-in-out-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* Animation definitions */
+  --animate-accordion-down: accordion-down 0.25s var(--ease-out-expo);
+  --animate-accordion-up: accordion-up 0.2s var(--ease-in-out-smooth);
+  --animate-in: fade-in 0.2s var(--ease-out-expo);
+  --animate-out: fade-out 0.15s var(--ease-in-out-smooth);
+  --animate-fade-in-0: fade-in 0.2s var(--ease-out-expo);
+  --animate-fade-out-0: fade-out 0.15s var(--ease-in-out-smooth);
+  --animate-zoom-in-95: zoom-in 0.2s var(--ease-out-back);
+  --animate-zoom-out-95: zoom-out 0.15s var(--ease-in-out-smooth);
+  --animate-slide-in-from-top-2: slide-in-from-top 0.25s var(--ease-out-expo);
+  --animate-slide-in-from-right-2: slide-in-from-right 0.25s var(--ease-out-expo);
+  --animate-slide-in-from-bottom-2: slide-in-from-bottom 0.25s var(--ease-out-expo);
+  --animate-slide-in-from-left-2: slide-in-from-left 0.25s var(--ease-out-expo);
+  --animate-progress-pulse: progress-pulse 2s var(--ease-in-out-smooth) infinite;
+  --animate-shimmer: shimmer 2s infinite;
+  --animate-scale-up: scale-up-center 0.4s var(--ease-out-back);
+  --animate-bounce-subtle: bounce-subtle 0.6s var(--ease-out-expo);
+  --animate-glow-pulse: glow-pulse 2s var(--ease-in-out-smooth) infinite;
 }
 
 /* ============================================
@@ -206,12 +354,163 @@
    ============================================ */
 @layer base {
   * {
-    border-color: #e2e8f0; /* slate-200 */
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   body {
-    background-color: #ffffff;
-    color: #1e293b; /* slate-800 */
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    letter-spacing: -0.011em;
+  }
+
+  /* Better focus states */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Selection styling */
+  ::selection {
+    background-color: hsl(263 84% 55% / 0.2);
+    color: var(--color-foreground);
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+/* ============================================
+   Component Layer - Enhanced defaults
+   ============================================ */
+@layer components {
+  /* Premium card styling */
+  .card-premium {
+    background: var(--color-card);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-subtle);
+    border: 1px solid var(--color-border);
+    transition:
+      box-shadow 0.25s var(--ease-out-expo),
+      transform 0.25s var(--ease-out-expo),
+      border-color 0.25s var(--ease-out-expo);
+  }
+
+  .card-premium:hover {
+    box-shadow: var(--shadow-medium);
+    transform: translateY(-2px);
+    border-color: hsl(220 13% 86%);
+  }
+
+  /* Interactive card (clickable) */
+  .card-interactive {
+    cursor: pointer;
+  }
+
+  .card-interactive:hover {
+    box-shadow: var(--shadow-elevated);
+    transform: translateY(-4px);
+  }
+
+  .card-interactive:active {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-medium);
+  }
+
+  /* Featured card with purple glow */
+  .card-featured {
+    border-color: var(--color-brand-purple);
+    box-shadow: var(--shadow-purple);
+  }
+
+  .card-featured:hover {
+    box-shadow: var(--shadow-purple-lg);
+  }
+
+  /* Premium button base */
+  .btn-premium {
+    position: relative;
+    overflow: hidden;
+    transition:
+      transform 0.15s var(--ease-out-expo),
+      box-shadow 0.15s var(--ease-out-expo);
+  }
+
+  .btn-premium:hover {
+    transform: translateY(-1px);
+  }
+
+  .btn-premium:active {
+    transform: translateY(0);
+  }
+
+  /* Shimmer loading effect */
+  .shimmer {
+    background: linear-gradient(90deg, hsl(220 14% 96%) 0%, hsl(220 14% 92%) 50%, hsl(220 14% 96%) 100%);
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* Glass effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Premium input styling */
+  .input-premium {
+    transition:
+      border-color 0.2s var(--ease-out-expo),
+      box-shadow 0.2s var(--ease-out-expo);
+  }
+
+  .input-premium:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px hsl(263 84% 55% / 0.1);
+  }
+
+  /* Grade display styling */
+  .grade-display {
+    font-feature-settings: 'tnum' 1;
+    letter-spacing: -0.02em;
+  }
+
+  /* Status indicator dot */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+
+  .status-dot-processing {
+    animation: pulse-soft 1.5s var(--ease-in-out-smooth) infinite;
   }
 }
 
@@ -264,6 +563,22 @@
     animation: var(--animate-progress-pulse);
   }
 
+  .animate-shimmer {
+    animation: var(--animate-shimmer);
+  }
+
+  .animate-scale-up {
+    animation: var(--animate-scale-up);
+  }
+
+  .animate-bounce-subtle {
+    animation: var(--animate-bounce-subtle);
+  }
+
+  .animate-glow-pulse {
+    animation: var(--animate-glow-pulse);
+  }
+
   /* Brand gradient text */
   .text-gradient {
     background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 50%, #a78bfa 100%);
@@ -272,12 +587,89 @@
     background-clip: text;
   }
 
-  /* Purple glow shadow */
+  /* Premium gradient backgrounds */
+  .bg-gradient-brand {
+    background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 100%);
+  }
+
+  .bg-gradient-subtle {
+    background: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
+  }
+
+  .bg-gradient-radial-purple {
+    background: radial-gradient(circle at 50% 0%, rgba(124, 58, 237, 0.08) 0%, transparent 50%);
+  }
+
+  /* Shadow utilities */
+  .shadow-subtle {
+    box-shadow: var(--shadow-subtle);
+  }
+
+  .shadow-medium {
+    box-shadow: var(--shadow-medium);
+  }
+
+  .shadow-elevated {
+    box-shadow: var(--shadow-elevated);
+  }
+
+  .shadow-dramatic {
+    box-shadow: var(--shadow-dramatic);
+  }
+
   .shadow-purple {
     box-shadow: var(--shadow-purple);
   }
 
   .shadow-purple-lg {
     box-shadow: var(--shadow-purple-lg);
+  }
+
+  .shadow-purple-glow {
+    box-shadow: var(--shadow-purple-glow);
+  }
+
+  .shadow-success {
+    box-shadow: var(--shadow-success);
+  }
+
+  /* Transition utilities */
+  .transition-premium {
+    transition-timing-function: var(--ease-out-expo);
+    transition-duration: 0.25s;
+  }
+
+  .transition-spring {
+    transition-timing-function: var(--ease-spring);
+    transition-duration: 0.3s;
+  }
+
+  /* Typography utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-pretty {
+    text-wrap: pretty;
+  }
+
+  .font-display {
+    letter-spacing: -0.025em;
+    font-weight: 600;
+  }
+
+  /* Number styling for grades */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

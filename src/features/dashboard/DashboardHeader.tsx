@@ -15,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 import { CreditsDisplay } from '@/features/dashboard/CreditsDisplay';
 import { useAdminCheck } from '@/hooks/useAdmin';
 import { Logo } from '@/templates/Logo';
@@ -32,16 +31,27 @@ export const DashboardHeader = (props: {
 
   return (
     <>
-      <div className="flex items-center">
-        <Link href="/dashboard">
+      {/* Left side: Logo + Nav */}
+      <div className="flex items-center gap-8">
+        <Link href="/dashboard" className="transition-opacity hover:opacity-80">
           <Logo />
         </Link>
 
-        <nav className="ml-6 max-lg:hidden">
-          <ul className="flex flex-row items-center gap-x-3 text-lg font-medium [&_a:hover]:opacity-100 [&_a]:opacity-75">
+        <nav className="hidden lg:block">
+          <ul className="flex items-center gap-1">
             {props.menu.map(item => (
               <li key={item.href}>
-                <ActiveLink href={item.href}>{item.label}</ActiveLink>
+                <ActiveLink
+                  href={item.href}
+                  className={cn(
+                    'relative px-3 py-2 text-sm font-medium text-muted-foreground',
+                    'transition-colors hover:text-foreground',
+                    'rounded-lg hover:bg-muted/50',
+                  )}
+                  activeClassName="text-foreground bg-muted/50"
+                >
+                  {item.label}
+                </ActiveLink>
               </li>
             ))}
             {isAdmin && (
@@ -49,11 +59,12 @@ export const DashboardHeader = (props: {
                 <Link
                   href="/admin"
                   className={cn(
-                    'inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-2.5 py-1 font-medium text-white',
-                    'transition-colors hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500',
+                    'ml-2 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5',
+                    'bg-amber-500/10 text-amber-600 text-sm font-medium',
+                    'transition-colors hover:bg-amber-500/20',
                   )}
                 >
-                  <Shield className="size-4" />
+                  <Shield className="size-3.5" />
                   Admin
                 </Link>
               </li>
@@ -62,69 +73,59 @@ export const DashboardHeader = (props: {
         </nav>
       </div>
 
-      <div>
-        <ul className="flex items-center gap-x-1.5 [&_li[data-fade]:hover]:opacity-100 [&_li[data-fade]]:opacity-60">
-          <li data-fade>
-            <div className="lg:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <ToggleMenuButton />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  {props.menu.map(item => (
-                    <DropdownMenuItem key={item.href} asChild>
-                      <Link href={item.href}>{item.label}</Link>
-                    </DropdownMenuItem>
-                  ))}
-                  {isAdmin && (
-                    <>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem asChild>
-                        <Link
-                          href="/admin"
-                          className="inline-flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400"
-                        >
-                          <Shield className="size-4" />
-                          Admin
-                        </Link>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </li>
+      {/* Right side: Actions */}
+      <div className="flex items-center gap-2">
+        {/* Mobile menu */}
+        <div className="lg:hidden">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ToggleMenuButton />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48">
+              {props.menu.map(item => (
+                <DropdownMenuItem key={item.href} asChild>
+                  <Link href={item.href} className="w-full">
+                    {item.label}
+                  </Link>
+                </DropdownMenuItem>
+              ))}
+              {isAdmin && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href="/admin"
+                      className="inline-flex w-full items-center gap-1.5 text-amber-600"
+                    >
+                      <Shield className="size-4" />
+                      Admin
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
 
-          {/* PRO: Dark mode toggle button */}
+        {/* Credits */}
+        <CreditsDisplay />
 
-          <li>
-            <CreditsDisplay />
-          </li>
+        {/* Locale Switcher */}
+        <div className="hidden sm:block">
+          <LocaleSwitcher />
+        </div>
 
-          <li>
-            <Separator orientation="vertical" className="h-4" />
-          </li>
-
-          <li data-fade>
-            <LocaleSwitcher />
-          </li>
-
-          <li>
-            <Separator orientation="vertical" className="h-4" />
-          </li>
-
-          <li>
-            <UserButton
-              userProfileMode="navigation"
-              userProfileUrl={getI18nPath('/dashboard/user-profile', locale)}
-              appearance={{
-                elements: {
-                  rootBox: 'px-2 py-1.5',
-                },
-              }}
-            />
-          </li>
-        </ul>
+        {/* User Button */}
+        <UserButton
+          userProfileMode="navigation"
+          userProfileUrl={getI18nPath('/dashboard/user-profile', locale)}
+          appearance={{
+            elements: {
+              avatarBox: 'size-8',
+              rootBox: 'ml-1',
+            },
+          }}
+        />
       </div>
     </>
   );

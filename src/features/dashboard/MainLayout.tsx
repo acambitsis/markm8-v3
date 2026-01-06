@@ -8,9 +8,10 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
   const t = useTranslations('DashboardLayout');
 
   return (
-    <>
-      <div className="shadow-md">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-3 py-4">
+    <div className="min-h-screen bg-gradient-subtle">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-screen-xl items-center justify-between px-4 sm:px-6">
           <DashboardHeader
             menu={[
               {
@@ -32,13 +33,12 @@ export function MainLayout({ children }: { children: React.ReactNode }) {
             ]}
           />
         </div>
-      </div>
+      </header>
 
-      <div className="min-h-[calc(100vh-72px)] bg-muted">
-        <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
-          {children}
-        </div>
-      </div>
-    </>
+      {/* Main Content */}
+      <main className="mx-auto max-w-screen-xl px-4 py-8 sm:px-6">
+        {children}
+      </main>
+    </div>
   );
 }

@@ -1,6 +1,5 @@
 import { getTranslations } from 'next-intl/server';
 
-import { TitleBar } from '@/components/TitleBar';
 import { Card, CardContent } from '@/components/ui/card';
 import { MainLayout } from '@/features/dashboard/MainLayout';
 import { SubmitForm } from '@/features/essays/SubmitForm';
@@ -21,16 +20,22 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 export default function SubmitPage() {
   return (
     <MainLayout>
-      <TitleBar
-        title="Submit Essay"
-        description="Get AI-powered feedback on your essay"
-      />
+      <div className="mx-auto max-w-3xl">
+        {/* Header */}
+        <div className="mb-8 text-center">
+          <h1 className="text-3xl font-semibold tracking-tight">Submit Your Essay</h1>
+          <p className="mt-2 text-muted-foreground">
+            Get AI-powered feedback with detailed grades and improvement suggestions
+          </p>
+        </div>
 
-      <Card>
-        <CardContent className="pt-6">
-          <SubmitForm />
-        </CardContent>
-      </Card>
+        {/* Form Card */}
+        <Card className="overflow-hidden">
+          <CardContent className="p-6 sm:p-8">
+            <SubmitForm />
+          </CardContent>
+        </Card>
+      </div>
     </MainLayout>
   );
 }
