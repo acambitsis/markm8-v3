@@ -26,6 +26,7 @@ export const Env = createEnv({
     // Stripe publishable key for checkout
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: z.string().min(1),
     NEXT_PUBLIC_SENTRY_DSN: z.string().optional(), // Error monitoring
+    NEXT_PUBLIC_ENABLE_DEV_TOOLS: z.string().optional(), // Enable dev tools on preview deployments
   },
   shared: {
     NODE_ENV: z.enum(['test', 'development', 'production']).optional(),
@@ -48,6 +49,7 @@ export const Env = createEnv({
     NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
       process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN,
+    NEXT_PUBLIC_ENABLE_DEV_TOOLS: process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS,
     NODE_ENV: process.env.NODE_ENV,
   },
 });

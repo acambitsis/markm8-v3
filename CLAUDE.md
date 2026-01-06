@@ -269,6 +269,12 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 
 **Setup:** See `README.md` for Clerk + Convex initial configuration.
 
+**Vercel env vars via CLI** (avoids newline/whitespace contamination):
+```bash
+printf '%s' 'value' > /tmp/env.txt && vercel env add KEY preview < /tmp/env.txt && rm /tmp/env.txt
+vercel --yes  # Redeploy required after env changes
+```
+
 ---
 
 ## Boilerplate Patterns (ixartz SaaS)

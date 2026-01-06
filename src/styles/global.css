@@ -1,8 +1,8 @@
 @import 'tailwindcss';
 
 /* ============================================
-   MarkM8 Design System
-   Based on logo colors: Navy → Purple → Violet
+   MarkM8 Design System v2.0
+   World-class UI with Geist typography
    ============================================ */
 
 /* Accordion keyframes */
@@ -112,7 +112,53 @@
   }
 }
 
+/* Shimmer effect for skeleton loaders */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Score gauge fill animation */
+@keyframes gauge-fill {
+  from {
+    stroke-dashoffset: 251.2;
+  }
+}
+
+/* Subtle float animation */
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* Pulse ring animation */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.3);
+    opacity: 0;
+  }
+}
+
 @theme {
+  /* ============================================
+     Typography - Geist Font Family
+     ============================================ */
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
   /* ============================================
      Brand Colors (from MarkM8 logo)
      ============================================ */
@@ -124,7 +170,6 @@
 
   /* ============================================
      Semantic Color Variables
-     Tailwind 4 CSS-first requires --color-* prefix
      ============================================ */
 
   /* Primary - Violet 500 (#7c3aed) */
@@ -137,19 +182,19 @@
 
   /* Background & Foreground */
   --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(243 47% 20%);
+  --color-foreground: hsl(222 47% 11%);
 
   /* Card */
   --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(243 47% 20%);
+  --color-card-foreground: hsl(222 47% 11%);
 
   /* Popover */
   --color-popover: hsl(0 0% 100%);
-  --color-popover-foreground: hsl(243 47% 20%);
+  --color-popover-foreground: hsl(222 47% 11%);
 
-  /* Muted */
-  --color-muted: hsl(210 40% 96%);
-  --color-muted-foreground: hsl(215 19% 35%);
+  /* Muted - Slightly cooler tone */
+  --color-muted: hsl(220 14% 96%);
+  --color-muted-foreground: hsl(220 9% 46%);
 
   /* Accent - Peach for warmth */
   --color-accent: hsl(34 84% 76%);
@@ -167,21 +212,63 @@
   --color-warning: hsl(43 96% 56%);
   --color-warning-foreground: hsl(243 47% 20%);
 
-  /* Border & Input */
-  --color-border: hsl(214 32% 91%);
-  --color-input: hsl(214 32% 91%);
+  /* Border & Input - Slightly more visible */
+  --color-border: hsl(220 13% 91%);
+  --color-input: hsl(220 13% 91%);
 
   /* Focus Ring - matches primary */
   --color-ring: hsl(263 84% 58%);
 
-  /* Border Radius - friendlier 12px default */
+  /* ============================================
+     Border Radius - Consistent system
+     ============================================ */
   --radius: 0.75rem;
+  --radius-sm: 0.5rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-full: 9999px;
 
   /* ============================================
-     Custom Shadows
+     Spacing Scale (consistent rhythm)
      ============================================ */
-  --shadow-purple: 0 4px 14px rgba(124, 58, 237, 0.25);
-  --shadow-purple-lg: 0 10px 25px rgba(124, 58, 237, 0.3);
+  --spacing-page: 1.5rem;
+  --spacing-section: 2rem;
+  --spacing-card: 1.5rem;
+
+  /* ============================================
+     Shadow System - Layered depth
+     ============================================ */
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -1px rgba(0, 0, 0, 0.04);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.02);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
+
+  /* Brand shadows with purple tint */
+  --shadow-purple: 0 4px 14px rgba(124, 58, 237, 0.15);
+  --shadow-purple-md: 0 8px 20px rgba(124, 58, 237, 0.2);
+  --shadow-purple-lg: 0 12px 28px rgba(124, 58, 237, 0.25);
+
+  /* Card hover state shadow */
+  --shadow-card-hover: 0 12px 20px -4px rgba(0, 0, 0, 0.08), 0 4px 8px -2px rgba(0, 0, 0, 0.04);
+
+  /* ============================================
+     Transition Timing
+     ============================================ */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ============================================
+     Animation Durations
+     ============================================ */
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-slower: 400ms;
 
   /* ============================================
      Animations
@@ -199,6 +286,9 @@
   --animate-slide-in-from-bottom-2: slide-in-from-bottom 0.15s ease-out;
   --animate-slide-in-from-left-2: slide-in-from-left 0.15s ease-out;
   --animate-progress-pulse: progress-pulse 2s ease-in-out infinite;
+  --animate-shimmer: shimmer 2s infinite linear;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 1.5s ease-out infinite;
 }
 
 /* ============================================
@@ -206,12 +296,93 @@
    ============================================ */
 @layer base {
   * {
-    border-color: #e2e8f0; /* slate-200 */
+    border-color: var(--color-border);
+  }
+
+  html {
+    scroll-behavior: smooth;
   }
 
   body {
-    background-color: #ffffff;
-    color: #1e293b; /* slate-800 */
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-feature-settings:
+      'rlig' 1,
+      'calt' 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Better focus styles */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+  }
+
+  /* Selection color */
+  ::selection {
+    background-color: hsl(263 84% 58% / 0.2);
+    color: var(--color-foreground);
+  }
+}
+
+/* ============================================
+   Component Base Styles
+   ============================================ */
+@layer components {
+  /* Enhanced card with subtle hover */
+  .card-hover {
+    transition:
+      box-shadow var(--duration-normal) var(--ease-out-quart),
+      transform var(--duration-normal) var(--ease-out-quart);
+  }
+
+  .card-hover:hover {
+    box-shadow: var(--shadow-card-hover);
+    transform: translateY(-2px);
+  }
+
+  /* Button hover lift effect */
+  .btn-lift {
+    transition:
+      box-shadow var(--duration-fast) var(--ease-out-quart),
+      transform var(--duration-fast) var(--ease-out-quart);
+  }
+
+  .btn-lift:hover:not(:disabled) {
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+
+  .btn-lift:active:not(:disabled) {
+    transform: translateY(0);
+  }
+
+  /* Glass effect */
+  .glass {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Gradient border */
+  .gradient-border {
+    position: relative;
+  }
+
+  .gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--color-brand-purple), var(--color-brand-violet));
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 }
 
@@ -264,6 +435,20 @@
     animation: var(--animate-progress-pulse);
   }
 
+  .animate-shimmer {
+    animation: var(--animate-shimmer);
+    background: linear-gradient(90deg, hsl(220 14% 96%) 0%, hsl(220 14% 92%) 50%, hsl(220 14% 96%) 100%);
+    background-size: 200% 100%;
+  }
+
+  .animate-float {
+    animation: var(--animate-float);
+  }
+
+  .animate-pulse-ring {
+    animation: var(--animate-pulse-ring);
+  }
+
   /* Brand gradient text */
   .text-gradient {
     background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 50%, #a78bfa 100%);
@@ -272,12 +457,42 @@
     background-clip: text;
   }
 
+  /* Brand gradient background */
+  .bg-gradient-brand {
+    background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 50%, #a78bfa 100%);
+  }
+
   /* Purple glow shadow */
   .shadow-purple {
     box-shadow: var(--shadow-purple);
   }
 
+  .shadow-purple-md {
+    box-shadow: var(--shadow-purple-md);
+  }
+
   .shadow-purple-lg {
     box-shadow: var(--shadow-purple-lg);
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    transition-timing-function: var(--ease-out-quart);
+    transition-duration: var(--duration-normal);
+  }
+
+  /* Focus ring with brand color */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  /* No scrollbar but still scrollable */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
   }
 }

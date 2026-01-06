@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Env } from '@/libs/Env';
 import { cn } from '@/utils/Helpers';
 
 import type { AssignmentBrief, Rubric } from '../../../convex/schema';
@@ -32,11 +33,13 @@ type Props = {
 
 /**
  * Dev-only component for loading sample essays during testing.
- * This component and all its imports are tree-shaken in production builds.
+ * Shows in development mode OR when NEXT_PUBLIC_ENABLE_DEV_TOOLS is set.
  */
 export function DevSampleLoader({ onLoad }: Props) {
-  // Only render in development
-  if (process.env.NODE_ENV !== 'development') {
+  const isDev = Env.NODE_ENV === 'development';
+  const devToolsEnabled = Env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
+
+  if (!isDev && !devToolsEnabled) {
     return null;
   }
 

@@ -369,3 +369,52 @@ export const getInternal = internalQuery({
     return await ctx.db.get(essayId);
   },
 });
+
+/**
+ * Get user stats for dashboard
+ */
+export const getStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+
+    // Get submitted essays count (with safety limit)
+    const essays = await ctx.db
+      .query('essays')
+      .withIndex('by_user_status', q =>
+        q.eq('userId', userId).eq('status', 'submitted'))
+      .filter(q => q.eq(q.field('deletedAt'), undefined))
+      .take(1000);
+
+    const total = essays.length;
+
+    // Get completed grades for this user to calculate average (with composite index and safety limit)
+    const grades = await ctx.db
+      .query('grades')
+      .withIndex('by_user_status', q =>
+        q.eq('userId', userId).eq('status', 'complete'))
+      .take(1000);
+
+    let averageGrade: number | null = null;
+    if (grades.length > 0) {
+      // Calculate average from percentageRange midpoints
+      const percentages = grades
+        .filter(g => g.percentageRange)
+        .map((g) => {
+          const mid = (g.percentageRange!.lower + g.percentageRange!.upper) / 2;
+          return mid;
+        });
+
+      if (percentages.length > 0) {
+        averageGrade = Math.round(
+          percentages.reduce((sum, p) => sum + p, 0) / percentages.length,
+        );
+      }
+    }
+
+    return {
+      total,
+      averageGrade,
+    };
+  },
+});

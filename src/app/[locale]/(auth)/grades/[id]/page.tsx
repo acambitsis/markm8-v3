@@ -1,8 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
-import { TitleBar } from '@/components/TitleBar';
 import { MainLayout } from '@/features/dashboard/MainLayout';
-import { GradeStatusDisplay } from '@/features/grading/GradeStatusDisplay';
+import { GradeStatusDisplayV2 } from '@/features/grading/GradeStatusDisplayV2';
 
 import type { Id } from '../../../../../../convex/_generated/dataModel';
 
@@ -28,12 +27,17 @@ export default async function GradePage({ params }: Props) {
 
   return (
     <MainLayout>
-      <TitleBar
-        title="Grade Results"
-        description="View your essay grading results and feedback"
-      />
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold tracking-tight md:text-3xl">
+          Grade Results
+        </h1>
+        <p className="mt-2 text-muted-foreground">
+          Detailed feedback and analysis of your essay
+        </p>
+      </div>
 
-      <GradeStatusDisplay gradeId={id as Id<'grades'>} />
+      <GradeStatusDisplayV2 gradeId={id as Id<'grades'>} />
     </MainLayout>
   );
 }

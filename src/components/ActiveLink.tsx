@@ -5,19 +5,32 @@ import { usePathname } from 'next/navigation';
 
 import { cn } from '@/utils/Helpers';
 
-export const ActiveLink = (props: { href: string; children: React.ReactNode }) => {
+type ActiveLinkProps = {
+  href: string;
+  children: React.ReactNode;
+  className?: string;
+  activeClassName?: string;
+};
+
+export const ActiveLink = ({
+  href,
+  children,
+  className,
+  activeClassName = 'rounded-md bg-primary text-primary-foreground',
+}: ActiveLinkProps) => {
   const pathname = usePathname();
+  const isActive = pathname.endsWith(href);
 
   return (
     <Link
-      href={props.href}
+      href={href}
+      data-active={isActive}
       className={cn(
-        'px-3 py-2',
-        pathname.endsWith(props.href)
-        && 'rounded-md bg-primary text-primary-foreground',
+        className,
+        isActive && activeClassName,
       )}
     >
-      {props.children}
+      {children}
     </Link>
   );
 };
