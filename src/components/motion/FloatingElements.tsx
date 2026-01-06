@@ -131,16 +131,32 @@ type SparkleGroupProps = {
   className?: string;
 };
 
+// Deterministic sparkle positions to avoid hydration mismatch
+const SPARKLE_POSITIONS = [
+  { left: 15, top: 20 },
+  { left: 85, top: 15 },
+  { left: 25, top: 75 },
+  { left: 75, top: 80 },
+  { left: 50, top: 10 },
+  { left: 10, top: 50 },
+  { left: 90, top: 45 },
+  { left: 60, top: 65 },
+  { left: 35, top: 35 },
+  { left: 70, top: 25 },
+];
+
 export function SparkleGroup({ count = 5, className = '' }: SparkleGroupProps) {
+  const positions = SPARKLE_POSITIONS.slice(0, count);
+
   return (
     <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
-      {[...Array(count)].map((_, i) => (
+      {positions.map((pos, i) => (
         <motion.div
-          key={i}
+          key={`sparkle-${pos.left}-${pos.top}`}
           className="absolute text-amber-400/60"
           style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
+            left: `${pos.left}%`,
+            top: `${pos.top}%`,
           }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
