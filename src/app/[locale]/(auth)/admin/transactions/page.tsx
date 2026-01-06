@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { CreditCard, Filter, Gift, RefreshCw, Shield, Sparkles, TrendingUp } from 'lucide-react';
+import { CreditCard, Filter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -15,40 +15,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { getTransactionStyle } from '@/features/admin/colors';
+import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminTransactions } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
 
 import type { TransactionType } from '../../../../../../convex/schema';
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.04,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
-    },
-  },
-};
-
-const transactionConfig: Record<string, { bg: string; text: string; icon: typeof CreditCard }> = {
-  signup_bonus: { bg: 'bg-green-500/10', text: 'text-green-700', icon: Gift },
-  purchase: { bg: 'bg-blue-500/10', text: 'text-blue-700', icon: TrendingUp },
-  grading: { bg: 'bg-orange-500/10', text: 'text-orange-700', icon: Sparkles },
-  refund: { bg: 'bg-purple-500/10', text: 'text-purple-700', icon: RefreshCw },
-  admin_adjustment: { bg: 'bg-primary/10', text: 'text-primary', icon: Shield },
-};
 
 export default function AdminTransactionsPage() {
   const t = useTranslations('AdminTransactions');
@@ -69,12 +41,9 @@ export default function AdminTransactionsPage() {
   };
 
   const getTransactionIcon = (type: string) => {
-    const config = transactionConfig[type];
-    if (!config) {
-      return <CreditCard className="size-4" />;
-    }
-    const Icon = config.icon;
-    return <Icon className={cn('size-4', config.text)} />;
+    const style = getTransactionStyle(type);
+    const Icon = style.icon;
+    return <Icon className={cn('size-4', style.text)} />;
   };
 
   return (
@@ -152,7 +121,7 @@ export default function AdminTransactionsPage() {
             : (
                 <motion.div
                   className="divide-y"
-                  variants={containerVariants}
+                  variants={staggerContainer}
                   initial="hidden"
                   animate="visible"
                 >
@@ -160,13 +129,13 @@ export default function AdminTransactionsPage() {
                     <motion.div
                       key={tx._id}
                       className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
-                      variants={itemVariants}
+                      variants={staggerItem}
                     >
                       <div className="flex items-center gap-4">
                         {/* Icon */}
                         <div className={cn(
                           'flex size-10 shrink-0 items-center justify-center rounded-full',
-                          transactionConfig[tx.type]?.bg ?? 'bg-muted',
+                          getTransactionStyle(tx.type).bg,
                         )}
                         >
                           {getTransactionIcon(tx.type)}
@@ -179,8 +148,8 @@ export default function AdminTransactionsPage() {
                               variant="secondary"
                               className={cn(
                                 'text-xs',
-                                transactionConfig[tx.type]?.bg,
-                                transactionConfig[tx.type]?.text,
+                                getTransactionStyle(tx.type).bg,
+                                getTransactionStyle(tx.type).text,
                               )}
                             >
                               {tx.type.replace('_', ' ')}

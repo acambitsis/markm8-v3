@@ -9,30 +9,9 @@ import { useState } from 'react';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
 import { Input } from '@/components/ui/input';
+import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminUsers } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
-    },
-  },
-};
 
 export default function AdminUsersPage() {
   const t = useTranslations('AdminUsers');
@@ -116,12 +95,12 @@ export default function AdminUsersPage() {
             : (
                 <motion.div
                   className="divide-y"
-                  variants={containerVariants}
+                  variants={staggerContainer}
                   initial="hidden"
                   animate="visible"
                 >
                   {users.map(user => (
-                    <motion.div key={user._id} variants={itemVariants}>
+                    <motion.div key={user._id} variants={staggerItem}>
                       <Link
                         href={`/admin/users/${user._id}`}
                         className="group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50"

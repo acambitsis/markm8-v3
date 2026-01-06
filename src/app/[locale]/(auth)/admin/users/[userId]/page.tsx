@@ -22,39 +22,11 @@ import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { getTransactionStyle } from '@/features/admin/colors';
 import { CreditAdjustForm } from '@/features/admin/CreditAdjustForm';
+import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminUserDetail } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.3,
-      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
-    },
-  },
-};
-
-const transactionColors: Record<string, { bg: string; text: string }> = {
-  signup_bonus: { bg: 'bg-green-500/10', text: 'text-green-700' },
-  purchase: { bg: 'bg-blue-500/10', text: 'text-blue-700' },
-  grading: { bg: 'bg-orange-500/10', text: 'text-orange-700' },
-  refund: { bg: 'bg-purple-500/10', text: 'text-purple-700' },
-  admin_adjustment: { bg: 'bg-primary/10', text: 'text-primary' },
-};
 
 export default function AdminUserDetailPage() {
   const t = useTranslations('AdminUserDetail');
@@ -262,7 +234,7 @@ export default function AdminUserDetailPage() {
           : (
               <motion.div
                 className="divide-y"
-                variants={containerVariants}
+                variants={staggerContainer}
                 initial="hidden"
                 animate="visible"
               >
@@ -270,17 +242,17 @@ export default function AdminUserDetailPage() {
                   <motion.div
                     key={tx._id}
                     className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
-                    variants={itemVariants}
+                    variants={staggerItem}
                   >
                     <div className="flex items-center gap-4">
                       <div className={cn(
                         'flex size-10 items-center justify-center rounded-full',
-                        transactionColors[tx.type]?.bg ?? 'bg-muted',
+                        getTransactionStyle(tx.type).bg,
                       )}
                       >
                         <CreditCard className={cn(
                           'size-4',
-                          transactionColors[tx.type]?.text ?? 'text-muted-foreground',
+                          getTransactionStyle(tx.type).text,
                         )}
                         />
                       </div>
@@ -290,8 +262,8 @@ export default function AdminUserDetailPage() {
                             variant="secondary"
                             className={cn(
                               'text-xs',
-                              transactionColors[tx.type]?.bg,
-                              transactionColors[tx.type]?.text,
+                              getTransactionStyle(tx.type).bg,
+                              getTransactionStyle(tx.type).text,
                             )}
                           >
                             {tx.type.replace('_', ' ')}
@@ -351,7 +323,7 @@ export default function AdminUserDetailPage() {
           </div>
           <motion.div
             className="divide-y"
-            variants={containerVariants}
+            variants={staggerContainer}
             initial="hidden"
             animate="visible"
           >
@@ -359,7 +331,7 @@ export default function AdminUserDetailPage() {
               <motion.div
                 key={essay._id}
                 className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
-                variants={itemVariants}
+                variants={staggerItem}
               >
                 <div className="flex items-center gap-4">
                   <div className={cn(

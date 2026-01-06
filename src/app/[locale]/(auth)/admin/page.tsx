@@ -7,37 +7,11 @@ import { useTranslations } from 'next-intl';
 
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
+import { getActivityStyle } from '@/features/admin/colors';
+import { staggerContainerSlow, staggerItemSlow } from '@/features/admin/motion';
 import { StatsCard } from '@/features/admin/StatsCard';
 import { useAdminDashboardStats, useAdminRecentActivity } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
-
-const containerVariants = {
-  hidden: {},
-  visible: {
-    transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.1,
-    },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: {
-      duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number],
-    },
-  },
-};
-
-const activityColors: Record<string, { bg: string; icon: string }> = {
-  signup: { bg: 'bg-green-500/10', icon: 'text-green-600' },
-  purchase: { bg: 'bg-blue-500/10', icon: 'text-blue-600' },
-  essay: { bg: 'bg-primary/10', icon: 'text-primary' },
-};
 
 export default function AdminDashboardPage() {
   const t = useTranslations('AdminDashboard');
@@ -65,17 +39,9 @@ export default function AdminDashboardPage() {
   };
 
   const getActivityIcon = (type: string) => {
-    const colorClass = activityColors[type]?.icon ?? 'text-muted-foreground';
-    switch (type) {
-      case 'signup':
-        return <Users className={cn('size-4', colorClass)} />;
-      case 'purchase':
-        return <CreditCard className={cn('size-4', colorClass)} />;
-      case 'essay':
-        return <FileText className={cn('size-4', colorClass)} />;
-      default:
-        return <Activity className={cn('size-4', colorClass)} />;
-    }
+    const style = getActivityStyle(type);
+    const Icon = style.icon;
+    return <Icon className={cn('size-4', style.text)} />;
   };
 
   return (
@@ -255,7 +221,7 @@ export default function AdminDashboardPage() {
               : (
                   <motion.div
                     className="divide-y"
-                    variants={containerVariants}
+                    variants={staggerContainerSlow}
                     initial="hidden"
                     animate="visible"
                   >
@@ -263,12 +229,12 @@ export default function AdminDashboardPage() {
                       <motion.div
                         key={`${item.type}-${item.timestamp}-${index}`}
                         className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
-                        variants={itemVariants}
+                        variants={staggerItemSlow}
                       >
                         <div className="flex items-center gap-4">
                           <div className={cn(
                             'flex size-10 items-center justify-center rounded-full',
-                            activityColors[item.type]?.bg ?? 'bg-muted',
+                            getActivityStyle(item.type).bg,
                           )}
                           >
                             {getActivityIcon(item.type)}
