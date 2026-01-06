@@ -3,7 +3,6 @@
 import { motion } from 'framer-motion';
 import { ArrowRight, FileText, History, PenLine, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useTranslations } from 'next-intl';
 
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Button } from '@/components/ui/button';
@@ -11,9 +10,6 @@ import { RecentEssaysV2 } from '@/features/dashboard/RecentEssaysV2';
 import { StatsBar } from '@/features/dashboard/StatsBar';
 
 const DashboardIndexPage = () => {
-  // Translations available if needed
-  useTranslations('DashboardIndex');
-
   return (
     <PageTransition>
       {/* Hero Section - Primary CTA */}

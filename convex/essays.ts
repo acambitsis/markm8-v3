@@ -378,22 +378,22 @@ export const getStats = query({
   handler: async (ctx) => {
     const userId = await requireAuth(ctx);
 
-    // Get all submitted essays count
+    // Get submitted essays count (with safety limit)
     const essays = await ctx.db
       .query('essays')
       .withIndex('by_user_status', q =>
         q.eq('userId', userId).eq('status', 'submitted'))
       .filter(q => q.eq(q.field('deletedAt'), undefined))
-      .collect();
+      .take(1000);
 
     const total = essays.length;
 
-    // Get all completed grades for this user to calculate average
+    // Get completed grades for this user to calculate average (with composite index and safety limit)
     const grades = await ctx.db
       .query('grades')
-      .withIndex('by_user_id', q => q.eq('userId', userId))
-      .filter(q => q.eq(q.field('status'), 'complete'))
-      .collect();
+      .withIndex('by_user_status', q =>
+        q.eq('userId', userId).eq('status', 'complete'))
+      .take(1000);
 
     let averageGrade: number | null = null;
     if (grades.length > 0) {

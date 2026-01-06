@@ -3,6 +3,8 @@
  * This module is only used in development mode and will be tree-shaken in production.
  */
 
+import { Env } from '@/libs/Env';
+
 import type { AcademicLevel } from '../../../convex/schema';
 
 export type SampleEssay = {
@@ -19,8 +21,8 @@ export type SampleEssay = {
 
 // Only import sample data in development or when dev tools are explicitly enabled
 const devToolsEnabled
-  = process.env.NODE_ENV === 'development'
-  || process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
+  = Env.NODE_ENV === 'development'
+  || Env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
 
 const sampleEssays: SampleEssay[] = devToolsEnabled
   ? [

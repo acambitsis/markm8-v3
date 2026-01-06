@@ -267,7 +267,8 @@ export default defineSchema({
   })
     .index('by_user_id', ['userId'])
     .index('by_essay_id', ['essayId'])
-    .index('by_status', ['status']),
+    .index('by_status', ['status'])
+    .index('by_user_status', ['userId', 'status']),
 
   // Platform Settings (singleton for admin-configurable values)
   platformSettings: defineTable({

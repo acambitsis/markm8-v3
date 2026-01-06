@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Env } from '@/libs/Env';
 import { cn } from '@/utils/Helpers';
 
 import type { AssignmentBrief, Rubric } from '../../../convex/schema';
@@ -35,8 +36,8 @@ type Props = {
  * Shows in development mode OR when NEXT_PUBLIC_ENABLE_DEV_TOOLS is set.
  */
 export function DevSampleLoader({ onLoad }: Props) {
-  const isDev = process.env.NODE_ENV === 'development';
-  const devToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
+  const isDev = Env.NODE_ENV === 'development';
+  const devToolsEnabled = Env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
 
   if (!isDev && !devToolsEnabled) {
     return null;
