@@ -632,6 +632,12 @@ X files reviewed
 
 ---
 
+## Exclusions
+
+- **Admin pages** (`/admin/*`): No i18n required (English-only)
+
+---
+
 ## Maintenance Notes
 
 **When to update this agent:**

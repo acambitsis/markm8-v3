@@ -39,7 +39,8 @@
 
 ## Admin Access Model
 
-Admin access uses an **email allowlist** stored in `platformSettings.adminEmails`:
+Admin access uses an **email allowlist** stored in `platformSettings.adminEmails`.
+**Admin UI is English-only** (no i18n required for `/admin/*` pages).
 
 - **No `isAdmin` flag on users** - Single source of truth in platformSettings
 - **Use `requireAdmin(ctx)`** in admin queries/mutations (returns `{ userId, email }`)
