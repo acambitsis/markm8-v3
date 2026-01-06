@@ -32,11 +32,13 @@ type Props = {
 
 /**
  * Dev-only component for loading sample essays during testing.
- * This component and all its imports are tree-shaken in production builds.
+ * Shows in development mode OR when NEXT_PUBLIC_ENABLE_DEV_TOOLS is set.
  */
 export function DevSampleLoader({ onLoad }: Props) {
-  // Only render in development
-  if (process.env.NODE_ENV !== 'development') {
+  const isDev = process.env.NODE_ENV === 'development';
+  const devToolsEnabled = process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
+
+  if (!isDev && !devToolsEnabled) {
     return null;
   }
 
