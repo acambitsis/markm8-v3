@@ -29,24 +29,25 @@ const IndexPage = async (props: { params: Promise<{ locale: string }> }) => {
   unstable_setRequestLocale(locale);
 
   return (
-    <>
+    <div className="relative overflow-x-hidden">
+      {/* Navigation */}
       <Navbar />
 
-      {/* Hero with Tool Preview */}
+      {/* Hero with Tool Preview - Full viewport height */}
       <ToolHero />
 
       {/* Trust Signals */}
       <TrustStrip />
 
       {/* How It Works */}
-      <div id="how-it-works">
+      <section id="how-it-works">
         <HowItWorks />
-      </div>
+      </section>
 
-      {/* Features */}
-      <div id="features" className="bg-violet-50/50">
+      {/* Features - Bento Grid */}
+      <section id="features">
         <FeaturesGrid />
-      </div>
+      </section>
 
       {/* Testimonials */}
       <Testimonials />
@@ -55,16 +56,16 @@ const IndexPage = async (props: { params: Promise<{ locale: string }> }) => {
       <Pricing />
 
       {/* FAQ */}
-      <div id="faq">
+      <section id="faq">
         <FAQSection />
-      </div>
+      </section>
 
       {/* Final CTA */}
       <CTASection />
 
       {/* Footer */}
       <Footer />
-    </>
+    </div>
   );
 };
 
