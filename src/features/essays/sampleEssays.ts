@@ -17,18 +17,20 @@ export type SampleEssay = {
   content: string;
 };
 
-// Only import sample data in development
-// This entire module will be tree-shaken in production builds
-const sampleEssays: SampleEssay[]
+// Only import sample data in development or when dev tools are explicitly enabled
+const devToolsEnabled
   = process.env.NODE_ENV === 'development'
-    ? [
-        {
-          id: 'law-portfolio',
-          name: 'Law Portfolio - Employment Tribunal',
-          title: 'Employment Tribunal Advice – Harassment and Unfair Dismissal Claims',
-          subject: 'Law and Business',
-          academicLevel: 'undergraduate',
-          instructions: `Summary of submissions due for the Portfolio of Spring term work
+  || process.env.NEXT_PUBLIC_ENABLE_DEV_TOOLS === 'true';
+
+const sampleEssays: SampleEssay[] = devToolsEnabled
+  ? [
+      {
+        id: 'law-portfolio',
+        name: 'Law Portfolio - Employment Tribunal',
+        title: 'Employment Tribunal Advice – Harassment and Unfair Dismissal Claims',
+        subject: 'Law and Business',
+        academicLevel: 'undergraduate',
+        instructions: `Summary of submissions due for the Portfolio of Spring term work
 
 Note that this is a list of all the tasks for the Portfolio of Spring Term work in LAW1024C Legal Foundations 2. All word limits are exclusive of references, the bibliography, and any headings.
 
@@ -57,7 +59,7 @@ Word limit: 1,000 words (suggested - not including the Skills Action plan which 
 
 Part A: Reflect on the development of two or three of your teamwork skills over the course of the academic year.
 Part B: Reflect on one core legal skill (client interviewing, negotiating, or advocacy) developed during the spring term.`,
-          customRubric: `Law School Cornwall Assessment Criteria - Level 4 (Year 1)
+        customRubric: `Law School Cornwall Assessment Criteria - Level 4 (Year 1)
 
 The Four Criteria:
 1. Analysis / argument – the ability to critically analyse and apply legal concepts and principles, develop and sustain reasoned and persuasive argument.
@@ -71,13 +73,13 @@ Marking Scale:
 - Lower second class (48-57): Good identification of most key issues, some evidence of reasoned argument but may deviate at times
 - Third class (38-47): Satisfactory identification of most key issues, some attempt at reasoned argument
 - Fail (0-37): Little to no meaningful analysis, frequent misapplication of law`,
-          focusAreas: [
-            'Legal analysis and application',
-            'OSCOLA referencing',
-            'Professional letter format',
-            'Reflective writing quality',
-          ],
-          content: `Task 1: Letter of Advice
+        focusAreas: [
+          'Legal analysis and application',
+          'OSCOLA referencing',
+          'Professional letter format',
+          'Reflective writing quality',
+        ],
+        content: `Task 1: Letter of Advice
 
 Firm 3
 Campus, Glasney Lodge, Penryn TR10 9FE
@@ -233,14 +235,14 @@ Something I did struggle with however, was the idea of anchoring. I was to quick
 Still, there were positives. I was able to keep things respectful and constructive, which made the other side more open. According to Embley et al, good negotiation relies on preparation and adaptability, being able to respond in the moment and not just sticking to a script. I saw I didn't need to dominate, I just needed to listen, think and respond clearly.
 
 Moving forward, I would like to further develop my confidence in making offers and setting clear goals before negotiating. I would also like to practice responding in real time through moots, and mock negotiations. But this really showed me that negotiation isn't about winning, its more about getting a result that works without escalating conflict.`,
-        },
-        {
-          id: 'history-industrial-revolution',
-          name: 'History - Industrial Revolution',
-          title: 'The Impact of the Industrial Revolution on 19th Century Britain',
-          subject: 'History',
-          academicLevel: 'undergraduate',
-          instructions: `Write a 1500-word essay analyzing the social and economic impacts of the Industrial Revolution in 19th century Britain.
+      },
+      {
+        id: 'history-industrial-revolution',
+        name: 'History - Industrial Revolution',
+        title: 'The Impact of the Industrial Revolution on 19th Century Britain',
+        subject: 'History',
+        academicLevel: 'undergraduate',
+        instructions: `Write a 1500-word essay analyzing the social and economic impacts of the Industrial Revolution in 19th century Britain.
 
 Your essay should:
 - Provide a clear thesis statement in your introduction
@@ -254,20 +256,20 @@ Assessment will focus on:
 - Quality of evidence and source usage
 - Logical structure and flow of argument
 - Proper citation in Chicago style`,
-          customRubric: `| Criterion | Excellent (A) | Good (B) | Satisfactory (C) | Needs Improvement (D) |
+        customRubric: `| Criterion | Excellent (A) | Good (B) | Satisfactory (C) | Needs Improvement (D) |
 |-----------|---------------|----------|------------------|----------------------|
 | Thesis | Clear, specific, arguable thesis that guides the essay | Clear thesis but could be more specific | Thesis present but vague | No clear thesis |
 | Evidence | Extensive use of primary and secondary sources | Good use of sources with minor gaps | Adequate sources but relies heavily on secondary | Insufficient or inappropriate sources |
 | Analysis | Deep analysis connecting evidence to thesis | Good analysis with occasional description | More description than analysis | Mostly summary, little analysis |
 | Structure | Excellent organization with smooth transitions | Good structure with minor issues | Adequate structure but choppy | Disorganized or illogical flow |
 | Citations | Perfect Chicago style formatting | Minor citation errors | Several citation errors | Major citation problems or missing citations |`,
-          focusAreas: [
-            'Thesis clarity and arguability',
-            'Use of primary sources',
-            'Balance of social vs economic analysis',
-            'Argument structure',
-          ],
-          content: `The Industrial Revolution, which began in Britain in the late 18th century, marked one of the most significant turning points in human history. While historians have long debated its precise origins and timeline, there is little dispute about its profound and lasting effects on British society and economy. This essay argues that the Industrial Revolution fundamentally restructured British life, creating both unprecedented economic opportunities and severe social dislocations that would define the character of modern industrial society.
+        focusAreas: [
+          'Thesis clarity and arguability',
+          'Use of primary sources',
+          'Balance of social vs economic analysis',
+          'Argument structure',
+        ],
+        content: `The Industrial Revolution, which began in Britain in the late 18th century, marked one of the most significant turning points in human history. While historians have long debated its precise origins and timeline, there is little dispute about its profound and lasting effects on British society and economy. This essay argues that the Industrial Revolution fundamentally restructured British life, creating both unprecedented economic opportunities and severe social dislocations that would define the character of modern industrial society.
 
 The economic transformation wrought by industrialization was nothing short of revolutionary. The factory system, pioneered in the textile industry, represented a complete departure from the cottage industry that had characterized British manufacturing for centuries. As historian Eric Hobsbawm noted, the cotton mill became "the symbol of the new industrial age." Production that had once taken weeks in scattered homes could now be completed in days within centralized factories. This dramatic increase in productivity drove down prices for consumers while generating enormous profits for factory owners.
 
@@ -286,14 +288,14 @@ The Industrial Revolution also transformed ideas about time, work, and human pot
 The physical landscape of Britain was permanently altered. The "dark Satanic mills" that William Blake lamented spread across the Midlands and the North. Coal mines scarred the Welsh valleys and the Northeast. New industrial towns sprang up where villages had stood; ancient forests gave way to factory complexes and workers' housing. The environmental consequences, from polluted rivers to smoke-darkened skies, would not be seriously addressed for more than a century.
 
 In conclusion, the Industrial Revolution represented a fundamental rupture in British—and ultimately global—history. Its economic innovations created wealth on a scale previously unimaginable, but that wealth was concentrated in relatively few hands while millions labored in conditions of exploitation and deprivation. Its social consequences included the destruction of traditional ways of life, the emergence of new class structures and conflicts, and the creation of political movements that would eventually win significant reforms. The world we inhabit today, for better and worse, is in large measure a product of the transformations set in motion in late 18th century Britain. Understanding the Industrial Revolution is therefore essential not merely as historical knowledge, but as insight into the origins and character of modern industrial society.`,
-        },
-        {
-          id: 'literature-hamlet',
-          name: 'Literature - Hamlet Analysis',
-          title: 'Character Analysis: Hamlet\'s Internal Conflicts',
-          subject: 'English Literature',
-          academicLevel: 'high_school',
-          instructions: `Analyze the character development of Hamlet throughout Shakespeare's play, focusing on his internal conflicts and their resolution.
+      },
+      {
+        id: 'literature-hamlet',
+        name: 'Literature - Hamlet Analysis',
+        title: 'Character Analysis: Hamlet\'s Internal Conflicts',
+        subject: 'English Literature',
+        academicLevel: 'high_school',
+        instructions: `Analyze the character development of Hamlet throughout Shakespeare's play, focusing on his internal conflicts and their resolution.
 
 Your essay should:
 - Be approximately 800-1000 words
@@ -304,7 +306,7 @@ Your essay should:
 - Include a conclusion that reflects on the significance of Hamlet's journey
 
 Remember to use MLA format for all citations.`,
-          customRubric: `Literary Analysis (40%)
+        customRubric: `Literary Analysis (40%)
 - Demonstrates deep understanding of character psychology
 - Identifies and analyzes relevant themes and motifs
 - Makes insightful connections between character and broader meaning
@@ -323,12 +325,12 @@ MLA Format (10%)
 - Correct in-text citations
 - Proper quote formatting
 - Works Cited page (if required)`,
-          focusAreas: [
-            'Character psychology analysis',
-            'Quote integration technique',
-            'Thesis clarity',
-          ],
-          content: `In William Shakespeare's tragic play "Hamlet," the titular character undergoes a profound psychological journey that has fascinated audiences and scholars for over four centuries. Prince Hamlet of Denmark is not a simple hero seeking revenge; he is a deeply conflicted individual torn between action and contemplation, duty and morality, certainty and doubt. This essay argues that Hamlet's internal conflicts—particularly his struggle between the obligation to avenge his father and his philosophical questioning of that obligation—define his character and ultimately lead to his tragic fate.
+        focusAreas: [
+          'Character psychology analysis',
+          'Quote integration technique',
+          'Thesis clarity',
+        ],
+        content: `In William Shakespeare's tragic play "Hamlet," the titular character undergoes a profound psychological journey that has fascinated audiences and scholars for over four centuries. Prince Hamlet of Denmark is not a simple hero seeking revenge; he is a deeply conflicted individual torn between action and contemplation, duty and morality, certainty and doubt. This essay argues that Hamlet's internal conflicts—particularly his struggle between the obligation to avenge his father and his philosophical questioning of that obligation—define his character and ultimately lead to his tragic fate.
 
 From the moment the Ghost reveals that King Hamlet was murdered by his own brother Claudius, the young prince is thrust into an impossible position. He is commanded to "revenge his foul and most unnatural murder" (1.5.25), yet everything in Hamlet's nature resists the straightforward path of violent retribution. Unlike Laertes, who later rushes to avenge his own father's death without hesitation, Hamlet thinks—perhaps too much. As he himself acknowledges, "the native hue of resolution / Is sicklied o'er with the pale cast of thought" (3.1.84-85). This tendency toward over-analysis becomes both his defining characteristic and his fatal flaw.
 
@@ -345,9 +347,9 @@ In conclusion, Hamlet's internal conflicts make him one of literature's most com
 Works Cited
 
 Shakespeare, William. Hamlet. Edited by Barbara A. Mowat and Paul Werstine, Simon & Schuster, 2012.`,
-        },
-      ]
-    : [];
+      },
+    ]
+  : [];
 
 export function getSampleEssays(): SampleEssay[] {
   return sampleEssays;
