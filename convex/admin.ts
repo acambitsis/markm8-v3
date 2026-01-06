@@ -586,6 +586,40 @@ export const updatePlatformSettings = mutation({
     }
 
     if (args.aiConfig !== undefined) {
+      // Validate AI config business rules (beyond schema validation)
+      const { grading, titleGeneration } = args.aiConfig;
+
+      // Grading runs: 1-10 required
+      if (grading.runs.length < 1) {
+        throw new Error('At least one grading run is required');
+      }
+      if (grading.runs.length > 10) {
+        throw new Error('Maximum 10 grading runs allowed');
+      }
+
+      // Temperature: 0-1 range
+      if (grading.temperature < 0 || grading.temperature > 1) {
+        throw new Error('Grading temperature must be between 0 and 1');
+      }
+      if (titleGeneration.temperature < 0 || titleGeneration.temperature > 1) {
+        throw new Error('Title generation temperature must be between 0 and 1');
+      }
+
+      // Outlier threshold: 0-100 range
+      if (grading.outlierThresholdPercent < 0 || grading.outlierThresholdPercent > 100) {
+        throw new Error('Outlier threshold must be between 0 and 100');
+      }
+
+      // Max retries: non-negative
+      if (grading.retry.maxRetries < 0) {
+        throw new Error('Max retries cannot be negative');
+      }
+
+      // Max tokens: positive
+      if (titleGeneration.maxTokens < 1) {
+        throw new Error('Max tokens must be at least 1');
+      }
+
       updates.aiConfig = args.aiConfig;
     }
 
