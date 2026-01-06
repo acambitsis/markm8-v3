@@ -1,6 +1,7 @@
 'use client';
 
 import { UserButton } from '@clerk/nextjs';
+import { Shield } from 'lucide-react';
 import Link from 'next/link';
 import { useLocale } from 'next-intl';
 
@@ -11,12 +12,14 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { CreditsDisplay } from '@/features/dashboard/CreditsDisplay';
+import { useAdminCheck } from '@/hooks/useAdmin';
 import { Logo } from '@/templates/Logo';
-import { getI18nPath } from '@/utils/Helpers';
+import { cn, getI18nPath } from '@/utils/Helpers';
 
 export const DashboardHeader = (props: {
   menu: {
@@ -25,6 +28,7 @@ export const DashboardHeader = (props: {
   }[];
 }) => {
   const locale = useLocale();
+  const { isAdmin } = useAdminCheck();
 
   return (
     <>
@@ -40,6 +44,20 @@ export const DashboardHeader = (props: {
                 <ActiveLink href={item.href}>{item.label}</ActiveLink>
               </li>
             ))}
+            {isAdmin && (
+              <li>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    'inline-flex items-center gap-1.5 rounded-md bg-amber-600 px-2.5 py-1 font-medium text-white',
+                    'transition-colors hover:bg-amber-700 dark:bg-amber-600 dark:hover:bg-amber-500',
+                  )}
+                >
+                  <Shield className="size-4" />
+                  Admin
+                </Link>
+              </li>
+            )}
           </ul>
         </nav>
       </div>
@@ -58,6 +76,20 @@ export const DashboardHeader = (props: {
                       <Link href={item.href}>{item.label}</Link>
                     </DropdownMenuItem>
                   ))}
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem asChild>
+                        <Link
+                          href="/admin"
+                          className="inline-flex items-center gap-1.5 font-medium text-amber-600 dark:text-amber-400"
+                        >
+                          <Shield className="size-4" />
+                          Admin
+                        </Link>
+                      </DropdownMenuItem>
+                    </>
+                  )}
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
