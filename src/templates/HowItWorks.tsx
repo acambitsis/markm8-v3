@@ -1,12 +1,17 @@
 'use client';
 
-import { ArrowRight, CheckCircle2, FileText, Sparkles } from 'lucide-react';
+import { motion, useInView } from 'framer-motion';
+import { CheckCircle2, FileText, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { useRef } from 'react';
 
 import { Section } from '@/features/landing/Section';
+import { cn } from '@/utils/Helpers';
 
 export const HowItWorks = () => {
   const t = useTranslations('HowItWorks');
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-100px' });
 
   const steps = [
     {
@@ -14,18 +19,27 @@ export const HowItWorks = () => {
       icon: FileText,
       titleKey: 'step1_title' as const,
       descriptionKey: 'step1_description' as const,
+      color: 'from-violet-500 to-purple-600',
+      bgColor: 'bg-violet-100',
+      iconColor: 'text-violet-600',
     },
     {
       number: '2',
       icon: Sparkles,
       titleKey: 'step2_title' as const,
       descriptionKey: 'step2_description' as const,
+      color: 'from-purple-500 to-indigo-600',
+      bgColor: 'bg-purple-100',
+      iconColor: 'text-purple-600',
     },
     {
       number: '3',
       icon: CheckCircle2,
       titleKey: 'step3_title' as const,
       descriptionKey: 'step3_description' as const,
+      color: 'from-emerald-500 to-teal-600',
+      bgColor: 'bg-emerald-100',
+      iconColor: 'text-emerald-600',
     },
   ];
 
@@ -35,36 +49,119 @@ export const HowItWorks = () => {
       title={t('section_title')}
       description={t('section_description')}
     >
-      <div className="relative">
-        {/* Connector line - desktop only */}
-        <div className="absolute left-0 right-0 top-16 hidden h-0.5 bg-gradient-to-r from-transparent via-violet-200 to-transparent lg:block" />
+      <div ref={ref} className="relative">
+        {/* Animated connector line - desktop */}
+        <div className="absolute left-0 right-0 top-[60px] hidden lg:block">
+          <svg className="h-4 w-full" viewBox="0 0 1000 16" preserveAspectRatio="none">
+            <motion.path
+              d="M0,8 Q250,8 333,8 Q416,8 500,8 Q583,8 666,8 Q750,8 1000,8"
+              fill="none"
+              stroke="url(#gradient)"
+              strokeWidth="2"
+              strokeDasharray="8 4"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={isInView ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
+              transition={{ duration: 1.5, ease: 'easeInOut', delay: 0.5 }}
+            />
+            <defs>
+              <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stopColor="#8b5cf6" />
+                <stop offset="50%" stopColor="#7c3aed" />
+                <stop offset="100%" stopColor="#10b981" />
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
 
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3 lg:gap-12">
           {steps.map((step, index) => (
-            <div key={step.number} className="relative flex flex-col items-center text-center">
-              {/* Step number circle */}
-              <div className="relative z-10 flex size-16 items-center justify-center rounded-full bg-violet-500 text-2xl font-bold text-white shadow-purple">
-                {step.number}
-              </div>
-
-              {/* Arrow between steps - mobile */}
-              {index < steps.length - 1 && (
-                <div className="my-4 flex items-center justify-center md:hidden">
-                  <ArrowRight className="size-6 rotate-90 text-violet-300" />
+            <motion.div
+              key={step.number}
+              className="relative"
+              initial={{ opacity: 0, y: 40 }}
+              animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 40 }}
+              transition={{
+                duration: 0.6,
+                delay: index * 0.2,
+                ease: [0.25, 0.1, 0.25, 1],
+              }}
+            >
+              {/* Step card */}
+              <motion.div
+                className="group relative flex flex-col items-center text-center"
+                whileHover={{ y: -4 }}
+                transition={{ duration: 0.2 }}
+              >
+                {/* Step number with glow */}
+                <div className="relative">
+                  <motion.div
+                    className="absolute inset-0 rounded-full blur-xl"
+                    style={{
+                      background: `linear-gradient(135deg, ${step.color.includes('violet') ? '#8b5cf6' : step.color.includes('purple') ? '#7c3aed' : '#10b981'} 0%, transparent 70%)`,
+                    }}
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={isInView ? { opacity: 0.3, scale: 1 } : { opacity: 0, scale: 0.8 }}
+                    transition={{ delay: index * 0.2 + 0.3, duration: 0.5 }}
+                  />
+                  <motion.div
+                    className={cn(
+                      'relative z-10 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br text-3xl font-bold text-white shadow-lg',
+                      step.color,
+                    )}
+                    whileHover={{ scale: 1.05, rotate: 3 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 10 }}
+                  >
+                    {step.number}
+                  </motion.div>
                 </div>
-              )}
 
-              {/* Icon */}
-              <div className="mt-6 flex size-12 items-center justify-center rounded-xl bg-violet-100">
-                <step.icon className="size-6 text-violet-600" />
-              </div>
+                {/* Arrow - mobile */}
+                {index < steps.length - 1 && (
+                  <motion.div
+                    className="my-6 lg:hidden"
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -10 }}
+                    transition={{ delay: index * 0.2 + 0.4, duration: 0.3 }}
+                  >
+                    <svg
+                      className="size-8 text-slate-300"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </motion.div>
+                )}
 
-              {/* Title */}
-              <h3 className="mt-4 text-xl font-semibold text-slate-900">{t(step.titleKey)}</h3>
+                {/* Icon */}
+                <motion.div
+                  className={cn(
+                    'mt-6 flex size-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110',
+                    step.bgColor,
+                  )}
+                  whileHover={{ rotate: [0, -10, 10, 0] }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <step.icon className={cn('size-7', step.iconColor)} />
+                </motion.div>
 
-              {/* Description */}
-              <p className="mt-2 text-slate-600">{t(step.descriptionKey)}</p>
-            </div>
+                {/* Title */}
+                <h3 className="mt-5 text-xl font-semibold text-slate-900">
+                  {t(step.titleKey)}
+                </h3>
+
+                {/* Description */}
+                <p className="mt-3 max-w-xs text-slate-600">
+                  {t(step.descriptionKey)}
+                </p>
+              </motion.div>
+            </motion.div>
           ))}
         </div>
       </div>

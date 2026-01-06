@@ -152,6 +152,154 @@
   }
 }
 
+/* ============================================
+   Landing Page Animations
+   ============================================ */
+
+/* Gradient shift for animated backgrounds */
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Floating orb animation */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  33% {
+    transform: translate(30px, -30px) scale(1.05);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.95);
+  }
+}
+
+@keyframes float-medium {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate(-40px, 30px) rotate(180deg);
+  }
+}
+
+@keyframes float-fast {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  25% {
+    transform: translate(20px, -40px);
+  }
+  50% {
+    transform: translate(-30px, -20px);
+  }
+  75% {
+    transform: translate(40px, 10px);
+  }
+}
+
+/* Morphing blob animation */
+@keyframes morph {
+  0%,
+  100% {
+    border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%;
+  }
+  25% {
+    border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%;
+  }
+  50% {
+    border-radius: 50% 60% 30% 60% / 30% 40% 70% 60%;
+  }
+  75% {
+    border-radius: 60% 40% 60% 30% / 60% 30% 40% 70%;
+  }
+}
+
+/* Glow pulse for buttons */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 20px rgba(124, 58, 237, 0.4),
+      0 0 40px rgba(124, 58, 237, 0.2);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(124, 58, 237, 0.6),
+      0 0 60px rgba(124, 58, 237, 0.3);
+  }
+}
+
+/* Reveal line animation */
+@keyframes reveal-line {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* Sparkle animation */
+@keyframes sparkle {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scale(0) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1) rotate(180deg);
+  }
+}
+
+/* Marquee scroll */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Text shimmer effect */
+@keyframes text-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+/* Scale bounce */
+@keyframes scale-bounce {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+/* Draw line (for SVG paths) */
+@keyframes draw-line {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
 @theme {
   /* ============================================
      Typography - Geist Font Family
@@ -494,5 +642,151 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* ============================================
+     Landing Page Utilities
+     ============================================ */
+
+  /* Animated gradient background */
+  .animate-gradient {
+    background-size: 200% 200%;
+    animation: gradient-shift 8s ease infinite;
+  }
+
+  /* Floating orbs */
+  .animate-float-slow {
+    animation: float-slow 20s ease-in-out infinite;
+  }
+
+  .animate-float-medium {
+    animation: float-medium 15s ease-in-out infinite;
+  }
+
+  .animate-float-fast {
+    animation: float-fast 10s ease-in-out infinite;
+  }
+
+  /* Morphing blob */
+  .animate-morph {
+    animation: morph 8s ease-in-out infinite;
+  }
+
+  /* Glow pulse button */
+  .animate-glow {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+
+  /* Marquee scroll */
+  .animate-marquee {
+    animation: marquee 30s linear infinite;
+  }
+
+  /* Text shimmer effect */
+  .text-shimmer {
+    background: linear-gradient(90deg, #1e1b4b 0%, #7c3aed 25%, #a78bfa 50%, #7c3aed 75%, #1e1b4b 100%);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: text-shimmer 3s linear infinite;
+  }
+
+  /* Gradient mesh background */
+  .bg-mesh {
+    background-color: #faf5ff;
+    background-image: radial-gradient(at 40% 20%, hsla(263, 84%, 70%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 80% 0%, hsla(263, 84%, 58%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 50%, hsla(34, 84%, 76%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 80% 50%, hsla(263, 84%, 80%, 0.1) 0px, transparent 50%),
+      radial-gradient(at 0% 100%, hsla(263, 84%, 70%, 0.15) 0px, transparent 50%),
+      radial-gradient(at 80% 100%, hsla(34, 84%, 76%, 0.08) 0px, transparent 50%);
+  }
+
+  /* Hero gradient */
+  .bg-hero-gradient {
+    background: linear-gradient(
+      135deg,
+      rgba(250, 245, 255, 1) 0%,
+      rgba(245, 243, 255, 1) 25%,
+      rgba(255, 255, 255, 1) 50%,
+      rgba(250, 245, 255, 1) 75%,
+      rgba(245, 243, 255, 1) 100%
+    );
+  }
+
+  /* Glass card effect */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+  }
+
+  /* Spotlight effect */
+  .spotlight {
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      rgba(124, 58, 237, 0.06),
+      transparent 40%
+    );
+  }
+
+  /* Glow border on hover */
+  .glow-border {
+    position: relative;
+  }
+
+  .glow-border::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    background: linear-gradient(135deg, #7c3aed, #a78bfa, #f5c38e);
+    border-radius: inherit;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+    filter: blur(8px);
+  }
+
+  .glow-border:hover::before {
+    opacity: 0.6;
+  }
+
+  /* 3D card tilt effect */
+  .card-3d {
+    transform-style: preserve-3d;
+    perspective: 1000px;
+  }
+
+  /* Subtle noise texture */
+  .noise {
+    position: relative;
+  }
+
+  .noise::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    opacity: 0.015;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+
+  /* Gradient text with hover effect */
+  .text-gradient-hover {
+    background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: background 0.3s ease;
+  }
+
+  .text-gradient-hover:hover {
+    background: linear-gradient(135deg, #7c3aed 0%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 }
