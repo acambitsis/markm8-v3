@@ -1,8 +1,12 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+import { motion } from 'framer-motion';
+
+import { AnimatedNumber } from '@/components/motion/AnimatedNumber';
+import { Skeleton } from '@/components/Skeleton';
 import { cn } from '@/utils/Helpers';
+
+type ColorVariant = 'purple' | 'green' | 'blue' | 'orange' | 'default';
 
 type StatsCardProps = {
   title: string;
@@ -15,6 +19,17 @@ type StatsCardProps = {
   };
   isLoading?: boolean;
   className?: string;
+  color?: ColorVariant;
+  delay?: number;
+  animate?: boolean;
+};
+
+const colorClasses: Record<ColorVariant, string> = {
+  purple: 'bg-primary/10 text-primary',
+  green: 'bg-green-500/10 text-green-600',
+  blue: 'bg-blue-500/10 text-blue-600',
+  orange: 'bg-orange-500/10 text-orange-600',
+  default: 'bg-muted text-muted-foreground',
 };
 
 export function StatsCard({
@@ -25,39 +40,55 @@ export function StatsCard({
   trend,
   isLoading,
   className,
+  color = 'default',
+  delay = 0,
+  animate = true,
 }: StatsCardProps) {
   if (isLoading) {
     return (
-      <Card className={cn(className)}>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <Skeleton className="h-4 w-24" />
-          <Skeleton className="size-4" />
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-8 w-16" />
-          {description && <Skeleton className="mt-1 h-3 w-32" />}
-        </CardContent>
-      </Card>
+      <div className={cn('rounded-xl border bg-card p-4 shadow-sm', className)}>
+        <div className="flex items-center gap-4">
+          <Skeleton className="size-11 rounded-lg" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-3 w-20" />
+            <Skeleton className="h-7 w-16" />
+          </div>
+        </div>
+      </div>
     );
   }
 
-  return (
-    <Card className={cn(className)}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        {icon && <div className="text-muted-foreground">{icon}</div>}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
+  // Parse numeric value for animation
+  const numericValue = typeof value === 'number' ? value : Number.parseFloat(String(value).replace(/[^0-9.-]/g, ''));
+  const isNumeric = !Number.isNaN(numericValue);
+  const prefix = typeof value === 'string' && value.startsWith('$') ? '$' : '';
+
+  const content = (
+    <div className={cn('flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md', className)}>
+      {icon && (
+        <div className={cn('flex size-11 shrink-0 items-center justify-center rounded-lg', colorClasses[color])}>
+          {icon}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <p className="text-2xl font-bold tabular-nums">
+          {animate && isNumeric
+            ? (
+                <>
+                  {prefix}
+                  <AnimatedNumber value={numericValue} decimals={prefix === '$' || String(value).includes('.') ? 2 : 0} duration={1} delay={delay} />
+                </>
+              )
+            : value}
+        </p>
         {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
         )}
         {trend && (
           <p
             className={cn(
-              'mt-1 text-xs',
+              'mt-0.5 text-xs font-medium',
               trend.value >= 0 ? 'text-green-600' : 'text-red-600',
             )}
           >
@@ -67,7 +98,21 @@ export function StatsCard({
             {trend.label}
           </p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
+  );
+
+  if (!animate) {
+    return content;
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay, duration: 0.5, ease: [0.25, 0.1, 0.25, 1] }}
+    >
+      {content}
+    </motion.div>
   );
 }

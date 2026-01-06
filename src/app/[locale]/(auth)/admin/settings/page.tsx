@@ -1,19 +1,15 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { Bot, Check, Coins, Loader2, Settings, Shield, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 
+import { PageTransition } from '@/components/motion/PageTransition';
+import { Skeleton } from '@/components/Skeleton';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Textarea } from '@/components/ui/textarea';
 import { AdminAllowlistEditor } from '@/features/admin/AdminAllowlistEditor';
 import { useAdminMutations, useAdminPlatformSettings } from '@/hooks/useAdmin';
@@ -76,80 +72,163 @@ export default function AdminSettingsPage() {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-64 w-full" />
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-48 rounded-xl" />
+        <Skeleton className="h-80 rounded-xl" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('description')}</p>
-      </div>
+    <PageTransition>
+      {/* Header */}
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex items-center gap-2">
+          <Settings className="size-5 text-primary" />
+          <h1 className="text-2xl font-bold">{t('title')}</h1>
+        </div>
+        <p className="mt-1 text-muted-foreground">{t('description')}</p>
+      </motion.div>
 
-      {/* Signup Bonus */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('signup_bonus')}</CardTitle>
-          <CardDescription>{t('signup_bonus_help')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="max-w-sm space-y-2">
-            <Label htmlFor="signupBonus">Credits</Label>
-            <Input
-              id="signupBonus"
-              type="text"
-              value={signupBonus}
-              onChange={e => setSignupBonus(e.target.value)}
-              placeholder="1.00"
+      <div className="space-y-6">
+        {/* Signup Bonus */}
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-green-500/10">
+                <Coins className="size-5 text-green-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold">{t('signup_bonus')}</h2>
+                <p className="text-sm text-muted-foreground">{t('signup_bonus_help')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="max-w-sm space-y-2">
+              <Label htmlFor="signupBonus" className="text-muted-foreground">Credits</Label>
+              <div className="relative">
+                <Coins className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="signupBonus"
+                  type="text"
+                  value={signupBonus}
+                  onChange={e => setSignupBonus(e.target.value)}
+                  placeholder="1.00"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Admin Access */}
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10">
+                <Shield className="size-5 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-semibold">{t('admin_access')}</h2>
+                <p className="text-sm text-muted-foreground">{t('admin_access_help')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <AdminAllowlistEditor />
+          </div>
+        </motion.div>
+
+        {/* AI Configuration */}
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-500/10">
+                <Bot className="size-5 text-blue-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold">{t('ai_config')}</h2>
+                <p className="text-sm text-muted-foreground">{t('ai_config_help')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <Textarea
+              value={aiConfigJson}
+              onChange={e => setAiConfigJson(e.target.value)}
+              rows={15}
+              className="font-mono text-sm"
             />
           </div>
-        </CardContent>
-      </Card>
+        </motion.div>
 
-      {/* Admin Access */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('admin_access')}</CardTitle>
-          <CardDescription>{t('admin_access_help')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <AdminAllowlistEditor />
-        </CardContent>
-      </Card>
+        {/* Save Button */}
+        <motion.div
+          className="flex items-center gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <Button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="btn-lift gap-2"
+            size="lg"
+          >
+            {isSaving
+              ? (
+                  <>
+                    <Loader2 className="size-4 animate-spin" />
+                    {t('saving')}
+                  </>
+                )
+              : t('save_changes')}
+          </Button>
 
-      {/* AI Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('ai_config')}</CardTitle>
-          <CardDescription>{t('ai_config_help')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Textarea
-            value={aiConfigJson}
-            onChange={e => setAiConfigJson(e.target.value)}
-            rows={15}
-            className="font-mono text-sm"
-          />
-        </CardContent>
-      </Card>
+          {error && (
+            <motion.div
+              className="flex items-center gap-2 text-sm text-destructive"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <X className="size-4" />
+              {error}
+            </motion.div>
+          )}
 
-      {/* Save Button */}
-      <div className="flex items-center gap-4">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? t('saving') : t('save_changes')}
-        </Button>
-
-        {error && (
-          <p className="text-sm text-destructive">{error}</p>
-        )}
-
-        {success && (
-          <p className="text-sm text-green-600">{success}</p>
-        )}
+          {success && (
+            <motion.div
+              className="flex items-center gap-2 text-sm text-green-600"
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+            >
+              <Check className="size-4" />
+              {success}
+            </motion.div>
+          )}
+        </motion.div>
       </div>
-    </div>
+    </PageTransition>
   );
 }

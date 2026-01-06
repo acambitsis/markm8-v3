@@ -19,14 +19,16 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 export default function AdminLayout(props: { children: React.ReactNode }) {
   return (
     <AdminGuard>
-      <div className="shadow-md">
-        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-3 py-4">
+      {/* Header with glass effect */}
+      <div className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur-sm supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-screen-xl items-center justify-between px-4 py-3 md:px-6">
           <AdminHeader />
         </div>
       </div>
 
-      <div className="min-h-[calc(100vh-72px)] bg-muted">
-        <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
+      {/* Main content area */}
+      <div className="min-h-[calc(100vh-57px)] bg-muted/50">
+        <div className="mx-auto max-w-screen-xl px-4 pb-16 pt-8 md:px-6">
           {props.children}
         </div>
       </div>
