@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 import { Section } from '@/features/landing/Section';
+import { cn } from '@/utils/Helpers';
 
 type FAQItemProps = {
   question: string;
@@ -29,11 +30,12 @@ const FAQItem = ({ question, answer, isOpen, onToggle, index, isInView }: FAQIte
       }}
     >
       <motion.div
-        className={`overflow-hidden rounded-2xl border transition-all duration-300 ${
+        className={cn(
+          'overflow-hidden rounded-2xl border transition-all duration-300',
           isOpen
             ? 'border-violet-200 bg-violet-50/50 shadow-lg shadow-violet-500/5'
-            : 'border-slate-200 bg-white hover:border-violet-200 hover:shadow-md'
-        }`}
+            : 'border-slate-200 bg-white hover:border-violet-200 hover:shadow-md',
+        )}
         layout
       >
         <button
@@ -44,25 +46,31 @@ const FAQItem = ({ question, answer, isOpen, onToggle, index, isInView }: FAQIte
         >
           <div className="flex items-center gap-4">
             <motion.div
-              className={`flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors ${
-                isOpen ? 'bg-violet-100 text-violet-600' : 'bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600'
-              }`}
+              className={cn(
+                'flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors',
+                isOpen
+                  ? 'bg-violet-100 text-violet-600'
+                  : 'bg-slate-100 text-slate-500 group-hover:bg-violet-100 group-hover:text-violet-600',
+              )}
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ type: 'spring', stiffness: 400, damping: 10 }}
             >
               <HelpCircle className="size-5" />
             </motion.div>
-            <span className={`text-base font-semibold transition-colors md:text-lg ${
-              isOpen ? 'text-violet-900' : 'text-slate-900'
-            }`}
+            <span
+              className={cn(
+                'text-base font-semibold transition-colors md:text-lg',
+                isOpen ? 'text-violet-900' : 'text-slate-900',
+              )}
             >
               {question}
             </span>
           </div>
           <motion.div
-            className={`shrink-0 rounded-full p-1 transition-colors ${
-              isOpen ? 'bg-violet-200 text-violet-700' : 'bg-slate-100 text-slate-500'
-            }`}
+            className={cn(
+              'shrink-0 rounded-full p-1 transition-colors',
+              isOpen ? 'bg-violet-200 text-violet-700' : 'bg-slate-100 text-slate-500',
+            )}
             animate={{ rotate: isOpen ? 180 : 0 }}
             transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
           >

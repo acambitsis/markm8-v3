@@ -2,6 +2,8 @@
 
 import { motion } from 'framer-motion';
 
+import { cn } from '@/utils/Helpers';
+
 type FloatingOrbProps = {
   className?: string;
   size?: 'sm' | 'md' | 'lg' | 'xl';
@@ -39,7 +41,13 @@ export function FloatingOrb({
 }: FloatingOrbProps) {
   return (
     <motion.div
-      className={`pointer-events-none absolute rounded-full blur-3xl ${sizeClasses[size]} ${colorClasses[color]} ${animationClasses[speed]} ${className}`}
+      className={cn(
+        'pointer-events-none absolute rounded-full blur-3xl',
+        sizeClasses[size],
+        colorClasses[color],
+        animationClasses[speed],
+        className,
+      )}
       initial={{ opacity: 0, scale: 0.8 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 1.5, delay, ease: [0.25, 0.1, 0.25, 1] }}
@@ -66,7 +74,12 @@ export function MorphingBlob({
 }: MorphingBlobProps) {
   return (
     <div
-      className={`pointer-events-none absolute animate-morph blur-2xl ${blobSizes[size]} ${color} ${className}`}
+      className={cn(
+        'pointer-events-none absolute animate-morph blur-2xl',
+        blobSizes[size],
+        color,
+        className,
+      )}
     />
   );
 }
@@ -85,11 +98,14 @@ const dotColors = {
 
 export function GlowingDot({ className = '', color = 'violet', pulse = true }: GlowingDotProps) {
   return (
-    <span className={`relative inline-flex ${className}`}>
-      <span className={`size-2 rounded-full ${dotColors[color]}`} />
+    <span className={cn('relative inline-flex', className)}>
+      <span className={cn('size-2 rounded-full', dotColors[color])} />
       {pulse && (
         <span
-          className={`absolute inline-flex size-full animate-ping rounded-full ${dotColors[color]} opacity-75`}
+          className={cn(
+            'absolute inline-flex size-full animate-ping rounded-full opacity-75',
+            dotColors[color],
+          )}
         />
       )}
     </span>
@@ -103,7 +119,7 @@ type SparkleProps = {
 export function Sparkle({ className = '' }: SparkleProps) {
   return (
     <motion.svg
-      className={`size-4 ${className}`}
+      className={cn('size-4', className)}
       viewBox="0 0 24 24"
       fill="none"
       initial={{ opacity: 0, scale: 0, rotate: 0 }}
@@ -149,7 +165,7 @@ export function SparkleGroup({ count = 5, className = '' }: SparkleGroupProps) {
   const positions = SPARKLE_POSITIONS.slice(0, count);
 
   return (
-    <div className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}>
+    <div className={cn('pointer-events-none absolute inset-0 overflow-hidden', className)}>
       {positions.map((pos, i) => (
         <motion.div
           key={`sparkle-${pos.left}-${pos.top}`}
@@ -176,7 +192,7 @@ type GridPatternProps = {
 export function GridPattern({ className = '' }: GridPatternProps) {
   return (
     <svg
-      className={`pointer-events-none absolute inset-0 size-full ${className}`}
+      className={cn('pointer-events-none absolute inset-0 size-full', className)}
       xmlns="http://www.w3.org/2000/svg"
     >
       <defs>

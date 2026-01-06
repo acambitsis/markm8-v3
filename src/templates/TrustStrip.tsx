@@ -5,6 +5,8 @@ import { Clock, GraduationCap, Shield, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
+import { cn } from '@/utils/Helpers';
+
 export const TrustStrip = () => {
   const t = useTranslations('TrustStrip');
   const ref = useRef<HTMLDivElement>(null);
@@ -46,7 +48,10 @@ export const TrustStrip = () => {
                 }}
               >
                 <motion.div
-                  className={`flex size-10 items-center justify-center rounded-xl bg-slate-100 ${item.color}`}
+                  className={cn(
+                    'flex size-10 items-center justify-center rounded-xl bg-slate-100',
+                    item.color,
+                  )}
                   whileHover={{ scale: 1.1, rotate: 5 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 >
@@ -81,7 +86,10 @@ export const TrustStrip = () => {
                 className="flex shrink-0 items-center gap-2.5"
               >
                 <div
-                  className={`flex size-8 items-center justify-center rounded-lg bg-slate-100 ${item.color}`}
+                  className={cn(
+                    'flex size-8 items-center justify-center rounded-lg bg-slate-100',
+                    item.color,
+                  )}
                 >
                   <item.icon className="size-4" />
                 </div>

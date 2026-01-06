@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { Section } from '@/features/landing/Section';
+import { cn } from '@/utils/Helpers';
 
 export const Testimonials = () => {
   const t = useTranslations('Testimonials');
@@ -66,7 +67,10 @@ export const Testimonials = () => {
             >
               {/* Gradient accent line */}
               <motion.div
-                className={`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${testimonial.gradient}`}
+                className={cn(
+                  'absolute inset-x-0 top-0 h-1 bg-gradient-to-r',
+                  testimonial.gradient,
+                )}
                 initial={{ scaleX: 0 }}
                 animate={isInView ? { scaleX: 1 } : { scaleX: 0 }}
                 transition={{ delay: index * 0.15 + 0.3, duration: 0.5 }}
@@ -111,7 +115,10 @@ export const Testimonials = () => {
               <div className="mt-6 flex items-center gap-3 border-t border-slate-100 pt-4">
                 {/* Avatar */}
                 <motion.div
-                  className={`flex size-12 items-center justify-center rounded-full bg-gradient-to-br ${testimonial.gradient} text-2xl shadow-md`}
+                  className={cn(
+                    'flex size-12 items-center justify-center rounded-full bg-gradient-to-br text-2xl shadow-md',
+                    testimonial.gradient,
+                  )}
                   whileHover={{ scale: 1.1, rotate: 10 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                 >

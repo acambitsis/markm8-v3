@@ -3,6 +3,8 @@
 import { motion, useScroll, useSpring, useTransform } from 'framer-motion';
 import { useRef } from 'react';
 
+import { cn } from '@/utils/Helpers';
+
 type ScrollProgressBarProps = {
   className?: string;
 };
@@ -17,7 +19,10 @@ export function ScrollProgressBar({ className = '' }: ScrollProgressBarProps) {
 
   return (
     <motion.div
-      className={`fixed left-0 right-0 top-0 z-50 h-1 origin-left bg-gradient-to-r from-violet-600 via-purple-500 to-violet-600 ${className}`}
+      className={cn(
+        'fixed left-0 right-0 top-0 z-50 h-1 origin-left bg-gradient-to-r from-violet-600 via-purple-500 to-violet-600',
+        className,
+      )}
       style={{ scaleX }}
     />
   );
@@ -43,7 +48,7 @@ export function ParallaxSection({
   const y = useTransform(scrollYProgress, [0, 1], ['0%', `${speed * 100}%`]);
 
   return (
-    <div ref={ref} className={`relative overflow-hidden ${className}`}>
+    <div ref={ref} className={cn('relative overflow-hidden', className)}>
       <motion.div style={{ y }}>{children}</motion.div>
     </div>
   );
@@ -101,7 +106,7 @@ export function StickyReveal({
   const opacity = useTransform(scrollYProgress, [0, 0.3], [0, 1]);
 
   return (
-    <div ref={ref} className={`relative ${className}`} style={{ height }}>
+    <div ref={ref} className={cn('relative', className)} style={{ height }}>
       <div className="sticky top-0 flex h-screen items-center justify-center">
         <motion.div style={{ scale, opacity }}>{children}</motion.div>
       </div>

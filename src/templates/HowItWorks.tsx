@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { Section } from '@/features/landing/Section';
+import { cn } from '@/utils/Helpers';
 
 export const HowItWorks = () => {
   const t = useTranslations('HowItWorks');
@@ -103,7 +104,10 @@ export const HowItWorks = () => {
                     transition={{ delay: index * 0.2 + 0.3, duration: 0.5 }}
                   />
                   <motion.div
-                    className={`relative z-10 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br ${step.color} text-3xl font-bold text-white shadow-lg`}
+                    className={cn(
+                      'relative z-10 flex size-20 items-center justify-center rounded-2xl bg-gradient-to-br text-3xl font-bold text-white shadow-lg',
+                      step.color,
+                    )}
                     whileHover={{ scale: 1.05, rotate: 3 }}
                     transition={{ type: 'spring', stiffness: 400, damping: 10 }}
                   >
@@ -137,11 +141,14 @@ export const HowItWorks = () => {
 
                 {/* Icon */}
                 <motion.div
-                  className={`mt-6 flex size-14 items-center justify-center rounded-xl ${step.bgColor} transition-transform group-hover:scale-110`}
+                  className={cn(
+                    'mt-6 flex size-14 items-center justify-center rounded-xl transition-transform group-hover:scale-110',
+                    step.bgColor,
+                  )}
                   whileHover={{ rotate: [0, -10, 10, 0] }}
                   transition={{ duration: 0.4 }}
                 >
-                  <step.icon className={`size-7 ${step.iconColor}`} />
+                  <step.icon className={cn('size-7', step.iconColor)} />
                 </motion.div>
 
                 {/* Title */}

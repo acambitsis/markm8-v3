@@ -14,6 +14,7 @@ import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 import { Section } from '@/features/landing/Section';
+import { cn } from '@/utils/Helpers';
 
 type FeatureKey =
   | 'feature1_title'
@@ -103,9 +104,11 @@ export const FeaturesGrid = () => {
           {features.map((feature, index) => (
             <motion.div
               key={feature.titleKey}
-              className={`group relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm transition-all duration-300 hover:border-violet-200 hover:shadow-lg ${
-                feature.span === 'wide' ? 'md:col-span-2' : ''
-              } ${feature.span === 'tall' ? 'row-span-2' : ''}`}
+              className={cn(
+                'group relative overflow-hidden rounded-2xl border border-slate-200/60 bg-white p-6 shadow-sm transition-all duration-300 hover:border-violet-200 hover:shadow-lg',
+                feature.span === 'wide' && 'md:col-span-2',
+                feature.span === 'tall' && 'row-span-2',
+              )}
               initial={{ opacity: 0, y: 30 }}
               animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
               transition={{
@@ -132,7 +135,11 @@ export const FeaturesGrid = () => {
               <div className="relative z-10 flex h-full flex-col">
                 {/* Icon */}
                 <motion.div
-                  className={`flex size-12 items-center justify-center rounded-xl ${feature.bgColor} ${feature.color} transition-transform group-hover:scale-110`}
+                  className={cn(
+                    'flex size-12 items-center justify-center rounded-xl transition-transform group-hover:scale-110',
+                    feature.bgColor,
+                    feature.color,
+                  )}
                   whileHover={{ rotate: [0, -5, 5, 0] }}
                   transition={{ duration: 0.3 }}
                 >
