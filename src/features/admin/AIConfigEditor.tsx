@@ -16,7 +16,7 @@ import {
   Type,
   Zap,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -48,24 +48,16 @@ type AIConfigEditorProps = {
   onChange: (config: AiConfig) => void;
 };
 
-// Default config for new setups
-const DEFAULT_CONFIG: AiConfig = {
-  grading: {
-    mode: 'mock',
-    temperature: 0.4,
-    runs: [{ model: 'x-ai/grok-4.1-fast' }],
-    outlierThresholdPercent: 10,
-    retry: {
-      maxRetries: 3,
-      backoffMs: [5000, 15000, 45000],
-    },
-  },
-  titleGeneration: {
-    model: 'anthropic/claude-haiku-4.5',
-    temperature: 0.4,
-    maxTokens: 14,
-  },
+// Internal run type with stable ID for animations
+type RunWithId = {
+  id: string;
+  model: string;
 };
+
+// Generate a unique ID for runs
+function generateRunId(): string {
+  return `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 // Helper to format price
 function formatPrice(pricePerMillion: number | undefined): string {
@@ -75,18 +67,61 @@ function formatPrice(pricePerMillion: number | undefined): string {
   return `$${pricePerMillion.toFixed(2)}/M`;
 }
 
+// Default fallback model (used only if catalog is empty)
+const FALLBACK_GRADING_MODEL = 'x-ai/grok-4.1-fast';
+const FALLBACK_TITLE_MODEL = 'anthropic/claude-haiku-4.5';
+
 export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
   // Fetch available models from catalog
   const gradingModels = useQuery(api.modelCatalog.getEnabled, { capability: 'grading' });
   const titleModels = useQuery(api.modelCatalog.getEnabled, { capability: 'title' });
 
-  // Initialize local state from config or defaults
-  const [localConfig, setLocalConfig] = useState<AiConfig>(config ?? DEFAULT_CONFIG);
+  // Get default model from catalog or fallback
+  const defaultGradingModel = gradingModels?.[0]?.slug ?? FALLBACK_GRADING_MODEL;
+  const defaultTitleModel = titleModels?.[0]?.slug ?? FALLBACK_TITLE_MODEL;
 
-  // Sync local state when config prop changes
+  // Create default config using catalog models
+  const defaultConfig = useMemo<AiConfig>(() => ({
+    grading: {
+      mode: 'mock',
+      temperature: 0.4,
+      runs: [{ model: defaultGradingModel }],
+      outlierThresholdPercent: 10,
+      retry: {
+        maxRetries: 3,
+        backoffMs: [5000, 15000, 45000],
+      },
+    },
+    titleGeneration: {
+      model: defaultTitleModel,
+      temperature: 0.4,
+      maxTokens: 14,
+    },
+  }), [defaultGradingModel, defaultTitleModel]);
+
+  // Initialize local state from config or defaults
+  const [localConfig, setLocalConfig] = useState<AiConfig>(config ?? defaultConfig);
+
+  // Track runs with stable IDs for animations (internal only, not persisted)
+  const [runsWithIds, setRunsWithIds] = useState<RunWithId[]>(() =>
+    (config ?? defaultConfig).grading.runs.map(run => ({
+      id: generateRunId(),
+      model: run.model,
+    })),
+  );
+
+  // Track if we've initialized from config to avoid re-initialization
+  const initializedRef = useRef(false);
+
+  // Sync local state when config prop changes (only on initial load)
   useEffect(() => {
-    if (config) {
+    if (config && !initializedRef.current) {
+      initializedRef.current = true;
       setLocalConfig(config);
+      setRunsWithIds(config.grading.runs.map(run => ({
+        id: generateRunId(),
+        model: run.model,
+      })));
     }
   }, [config]);
 
@@ -113,28 +148,39 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
 
   // Add a grading run
   const addGradingRun = useCallback(() => {
-    const defaultModel = gradingModels?.[0]?.slug ?? 'x-ai/grok-4.1-fast';
+    const newRun: RunWithId = { id: generateRunId(), model: defaultGradingModel };
+    setRunsWithIds(prev => [...prev, newRun]);
     updateGrading({
-      runs: [...localConfig.grading.runs, { model: defaultModel }],
+      runs: [...localConfig.grading.runs, { model: defaultGradingModel }],
     });
-  }, [gradingModels, localConfig.grading.runs, updateGrading]);
+  }, [defaultGradingModel, localConfig.grading.runs, updateGrading]);
 
-  // Remove a grading run
-  const removeGradingRun = useCallback((index: number) => {
-    if (localConfig.grading.runs.length <= 1) {
+  // Remove a grading run by ID
+  const removeGradingRun = useCallback((id: string) => {
+    if (runsWithIds.length <= 1) {
       return;
     }
+    const index = runsWithIds.findIndex(r => r.id === id);
+    if (index === -1) {
+      return;
+    }
+    setRunsWithIds(prev => prev.filter(r => r.id !== id));
     const newRuns = localConfig.grading.runs.filter((_, i) => i !== index);
     updateGrading({ runs: newRuns });
-  }, [localConfig.grading.runs, updateGrading]);
+  }, [runsWithIds, localConfig.grading.runs, updateGrading]);
 
-  // Update a specific grading run's model
-  const updateGradingRunModel = useCallback((index: number, model: string) => {
+  // Update a specific grading run's model by ID
+  const updateGradingRunModel = useCallback((id: string, model: string) => {
+    const index = runsWithIds.findIndex(r => r.id === id);
+    if (index === -1) {
+      return;
+    }
+    setRunsWithIds(prev => prev.map(r => r.id === id ? { ...r, model } : r));
     const newRuns = localConfig.grading.runs.map((run, i) =>
       i === index ? { ...run, model } : run,
     );
     updateGrading({ runs: newRuns });
-  }, [localConfig.grading.runs, updateGrading]);
+  }, [runsWithIds, localConfig.grading.runs, updateGrading]);
 
   // Update retry backoff
   const updateBackoff = useCallback((index: number, value: number) => {
@@ -233,10 +279,10 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               <Cpu className="size-5 text-blue-500" />
               <h3 className="font-semibold">Grading Models</h3>
               <Badge variant="secondary" className="text-xs">
-                {localConfig.grading.runs.length}
+                {runsWithIds.length}
                 {' '}
                 run
-                {localConfig.grading.runs.length !== 1 ? 's' : ''}
+                {runsWithIds.length !== 1 ? 's' : ''}
               </Badge>
               <Tooltip>
                 <TooltipTrigger>
@@ -252,7 +298,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               variant="outline"
               size="sm"
               onClick={addGradingRun}
-              disabled={localConfig.grading.runs.length >= 10}
+              disabled={runsWithIds.length >= 10}
               className="gap-1"
             >
               <Plus className="size-4" />
@@ -262,9 +308,9 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
 
           <div className="space-y-2">
             <AnimatePresence mode="popLayout">
-              {localConfig.grading.runs.map((run, index) => (
+              {runsWithIds.map((run, index) => (
                 <motion.div
-                  key={`run-${index}`}
+                  key={run.id}
                   layout
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
@@ -278,7 +324,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                   </span>
                   <Select
                     value={run.model}
-                    onValueChange={value => updateGradingRunModel(index, value)}
+                    onValueChange={value => updateGradingRunModel(run.id, value)}
                   >
                     <SelectTrigger className="flex-1">
                       <SelectValue placeholder="Select model" />
@@ -312,8 +358,8 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    onClick={() => removeGradingRun(index)}
-                    disabled={localConfig.grading.runs.length <= 1}
+                    onClick={() => removeGradingRun(run.id)}
+                    disabled={runsWithIds.length <= 1}
                     className="size-9 text-muted-foreground hover:text-destructive"
                   >
                     <Minus className="size-4" />
@@ -323,7 +369,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             </AnimatePresence>
           </div>
 
-          {localConfig.grading.runs.length < 3 && (
+          {runsWithIds.length < 3 && (
             <p className="text-xs text-amber-600 dark:text-amber-400">
               Tip: 3+ runs recommended for accurate consensus grading
             </p>
