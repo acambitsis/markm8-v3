@@ -1,31 +1,30 @@
 'use client';
 
 import type { Id } from 'convex/_generated/dataModel';
-import { ArrowLeft } from 'lucide-react';
+import { motion } from 'framer-motion';
+import {
+  ArrowLeft,
+  Building,
+  Calendar,
+  Clock,
+  Coins,
+  CreditCard,
+  FileText,
+  Mail,
+  User,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 
+import { PageTransition } from '@/components/motion/PageTransition';
+import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { getTransactionStyle } from '@/features/admin/colors';
 import { CreditAdjustForm } from '@/features/admin/CreditAdjustForm';
+import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminUserDetail } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
 
@@ -46,206 +45,329 @@ export default function AdminUserDetailPage() {
     });
   };
 
-  const getTransactionTypeBadge = (type: string) => {
-    const variants: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-      signup_bonus: 'secondary',
-      purchase: 'default',
-      grading: 'destructive',
-      refund: 'outline',
-      admin_adjustment: 'secondary',
-    };
-    return variants[type] ?? 'default';
+  const formatShortDate = (timestamp: number) => {
+    return new Date(timestamp).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
   };
 
   if (isLoading) {
     return (
       <div className="space-y-6">
         <Skeleton className="h-8 w-32" />
-        <Skeleton className="h-64 w-full" />
-        <Skeleton className="h-96 w-full" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className="h-64 rounded-xl" />
+        </div>
+        <Skeleton className="h-96 rounded-xl" />
       </div>
     );
   }
 
   if (!userDetail) {
     return (
-      <div className="space-y-6">
-        <Button asChild variant="ghost" size="sm">
+      <PageTransition>
+        <Button asChild variant="ghost" size="sm" className="mb-6">
           <Link href="/admin/users">
             <ArrowLeft className="mr-2 size-4" />
             {t('back')}
           </Link>
         </Button>
-        <p className="text-center text-muted-foreground">User not found</p>
-      </div>
+        <div className="rounded-xl border bg-card py-16 text-center">
+          <User className="mx-auto size-12 text-muted-foreground/50" />
+          <p className="mt-4 text-muted-foreground">User not found</p>
+        </div>
+      </PageTransition>
     );
   }
 
   const { user, credits, transactions, recentEssays } = userDetail;
 
   return (
-    <div className="space-y-6">
-      <Button asChild variant="ghost" size="sm">
-        <Link href="/admin/users">
-          <ArrowLeft className="mr-2 size-4" />
-          {t('back')}
-        </Link>
-      </Button>
+    <PageTransition>
+      {/* Back Button */}
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <Button asChild variant="ghost" size="sm" className="mb-6">
+          <Link href="/admin/users">
+            <ArrowLeft className="mr-2 size-4" />
+            {t('back')}
+          </Link>
+        </Button>
+      </motion.div>
+
+      {/* User Header */}
+      <motion.div
+        className="mb-8 flex items-center gap-4"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex size-16 items-center justify-center rounded-full bg-primary/10 text-2xl font-bold text-primary">
+          {user.email.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <h1 className="text-2xl font-bold">{user.name ?? user.email.split('@')[0]}</h1>
+          <p className="text-muted-foreground">{user.email}</p>
+        </div>
+      </motion.div>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* User Profile Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('profile')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground">{t('email')}</p>
-              <p className="font-medium">{user.email}</p>
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-2">
+              <User className="size-5 text-primary" />
+              <h2 className="font-semibold">{t('profile')}</h2>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('name')}</p>
-              <p className="font-medium">{user.name ?? '-'}</p>
+          </div>
+          <div className="divide-y">
+            <div className="flex items-center gap-4 p-4">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                <Mail className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('email')}</p>
+                <p className="font-medium">{user.email}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('institution')}</p>
-              <p className="font-medium">{user.institution ?? '-'}</p>
+            <div className="flex items-center gap-4 p-4">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                <User className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('name')}</p>
+                <p className="font-medium">{user.name ?? '-'}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">{t('joined')}</p>
-              <p className="font-medium">{formatDate(user.createdAt)}</p>
+            <div className="flex items-center gap-4 p-4">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                <Building className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('institution')}</p>
+                <p className="font-medium">{user.institution ?? '-'}</p>
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="flex items-center gap-4 p-4">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-muted">
+                <Calendar className="size-5 text-muted-foreground" />
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">{t('joined')}</p>
+                <p className="font-medium">{formatDate(user.createdAt)}</p>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Credits Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('credits')}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-2">
+              <Coins className="size-5 text-primary" />
+              <h2 className="font-semibold">{t('credits')}</h2>
+            </div>
+          </div>
+          <div className="p-5">
+            <div className="mb-6 grid grid-cols-2 gap-4">
+              <div className="rounded-lg bg-green-500/10 p-4">
                 <p className="text-sm text-muted-foreground">{t('current_balance')}</p>
-                <p className="text-2xl font-bold">{credits.balance}</p>
+                <p className="text-3xl font-bold text-green-600">{credits.balance}</p>
               </div>
-              <div>
+              <div className="rounded-lg bg-orange-500/10 p-4">
                 <p className="text-sm text-muted-foreground">{t('reserved')}</p>
-                <p className="text-2xl font-bold">{credits.reserved}</p>
+                <p className="text-3xl font-bold text-orange-600">{credits.reserved}</p>
               </div>
             </div>
 
-            <Separator />
+            <Separator className="my-5" />
 
             <div>
-              <h4 className="mb-3 font-medium">{t('adjust_credits')}</h4>
+              <h4 className="mb-4 flex items-center gap-2 font-medium">
+                <CreditCard className="size-4 text-muted-foreground" />
+                {t('adjust_credits')}
+              </h4>
               <CreditAdjustForm
                 userId={userId}
                 currentBalance={credits.balance}
               />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </motion.div>
       </div>
 
       {/* Transaction History */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('transaction_history')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {transactions.length === 0
-            ? (
-                <p className="py-8 text-center text-muted-foreground">
-                  {t('no_transactions')}
-                </p>
-              )
-            : (
-                <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Date</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Amount</TableHead>
-                        <TableHead>Description</TableHead>
-                        <TableHead>Note</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {transactions.map(tx => (
-                        <TableRow key={tx._id}>
-                          <TableCell>{formatDate(tx.createdAt)}</TableCell>
-                          <TableCell>
-                            <Badge variant={getTransactionTypeBadge(tx.type)}>
-                              {tx.type.replace('_', ' ')}
-                            </Badge>
-                          </TableCell>
-                          <TableCell
+      <motion.div
+        className="mt-6 rounded-xl border bg-card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3, duration: 0.5 }}
+      >
+        <div className="border-b p-5">
+          <div className="flex items-center gap-2">
+            <CreditCard className="size-5 text-primary" />
+            <h2 className="font-semibold">{t('transaction_history')}</h2>
+          </div>
+        </div>
+        {transactions.length === 0
+          ? (
+              <div className="py-12 text-center">
+                <CreditCard className="mx-auto size-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">{t('no_transactions')}</p>
+              </div>
+            )
+          : (
+              <motion.div
+                className="divide-y"
+                variants={staggerContainer}
+                initial="hidden"
+                animate="visible"
+              >
+                {transactions.map(tx => (
+                  <motion.div
+                    key={tx._id}
+                    className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
+                    variants={staggerItem}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={cn(
+                        'flex size-10 items-center justify-center rounded-full',
+                        getTransactionStyle(tx.type).bg,
+                      )}
+                      >
+                        <CreditCard className={cn(
+                          'size-4',
+                          getTransactionStyle(tx.type).text,
+                        )}
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <Badge
+                            variant="secondary"
                             className={cn(
-                              'text-right font-medium',
-                              tx.amount.startsWith('-')
-                                ? 'text-red-600'
-                                : 'text-green-600',
+                              'text-xs',
+                              getTransactionStyle(tx.type).bg,
+                              getTransactionStyle(tx.type).text,
                             )}
                           >
-                            {tx.amount.startsWith('-') ? '' : '+'}
-                            {tx.amount}
-                          </TableCell>
-                          <TableCell>{tx.description ?? '-'}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">
-                            {tx.adminNote ?? '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-        </CardContent>
-      </Card>
+                            {tx.type.replace('_', ' ')}
+                          </Badge>
+                        </div>
+                        <p className="mt-1 text-sm text-muted-foreground">
+                          {tx.description ?? '-'}
+                          {tx.adminNote && (
+                            <span className="block text-xs italic">
+                              Note:
+                              {' '}
+                              {tx.adminNote}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className={cn(
+                        'font-semibold tabular-nums',
+                        tx.amount.startsWith('-') ? 'text-red-600' : 'text-green-600',
+                      )}
+                      >
+                        {tx.amount.startsWith('-') ? '' : '+'}
+                        {tx.amount}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatShortDate(tx.createdAt)}
+                      </p>
+                    </div>
+                  </motion.div>
+                ))}
+              </motion.div>
+            )}
+      </motion.div>
 
       {/* Recent Essays */}
       {recentEssays.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>{t('recent_essays')}</CardTitle>
-            <CardDescription>
-              {recentEssays.length}
-              {' '}
-              recent submissions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Submitted</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentEssays.map(essay => (
-                    <TableRow key={essay._id}>
-                      <TableCell className="font-medium">{essay.title}</TableCell>
-                      <TableCell>
-                        <Badge variant={essay.status === 'submitted' ? 'default' : 'secondary'}>
-                          {essay.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {essay.submittedAt ? formatDate(essay.submittedAt) : '-'}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+        <motion.div
+          className="mt-6 rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <FileText className="size-5 text-primary" />
+                <h2 className="font-semibold">{t('recent_essays')}</h2>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {recentEssays.length}
+                {' '}
+                submissions
+              </span>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+          <motion.div
+            className="divide-y"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            {recentEssays.map(essay => (
+              <motion.div
+                key={essay._id}
+                className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
+                variants={staggerItem}
+              >
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    'flex size-10 items-center justify-center rounded-lg',
+                    essay.status === 'submitted' ? 'bg-green-500/10' : 'bg-muted',
+                  )}
+                  >
+                    <FileText className={cn(
+                      'size-5',
+                      essay.status === 'submitted' ? 'text-green-600' : 'text-muted-foreground',
+                    )}
+                    />
+                  </div>
+                  <div>
+                    <p className="font-medium">{essay.title}</p>
+                    <div className="mt-1 flex items-center gap-2">
+                      <Badge
+                        variant={essay.status === 'submitted' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {essay.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                {essay.submittedAt && (
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                    <Clock className="size-4" />
+                    {formatShortDate(essay.submittedAt)}
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
       )}
-    </div>
+    </PageTransition>
   );
 }

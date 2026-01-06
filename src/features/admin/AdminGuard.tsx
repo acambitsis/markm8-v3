@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@/components/Skeleton';
 import { useAdminCheck } from '@/hooks/useAdmin';
 
 type AdminGuardProps = {

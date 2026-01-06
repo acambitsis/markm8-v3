@@ -1,22 +1,17 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { ArrowRight, Coins, FileText, Search, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageTransition } from '@/components/motion/PageTransition';
+import { Skeleton } from '@/components/Skeleton';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminUsers } from '@/hooks/useAdmin';
+import { cn } from '@/utils/Helpers';
 
 export default function AdminUsersPage() {
   const t = useTranslations('AdminUsers');
@@ -32,73 +27,145 @@ export default function AdminUsersPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
-        <p className="text-muted-foreground">{t('description')}</p>
-      </div>
+    <PageTransition>
+      {/* Header */}
+      <motion.div
+        className="mb-8"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="mb-2 flex items-center gap-2">
+              <Users className="size-5 text-primary" />
+              <h1 className="text-2xl font-bold">{t('title')}</h1>
+            </div>
+            <p className="text-muted-foreground">{t('description')}</p>
+          </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{t('title')}</CardTitle>
-          <CardDescription>
+          {/* Search */}
+          <div className="relative max-w-sm">
+            <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder={t('search_placeholder')}
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="mt-2 max-w-sm"
+              className="pl-9"
             />
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {isLoading
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Users List */}
+      <motion.div
+        className="rounded-xl border bg-card"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+      >
+        {isLoading
+          ? (
+              <div className="divide-y">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="flex items-center gap-4 p-4">
+                    <Skeleton className="size-10 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-1/3" />
+                      <Skeleton className="h-3 w-1/4" />
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-12" />
+                      <Skeleton className="h-8 w-8 rounded-lg" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          : users.length === 0
             ? (
-                <div className="space-y-3">
-                  {[1, 2, 3, 4, 5].map(i => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                  ))}
-                </div>
-              )
-            : users.length === 0
-              ? (
-                  <p className="py-8 text-center text-muted-foreground">
+                <div className="py-16 text-center">
+                  <Users className="mx-auto size-12 text-muted-foreground/50" />
+                  <p className="mt-4 text-muted-foreground">
                     {t('no_users')}
                   </p>
-                )
-              : (
-                  <div className="rounded-md border">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>{t('email')}</TableHead>
-                          <TableHead>{t('name')}</TableHead>
-                          <TableHead className="text-right">{t('credits')}</TableHead>
-                          <TableHead className="text-right">{t('essays')}</TableHead>
-                          <TableHead>{t('joined')}</TableHead>
-                          <TableHead className="text-right">{t('actions')}</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map(user => (
-                          <TableRow key={user._id}>
-                            <TableCell className="font-medium">{user.email}</TableCell>
-                            <TableCell>{user.name ?? '-'}</TableCell>
-                            <TableCell className="text-right">{user.creditBalance}</TableCell>
-                            <TableCell className="text-right">{user.essayCount}</TableCell>
-                            <TableCell>{formatDate(user.createdAt)}</TableCell>
-                            <TableCell className="text-right">
-                              <Button asChild variant="outline" size="sm">
-                                <Link href={`/admin/users/${user._id}`}>{t('view')}</Link>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                )}
-        </CardContent>
-      </Card>
-    </div>
+                </div>
+              )
+            : (
+                <motion.div
+                  className="divide-y"
+                  variants={staggerContainer}
+                  initial="hidden"
+                  animate="visible"
+                >
+                  {users.map(user => (
+                    <motion.div key={user._id} variants={staggerItem}>
+                      <Link
+                        href={`/admin/users/${user._id}`}
+                        className="group flex items-center gap-4 p-4 transition-colors hover:bg-muted/50"
+                      >
+                        {/* Avatar */}
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-medium text-primary">
+                          {user.email.charAt(0).toUpperCase()}
+                        </div>
+
+                        {/* User Info */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-medium group-hover:text-primary">
+                            {user.name ?? user.email.split('@')[0]}
+                          </p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {user.email}
+                          </p>
+                        </div>
+
+                        {/* Stats */}
+                        <div className="hidden items-center gap-6 text-sm md:flex">
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Coins className="size-4" />
+                            <span className={cn(
+                              'font-medium tabular-nums',
+                              Number.parseFloat(user.creditBalance) > 0 ? 'text-green-600' : '',
+                            )}
+                            >
+                              {user.creditBalance}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <FileText className="size-4" />
+                            <span className="font-medium tabular-nums">{user.essayCount}</span>
+                          </div>
+                          <span className="text-muted-foreground">
+                            {formatDate(user.createdAt)}
+                          </span>
+                        </div>
+
+                        {/* Arrow */}
+                        <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+                      </Link>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              )}
+      </motion.div>
+
+      {/* Results count */}
+      {!isLoading && users.length > 0 && (
+        <motion.p
+          className="mt-4 text-center text-sm text-muted-foreground"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          {users.length}
+          {' '}
+          user
+          {users.length !== 1 ? 's' : ''}
+          {' '}
+          found
+        </motion.p>
+      )}
+    </PageTransition>
   );
 }
