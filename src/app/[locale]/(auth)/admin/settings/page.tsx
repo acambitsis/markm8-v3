@@ -2,36 +2,57 @@
 
 import { motion } from 'framer-motion';
 import { Bot, Check, Coins, Loader2, Settings, Shield, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { AdminAllowlistEditor } from '@/features/admin/AdminAllowlistEditor';
+import { AIConfigEditor } from '@/features/admin/AIConfigEditor';
 import { useAdminMutations, useAdminPlatformSettings } from '@/hooks/useAdmin';
 
+import type { AiConfig } from '../../../../../../convex/schema';
+
 export default function AdminSettingsPage() {
-  const t = useTranslations('AdminSettings');
   const { settings, isLoading } = useAdminPlatformSettings();
   const { updatePlatformSettings } = useAdminMutations();
 
   const [signupBonus, setSignupBonus] = useState('');
-  const [aiConfigJson, setAiConfigJson] = useState('');
+  const [aiConfig, setAiConfig] = useState<AiConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [hasChanges, setHasChanges] = useState(false);
 
   // Initialize form values when settings load
   useEffect(() => {
-    if (settings && !signupBonus) {
-      setSignupBonus(settings.signupBonusAmount);
-      setAiConfigJson(JSON.stringify(settings.aiConfig, null, 2));
+    if (settings) {
+      if (!signupBonus) {
+        setSignupBonus(settings.signupBonusAmount);
+      }
+      if (!aiConfig && settings.aiConfig) {
+        setAiConfig(settings.aiConfig);
+      }
     }
-  }, [settings, signupBonus]);
+  }, [settings, signupBonus, aiConfig]);
+
+  // Handle AI config changes
+  const handleAiConfigChange = useCallback((newConfig: AiConfig) => {
+    setAiConfig(newConfig);
+    setHasChanges(true);
+    setSuccess(null);
+    setError(null);
+  }, []);
+
+  // Handle signup bonus changes
+  const handleSignupBonusChange = useCallback((value: string) => {
+    setSignupBonus(value);
+    setHasChanges(true);
+    setSuccess(null);
+    setError(null);
+  }, []);
 
   const handleSave = async () => {
     setError(null);
@@ -45,13 +66,19 @@ export default function AdminSettingsPage() {
         throw new Error('Invalid signup bonus amount');
       }
 
-      // Parse and validate AI config if changed
-      let aiConfig;
-      if (aiConfigJson !== JSON.stringify(settings?.aiConfig, null, 2)) {
-        try {
-          aiConfig = JSON.parse(aiConfigJson);
-        } catch {
-          throw new Error('Invalid JSON in AI configuration');
+      // Validate AI config
+      if (aiConfig) {
+        if (aiConfig.grading.runs.length < 1) {
+          throw new Error('At least one grading run is required');
+        }
+        if (aiConfig.grading.runs.length > 10) {
+          throw new Error('Maximum 10 grading runs allowed');
+        }
+        if (aiConfig.grading.temperature < 0 || aiConfig.grading.temperature > 1) {
+          throw new Error('Grading temperature must be between 0 and 1');
+        }
+        if (aiConfig.titleGeneration.temperature < 0 || aiConfig.titleGeneration.temperature > 1) {
+          throw new Error('Title generation temperature must be between 0 and 1');
         }
       }
 
@@ -61,6 +88,7 @@ export default function AdminSettingsPage() {
       });
 
       setSuccess('Settings saved successfully');
+      setHasChanges(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
@@ -90,9 +118,9 @@ export default function AdminSettingsPage() {
       >
         <div className="flex items-center gap-2">
           <Settings className="size-5 text-primary" />
-          <h1 className="text-2xl font-bold">{t('title')}</h1>
+          <h1 className="text-2xl font-bold">Platform Settings</h1>
         </div>
-        <p className="mt-1 text-muted-foreground">{t('description')}</p>
+        <p className="mt-1 text-muted-foreground">Configure platform-wide settings</p>
       </motion.div>
 
       <div className="space-y-6">
@@ -109,8 +137,8 @@ export default function AdminSettingsPage() {
                 <Coins className="size-5 text-green-600" />
               </div>
               <div>
-                <h2 className="font-semibold">{t('signup_bonus')}</h2>
-                <p className="text-sm text-muted-foreground">{t('signup_bonus_help')}</p>
+                <h2 className="font-semibold">Signup Bonus</h2>
+                <p className="text-sm text-muted-foreground">Credits given to new users on signup</p>
               </div>
             </div>
           </div>
@@ -123,7 +151,7 @@ export default function AdminSettingsPage() {
                   id="signupBonus"
                   type="text"
                   value={signupBonus}
-                  onChange={e => setSignupBonus(e.target.value)}
+                  onChange={e => handleSignupBonusChange(e.target.value)}
                   placeholder="1.00"
                   className="pl-9"
                 />
@@ -145,8 +173,8 @@ export default function AdminSettingsPage() {
                 <Shield className="size-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold">{t('admin_access')}</h2>
-                <p className="text-sm text-muted-foreground">{t('admin_access_help')}</p>
+                <h2 className="font-semibold">Admin Access</h2>
+                <p className="text-sm text-muted-foreground">Email addresses with admin access</p>
               </div>
             </div>
           </div>
@@ -168,31 +196,29 @@ export default function AdminSettingsPage() {
                 <Bot className="size-5 text-blue-600" />
               </div>
               <div>
-                <h2 className="font-semibold">{t('ai_config')}</h2>
-                <p className="text-sm text-muted-foreground">{t('ai_config_help')}</p>
+                <h2 className="font-semibold">AI Configuration</h2>
+                <p className="text-sm text-muted-foreground">Configure AI grading and title generation models</p>
               </div>
             </div>
           </div>
           <div className="p-5">
-            <Textarea
-              value={aiConfigJson}
-              onChange={e => setAiConfigJson(e.target.value)}
-              rows={15}
-              className="font-mono text-sm"
+            <AIConfigEditor
+              config={aiConfig}
+              onChange={handleAiConfigChange}
             />
           </div>
         </motion.div>
 
-        {/* Save Button */}
+        {/* Save Button - Sticky at bottom */}
         <motion.div
-          className="flex items-center gap-4"
+          className="sticky bottom-4 flex items-center gap-4 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4, duration: 0.5 }}
         >
           <Button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || !hasChanges}
             className="btn-lift gap-2"
             size="lg"
           >
@@ -200,11 +226,17 @@ export default function AdminSettingsPage() {
               ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    {t('saving')}
+                    Saving...
                   </>
                 )
-              : t('save_changes')}
+              : 'Save Changes'}
           </Button>
+
+          {!hasChanges && !error && !success && (
+            <span className="text-sm text-muted-foreground">
+              No unsaved changes
+            </span>
+          )}
 
           {error && (
             <motion.div
