@@ -9,8 +9,9 @@ import { cn } from '@/utils/Helpers';
 
 export function SubmitPageHeader() {
   const { credits, isLoading } = useCredits();
+  const gradingCost = Number.parseFloat(credits?.gradingCost ?? '1.00');
   const balance = Number.parseFloat(credits?.available ?? '0');
-  const hasEnoughCredits = balance >= 1.0;
+  const hasEnoughCredits = balance >= gradingCost;
 
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -29,7 +30,7 @@ export function SubmitPageHeader() {
           <Coins className="size-5 text-primary" />
           <span className="text-sm font-medium">Cost:</span>
           <Badge variant="secondary" className="font-mono">
-            1.00
+            {credits?.gradingCost ?? '1.00'}
           </Badge>
         </div>
         <div className="h-6 w-px bg-border" />
