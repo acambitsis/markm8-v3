@@ -294,7 +294,7 @@ Locations:
 
 **Key patterns:**
 - **Env vars:** Use `Env.NEXT_PUBLIC_CONVEX_URL` not `process.env.NEXT_PUBLIC_CONVEX_URL`
-- **Logging:** Use `logger.info()` / `logger.error()` from Logger.ts
+- **Logging:** Use `logger` from Logger.ts in server-side code (pino requires Node.js)
 - **Clerk:** Integrated with Convex via `ConvexProviderWithClerk`
 - **Testing:** Vitest for unit tests (`bun run test`), Playwright for E2E
 - **Shadcn:** Existing components use `forwardRef` (keep as-is for compatibility)
@@ -313,7 +313,7 @@ Locations:
 - ✅ Use React 19 patterns for new components (ref as prop, no forwardRef)
 
 **DON'T:**
-- ❌ Use `console.log`/`console.error` in Next.js — use `logger` from `@/libs/Logger`
+- ❌ Use `console` in server-side code — use `logger` (client components: handle errors in UI)
 - ❌ Create public `query` that looks up users by external ID (use `internalQuery` for webhooks/API routes)
 - ❌ Use Clerk Organizations (only Clerk auth)
 - ❌ Add organization tables (future feature)

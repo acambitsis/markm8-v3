@@ -267,16 +267,35 @@ export const processGrade = internalAction({
 
 **Core Principle:** Use appropriate logging for each context.
 
-### Next.js Pattern
+### Next.js Server-Side Pattern
 
 ```typescript
-// LIKELY VIOLATION — Console in Next.js production code
-// File: src/features/essays/SubmitForm.tsx
-console.log('Submitting essay', essayId);
+// LIKELY VIOLATION — Console in server-side code
+// File: src/app/api/stripe/checkout/route.ts
+console.log('Processing checkout');
 
-// CORRECT — Structured logger in Next.js
+// CORRECT — Structured logger (pino) in server-side code
 import { logger } from '@/libs/Logger';
-logger.info('Submitting essay', { essayId });
+logger.info('Processing checkout', { sessionId });
+```
+
+### Next.js Client-Side Pattern
+
+```typescript
+// IMPORTANT: Logger (pino) CANNOT be used in client components!
+// Pino requires Node.js modules (worker_threads) unavailable in browsers.
+
+// File: src/hooks/useDocumentUpload.ts ('use client')
+// CORRECT — Handle errors in UI, no logging needed
+} catch {
+  setError({ code: 'UPLOAD_FAILED', message: 'Upload failed' });
+}
+
+// ALSO OK — console in client code if debugging needed (browser DevTools)
+} catch (err) {
+  console.error('Upload failed:', err);  // OK in 'use client' files
+  setError({ code: 'UPLOAD_FAILED', message: 'Upload failed' });
+}
 ```
 
 ### Convex Pattern
@@ -287,17 +306,16 @@ logger.info('Submitting essay', { essayId });
 export const processGrade = internalAction({
   handler: async (ctx, { gradeId }) => {
     console.log('Processing grade:', gradeId);  // OK! Goes to Convex logs
-    // ...
-    console.error('Grade processing failed:', error);  // OK!
   },
 });
 ```
 
 ### Detection Heuristic
 
-1. In `src/` files: `console.log`, `console.error` → LIKELY violation
-2. In `convex/` files: `console.*` is acceptable (Convex logging convention)
-3. Exceptions for Next.js:
+1. In `src/app/api/` (server): `console.*` → LIKELY violation, use `logger`
+2. In `src/` with `'use client'`: `console.*` is acceptable (pino won't work)
+3. In `convex/` files: `console.*` is acceptable (Convex logging convention)
+4. Exceptions:
    - Test files (`*.test.ts`, `*.spec.ts`)
    - Development-only code (wrapped in `if (process.env.NODE_ENV === 'development')`)
 
