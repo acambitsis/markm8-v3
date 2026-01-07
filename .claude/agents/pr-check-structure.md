@@ -1,6 +1,6 @@
 ---
 name: pr-check-structure
-description: Validates file structure, organization, naming conventions, and import patterns in PR changes
+description: Validates file structure, organization, naming conventions, import patterns, and orphaned/redundant files in PR changes
 tools: Read, Grep, Glob, Bash
 ---
 
@@ -478,6 +478,7 @@ export const processGradeResult = mutation({  // Should be internalMutation
 - `convex/essays.ts:15` — [PRINCIPLE 4] defineTable() outside schema.ts
 - `src/features/essays/utils.ts:3` — [PRINCIPLE 5] Import uses '../../../libs/Logger', should use '@/libs/Logger'
 - `convex/grades.ts:42` — [PRINCIPLE 5] Importing from '@/utils/helpers' - Convex cannot import from src/
+- `src/features/old/Unused.tsx` — [PRINCIPLE 13] Orphaned file (zero imports)
 
 ### LIKELY Violations
 - `src/components/EssayCard.tsx` — [PRINCIPLE 1] Only imported by essays feature, consider moving to src/features/essays/components/
@@ -533,6 +534,33 @@ import bcrypt from 'bcrypt';
 - Vercel deployments use Node.js runtime, not Bun
 - Convex functions run in Convex's V8 isolate, not Bun
 - Only local development uses Bun as the package manager/runner
+
+---
+
+## Principle 13: Orphaned Files
+
+**Core Principle:** Files with exports that are not imported anywhere should be deleted.
+
+### Detection Heuristic
+
+For each added/modified file that exports components, hooks, or utilities:
+1. Grep for imports of the exported symbol across the codebase
+2. If zero imports found → LIKELY violation (delete the file)
+3. Exceptions: pages, layouts, barrel files (index.ts), Convex schema/http
+
+```typescript
+// LIKELY VIOLATION — Component not imported anywhere
+// File: src/features/grading/OldResults.tsx exports OldResults
+// grep shows: zero imports
+// → Delete the file
+```
+
+### Quick Check
+
+```bash
+# For a file exporting ComponentName, verify it's used:
+rg "from.*ComponentName" --type ts --type tsx
+```
 
 ---
 

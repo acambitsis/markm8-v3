@@ -1,7 +1,7 @@
 import { getTranslations } from 'next-intl/server';
 
 import { MainLayout } from '@/features/dashboard/MainLayout';
-import { GradeStatusDisplayV2 } from '@/features/grading/GradeStatusDisplayV2';
+import { GradeStatusDisplay } from '@/features/grading/GradeStatusDisplay';
 
 import type { Id } from '../../../../../../convex/_generated/dataModel';
 
@@ -37,7 +37,7 @@ export default async function GradePage({ params }: Props) {
         </p>
       </div>
 
-      <GradeStatusDisplayV2 gradeId={id as Id<'grades'>} />
+      <GradeStatusDisplay gradeId={id as Id<'grades'>} />
     </MainLayout>
   );
 }
