@@ -9,9 +9,9 @@ import { cn } from '@/utils/Helpers';
 
 export function SubmitPageHeader() {
   const { credits, isLoading } = useCredits();
-  const gradingCost = Number.parseFloat(credits?.gradingCost ?? '1.00');
-  const balance = Number.parseFloat(credits?.available ?? '0');
-  const hasEnoughCredits = balance >= gradingCost;
+  const gradingCost = credits?.gradingCost ? Number.parseFloat(credits.gradingCost) : null;
+  const balance = credits?.available ? Number.parseFloat(credits.available) : null;
+  const hasEnoughCredits = gradingCost !== null && balance !== null && balance >= gradingCost;
 
   return (
     <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
@@ -29,14 +29,20 @@ export function SubmitPageHeader() {
         <div className="flex items-center gap-2">
           <Coins className="size-5 text-primary" />
           <span className="text-sm font-medium">Cost:</span>
-          <Badge variant="secondary" className="font-mono">
-            {credits?.gradingCost ?? '1.00'}
-          </Badge>
+          {isLoading || gradingCost === null
+            ? (
+                <Skeleton className="h-5 w-12" />
+              )
+            : (
+                <Badge variant="secondary" className="font-mono">
+                  {credits?.gradingCost}
+                </Badge>
+              )}
         </div>
         <div className="h-6 w-px bg-border" />
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">Balance:</span>
-          {isLoading
+          {isLoading || balance === null
             ? (
                 <Skeleton className="h-5 w-12" />
               )
@@ -50,7 +56,7 @@ export function SubmitPageHeader() {
                       : 'border-red-500/50 text-red-600',
                   )}
                 >
-                  {credits?.available ?? '0.00'}
+                  {credits?.available}
                 </Badge>
               )}
         </div>
