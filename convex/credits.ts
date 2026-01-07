@@ -8,6 +8,7 @@ import type { MutationCtx } from './_generated/server';
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
 import { addDecimal, isGreaterOrEqual, isPositive, subtractDecimal } from './lib/decimal';
+import { GRADING_COST } from './lib/grading';
 
 const DEFAULT_SIGNUP_BONUS = '1.00';
 
@@ -83,6 +84,7 @@ export const getBalance = query({
         balance: '0.00',
         reserved: '0.00',
         available: '0.00',
+        gradingCost: GRADING_COST,
       };
     }
 
@@ -92,6 +94,7 @@ export const getBalance = query({
       balance: credits.balance,
       reserved: credits.reserved,
       available: credits.balance, // Not balance - reserved!
+      gradingCost: GRADING_COST,
     };
   },
 });

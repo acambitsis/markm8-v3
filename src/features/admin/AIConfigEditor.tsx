@@ -245,7 +245,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               </span>
               <Switch
                 checked={isLiveMode}
-                onCheckedChange={checked =>
+                onCheckedChange={(checked: boolean) =>
                   updateGrading({ mode: checked ? 'live' : 'mock' })}
               />
               <span className={`text-sm ${isLiveMode ? 'text-muted-foreground' : 'font-medium'}`}>
@@ -405,7 +405,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             </div>
             <Slider
               value={[localConfig.grading.temperature]}
-              onValueChange={([value]) => updateGrading({ temperature: value })}
+              onValueChange={([value]: number[]) => updateGrading({ temperature: value })}
               min={0}
               max={1}
               step={0.05}
@@ -450,7 +450,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             </div>
             <Slider
               value={[localConfig.grading.outlierThresholdPercent]}
-              onValueChange={([value]) => updateGrading({ outlierThresholdPercent: value })}
+              onValueChange={([value]: number[]) => updateGrading({ outlierThresholdPercent: value })}
               min={5}
               max={20}
               step={1}
@@ -604,7 +604,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             </div>
             <Slider
               value={[localConfig.titleGeneration.temperature]}
-              onValueChange={([value]) => updateTitleGeneration({ temperature: value })}
+              onValueChange={([value]: number[]) => updateTitleGeneration({ temperature: value })}
               min={0}
               max={1}
               step={0.05}
