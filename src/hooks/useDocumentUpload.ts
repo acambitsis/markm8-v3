@@ -3,8 +3,6 @@
 import { useAction, useMutation } from 'convex/react';
 import { useCallback, useState } from 'react';
 
-import { logger } from '@/libs/Logger';
-
 import { api } from '../../convex/_generated/api';
 
 // =============================================================================
@@ -140,8 +138,8 @@ export function useDocumentUpload() {
         setResult(uploadResult);
         setState('success');
         return uploadResult;
-      } catch (err) {
-        logger.error(err, 'Upload failed');
+      } catch {
+        // Error is handled and shown to user - no logging needed in client code
         const uploadError: UploadError = {
           code: 'UPLOAD_FAILED',
           message: 'We couldn\'t upload this file. Please try again.',
