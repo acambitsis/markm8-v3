@@ -200,10 +200,10 @@ export function EssayContentInput({
                   </div>
                 </div>
 
-                {/* Formatted content preview */}
+                {/* Formatted content preview - skipHtml for XSS protection */}
                 <div className="max-h-[500px] min-h-[400px] overflow-y-auto p-6">
                   <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground">
-                    <Markdown>{value}</Markdown>
+                    <Markdown skipHtml>{value}</Markdown>
                   </div>
                 </div>
               </div>

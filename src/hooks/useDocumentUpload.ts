@@ -76,9 +76,11 @@ export function useDocumentUpload() {
           return null;
         }
 
-        // Check MIME type or extension
+        // Check MIME type AND extension (defense in depth)
         const ext = file.name.split('.').pop()?.toLowerCase();
-        if (!ALLOWED_TYPES.includes(file.type) && (!ext || !ALLOWED_EXTENSIONS.includes(ext))) {
+        const hasValidMimeType = ALLOWED_TYPES.includes(file.type);
+        const hasValidExtension = ext && ALLOWED_EXTENSIONS.includes(ext);
+        if (!hasValidMimeType && !hasValidExtension) {
           const err: UploadError = {
             code: 'UNSUPPORTED_FORMAT',
             message: 'We support Word (.docx), PDF, and text files.',

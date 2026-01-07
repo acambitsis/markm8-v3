@@ -3,9 +3,9 @@
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
 
-import { EssayContentInput } from '@/components/ui/essay-content-input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { EssayContentInput } from '@/features/essays/components/essay-content-input';
 import { cn } from '@/utils/Helpers';
 
 type Props = {
