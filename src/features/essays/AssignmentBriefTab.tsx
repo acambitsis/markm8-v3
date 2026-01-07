@@ -1,5 +1,8 @@
 'use client';
 
+import { motion } from 'framer-motion';
+import { BookOpen, GraduationCap, HelpCircle, PenTool } from 'lucide-react';
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -9,7 +12,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import { TextareaWithUpload } from '@/components/ui/textarea-with-upload';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { cn } from '@/utils/Helpers';
 
 import type { AssignmentBrief, Rubric } from '../../../convex/schema';
 
@@ -20,6 +30,75 @@ type Props = {
   onUpdateRubric: (updates: Partial<Rubric>) => void;
 };
 
+const staggerVariants = {
+  hidden: {},
+  visible: {
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4, ease: [0.25, 0.1, 0.25, 1] as [number, number, number, number] },
+  },
+};
+
+type FieldWrapperProps = {
+  label: string;
+  required?: boolean;
+  tooltip?: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+  characterCount?: { current: number; max: number };
+};
+
+function FieldWrapper({ label, required, tooltip, icon, children, characterCount }: FieldWrapperProps) {
+  return (
+    <motion.div variants={itemVariants} className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <Label className="text-sm font-medium">
+            {label}
+            {required && <span className="ml-0.5 text-destructive">*</span>}
+          </Label>
+          {tooltip && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <HelpCircle className="size-3.5 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p className="text-sm">{tooltip}</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+        </div>
+        {characterCount && (
+          <span className={cn(
+            'text-xs tabular-nums',
+            characterCount.current > characterCount.max * 0.9
+              ? 'text-amber-500'
+              : 'text-muted-foreground',
+          )}
+          >
+            {characterCount.current.toLocaleString()}
+            /
+            {characterCount.max.toLocaleString()}
+          </span>
+        )}
+      </div>
+      {children}
+    </motion.div>
+  );
+}
+
 export function AssignmentBriefTab({
   assignmentBrief,
   rubric,
@@ -27,102 +106,116 @@ export function AssignmentBriefTab({
   onUpdateRubric,
 }: Props) {
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-8"
+      variants={staggerVariants}
+      initial="hidden"
+      animate="visible"
+    >
+      {/* Header */}
+      <motion.div variants={itemVariants} className="space-y-1">
+        <h2 className="text-xl font-semibold">Assignment Details</h2>
+        <p className="text-sm text-muted-foreground">
+          Tell us about your assignment so we can provide relevant feedback.
+        </p>
+      </motion.div>
+
       {/* Title */}
-      <div className="space-y-2">
-        <Label htmlFor="title">
-          Title
-          {' '}
-          <span className="text-destructive">*</span>
-        </Label>
+      <FieldWrapper
+        label="Essay Title"
+        required
+        tooltip="Give your essay a descriptive title"
+        icon={<PenTool className="size-4 text-muted-foreground" />}
+        characterCount={{ current: assignmentBrief?.title?.length ?? 0, max: 200 }}
+      >
         <Input
-          id="title"
-          placeholder="e.g., Renaissance Art History Essay"
+          placeholder="e.g., Renaissance Art and Its Influence on Modern Design"
           maxLength={200}
           value={assignmentBrief?.title ?? ''}
           onChange={e => onUpdateBrief({ title: e.target.value })}
+          className="h-11"
         />
-        <p className="text-sm text-muted-foreground">
-          {(assignmentBrief?.title?.length ?? 0)}
-          /200 characters
-        </p>
-      </div>
+      </FieldWrapper>
 
       {/* Instructions */}
-      <div className="space-y-2">
-        <Label htmlFor="instructions">
-          Assignment Instructions
-          {' '}
-          <span className="text-destructive">*</span>
-        </Label>
-        <Textarea
-          id="instructions"
-          placeholder="What does the assignment ask for? Include any specific requirements..."
-          className="min-h-32"
+      <FieldWrapper
+        label="Assignment Instructions"
+        required
+        tooltip="Include any specific requirements, formatting guidelines, or rubric criteria from your instructor"
+        icon={<BookOpen className="size-4 text-muted-foreground" />}
+        characterCount={{ current: assignmentBrief?.instructions?.length ?? 0, max: 10000 }}
+      >
+        <TextareaWithUpload
+          placeholder="Paste your assignment instructions here, or drag & drop a document. Include any specific requirements, formatting guidelines, or rubric criteria..."
+          className="min-h-36 resize-y"
           maxLength={10000}
           value={assignmentBrief?.instructions ?? ''}
-          onChange={e => onUpdateBrief({ instructions: e.target.value })}
+          onChange={val => onUpdateBrief({ instructions: val })}
+          uploadLabel="Upload instructions document"
         />
-        <p className="text-sm text-muted-foreground">
-          {(assignmentBrief?.instructions?.length ?? 0).toLocaleString()}
-          /10,000 characters
-        </p>
-      </div>
+      </FieldWrapper>
 
-      {/* Subject */}
-      <div className="space-y-2">
-        <Label htmlFor="subject">
-          Subject
-          {' '}
-          <span className="text-destructive">*</span>
-        </Label>
-        <Input
-          id="subject"
-          placeholder="e.g., History, English Literature, Psychology"
-          maxLength={100}
-          value={assignmentBrief?.subject ?? ''}
-          onChange={e => onUpdateBrief({ subject: e.target.value })}
-        />
-      </div>
-
-      {/* Academic Level */}
-      <div className="space-y-2">
-        <Label htmlFor="academicLevel">Academic Level</Label>
-        <Select
-          value={assignmentBrief?.academicLevel ?? ''}
-          onValueChange={(value) => {
-            onUpdateBrief({
-              academicLevel: value as AssignmentBrief['academicLevel'],
-            });
-          }}
+      {/* Subject and Academic Level - Side by side on larger screens */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {/* Subject */}
+        <FieldWrapper
+          label="Subject Area"
+          required
+          tooltip="The academic subject or discipline"
         >
-          <SelectTrigger id="academicLevel">
-            <SelectValue placeholder="Select academic level" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="high_school">High School</SelectItem>
-            <SelectItem value="undergraduate">Undergraduate</SelectItem>
-            <SelectItem value="postgraduate">Postgraduate</SelectItem>
-          </SelectContent>
-        </Select>
+          <Input
+            placeholder="e.g., Art History, English Literature"
+            maxLength={100}
+            value={assignmentBrief?.subject ?? ''}
+            onChange={e => onUpdateBrief({ subject: e.target.value })}
+            className="h-11"
+          />
+        </FieldWrapper>
+
+        {/* Academic Level */}
+        <FieldWrapper
+          label="Academic Level"
+          icon={<GraduationCap className="size-4 text-muted-foreground" />}
+          tooltip="This helps calibrate feedback to appropriate expectations"
+        >
+          <Select
+            value={assignmentBrief?.academicLevel ?? ''}
+            onValueChange={(value) => {
+              onUpdateBrief({
+                academicLevel: value as AssignmentBrief['academicLevel'],
+              });
+            }}
+          >
+            <SelectTrigger className="h-11">
+              <SelectValue placeholder="Select level" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="high_school">High School</SelectItem>
+              <SelectItem value="undergraduate">Undergraduate</SelectItem>
+              <SelectItem value="postgraduate">Postgraduate</SelectItem>
+            </SelectContent>
+          </Select>
+        </FieldWrapper>
       </div>
 
       {/* Custom Rubric */}
-      <div className="space-y-2">
-        <Label htmlFor="rubric">Custom Rubric (Optional)</Label>
-        <Textarea
-          id="rubric"
-          placeholder="Specific criteria to grade against, e.g., 'Focus on thesis clarity (30%), evidence quality (40%), writing style (30%)'"
-          className="min-h-24"
+      <FieldWrapper
+        label="Custom Rubric"
+        tooltip="Provide specific grading criteria if you have them. This helps the AI focus on what matters most for your assignment."
+        characterCount={{ current: rubric?.customCriteria?.length ?? 0, max: 10000 }}
+      >
+        <TextareaWithUpload
+          placeholder="Optional: Paste your rubric or drag & drop a document. For example: 'Thesis clarity (30%), evidence quality (40%), writing style (30%)'"
+          className="min-h-28 resize-y"
           maxLength={10000}
           value={rubric?.customCriteria ?? ''}
-          onChange={e => onUpdateRubric({ customCriteria: e.target.value })}
+          onChange={val => onUpdateRubric({ customCriteria: val })}
+          uploadLabel="Upload rubric document"
         />
-        <p className="text-sm text-muted-foreground">
-          {(rubric?.customCriteria?.length ?? 0).toLocaleString()}
-          /10,000 characters
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          Optional but recommended. Helps the AI align feedback with your instructor&apos;s expectations.
         </p>
-      </div>
-    </div>
+      </FieldWrapper>
+    </motion.div>
   );
 }

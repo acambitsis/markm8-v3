@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Card, CardContent } from '@/components/ui/card';
 import { MainLayout } from '@/features/dashboard/MainLayout';
-import { SubmitFormV2 } from '@/features/essays/SubmitFormV2';
+import { SubmitForm } from '@/features/essays/SubmitForm';
 import { SubmitPageHeader } from '@/features/essays/SubmitPageHeader';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
@@ -29,7 +29,7 @@ export default function SubmitPage() {
         {/* Form Card */}
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6 md:p-8">
-            <SubmitFormV2 />
+            <SubmitForm />
           </CardContent>
         </Card>
       </PageTransition>

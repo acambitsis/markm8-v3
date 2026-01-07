@@ -1,13 +1,15 @@
 'use client';
 
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
-import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { AlertCircle, ArrowLeft, ArrowRight, Coins, Loader2, Send, Sparkles } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
+import { SaveIndicator } from '@/components/SaveIndicator';
+import { StepIndicator } from '@/components/StepIndicator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AssignmentBriefTab } from '@/features/essays/AssignmentBriefTab';
 import { DevSampleLoader } from '@/features/essays/DevSampleLoader';
 import { EssayContentTab } from '@/features/essays/EssayContentTab';
@@ -25,12 +27,34 @@ export type DraftData = {
   focusAreas: string[] | null;
 };
 
+const STEPS = [
+  { id: 'brief', label: 'Assignment', icon: 'brief' as const },
+  { id: 'focus', label: 'Focus Areas', icon: 'focus' as const },
+  { id: 'content', label: 'Essay', icon: 'content' as const },
+];
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 100 : -100,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction < 0 ? 100 : -100,
+    opacity: 0,
+  }),
+};
+
 export function SubmitForm() {
   const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
   const { credits } = useCredits();
 
   const [activeTab, setActiveTab] = useState('brief');
+  const [direction, setDirection] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -38,7 +62,7 @@ export function SubmitForm() {
   const saveDraft = useMutation(api.essays.saveDraft);
   const submitEssay = useMutation(api.essays.submit);
 
-  // Load existing draft from Convex (skip until authenticated)
+  // Load existing draft from Convex
   const existingDraft = useQuery(
     api.essays.getDraft,
     isAuthenticated ? {} : 'skip',
@@ -86,7 +110,7 @@ export function SubmitForm() {
     };
   }, []);
 
-  // Autosave hook - now uses Convex mutation
+  // Autosave hook
   const { status: saveStatus } = useAutosave({
     data: draft,
     onSave: async (data) => {
@@ -138,24 +162,56 @@ export function SubmitForm() {
     [],
   );
 
+  // Navigation
+  const goToStep = (stepId: string) => {
+    const currentIndex = STEPS.findIndex(s => s.id === activeTab);
+    const nextIndex = STEPS.findIndex(s => s.id === stepId);
+    setDirection(nextIndex > currentIndex ? 1 : -1);
+    setActiveTab(stepId);
+  };
+
+  const goNext = () => {
+    const currentIndex = STEPS.findIndex(s => s.id === activeTab);
+    if (currentIndex < STEPS.length - 1) {
+      setDirection(1);
+      setActiveTab(STEPS[currentIndex + 1]!.id);
+    }
+  };
+
+  const goBack = () => {
+    const currentIndex = STEPS.findIndex(s => s.id === activeTab);
+    if (currentIndex > 0) {
+      setDirection(-1);
+      setActiveTab(STEPS[currentIndex - 1]!.id);
+    }
+  };
+
   // Word count calculation
   const wordCount
     = draft.content?.trim().split(/\s+/).filter(Boolean).length ?? 0;
 
-  // Validation
-  const isValid = Boolean(
+  // Step validation
+  const isBriefComplete = Boolean(
     draft.assignmentBrief?.title
     && draft.assignmentBrief?.instructions
-    && draft.assignmentBrief?.subject
-    && draft.content
-    && wordCount >= 50
-    && wordCount <= 50000,
+    && draft.assignmentBrief?.subject,
   );
 
+  const isContentComplete = Boolean(
+    draft.content && wordCount >= 50 && wordCount <= 50000,
+  );
+
+  const completedSteps = [
+    ...(isBriefComplete ? ['brief'] : []),
+    'focus', // Focus areas are optional, always "complete"
+    ...(isContentComplete ? ['content'] : []),
+  ];
+
+  const isValid = isBriefComplete && isContentComplete;
   const availableCredits = Number.parseFloat(credits?.available ?? '0');
   const hasEnoughCredits = availableCredits >= 1.0;
 
-  // Submit handler - now uses Convex mutation
+  // Submit handler
   const handleSubmit = async () => {
     if (!isValid || !hasEnoughCredits) {
       return;
@@ -165,10 +221,7 @@ export function SubmitForm() {
     setSubmitError(null);
 
     try {
-      // Explicitly save before submitting to ensure draft exists
-      // Note: This is a pragmatic fix for autosave debounce timing issue.
-      // Long-term: Consider making submitEssay accept draft data directly to avoid
-      // non-atomic two-mutation pattern.
+      // Save before submitting
       try {
         await saveDraft(transformDraftForSave(draft));
       } catch (saveErr) {
@@ -178,9 +231,6 @@ export function SubmitForm() {
       }
 
       const result = await submitEssay({});
-
-      // No need to refresh credits - Convex subscription auto-updates!
-      // Redirect to grade page
       router.push(`/grades/${result.gradeId}`);
     } catch (err) {
       setSubmitError(
@@ -190,126 +240,182 @@ export function SubmitForm() {
     }
   };
 
+  const currentStepIndex = STEPS.findIndex(s => s.id === activeTab);
+
   return (
-    <div className="space-y-6">
-      {/* Dev Tools - Only renders in development */}
+    <div className="flex flex-col">
+      {/* Dev Tools */}
       <DevSampleLoader onLoad={handleLoadSample} />
 
-      {/* Save Status */}
-      <div className="flex items-center justify-end text-sm text-muted-foreground">
-        {saveStatus === 'saving' && (
-          <span className="flex items-center gap-1">
-            <Loader2 className="size-3 animate-spin" />
-            Saving...
-          </span>
-        )}
-        {saveStatus === 'saved' && (
-          <span className="flex items-center gap-1 text-green-600">
-            <CheckCircle2 className="size-3" />
-            Saved
-          </span>
-        )}
-        {saveStatus === 'error' && (
-          <span className="flex items-center gap-1 text-destructive">
-            <AlertCircle className="size-3" />
-            Save failed
-          </span>
-        )}
+      {/* Step Indicator */}
+      <div className="mb-8 border-b pb-6">
+        <StepIndicator
+          steps={STEPS}
+          currentStep={activeTab}
+          completedSteps={completedSteps}
+          onStepClick={goToStep}
+        />
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="brief">1. Assignment Brief</TabsTrigger>
-          <TabsTrigger value="focus">2. Focus Areas</TabsTrigger>
-          <TabsTrigger value="content">3. Essay Content</TabsTrigger>
-        </TabsList>
+      {/* Save Status */}
+      <div className="mb-6 flex justify-end">
+        <SaveIndicator status={saveStatus} />
+      </div>
 
-        <TabsContent value="brief" className="mt-6">
-          <AssignmentBriefTab
-            assignmentBrief={draft.assignmentBrief}
-            rubric={draft.rubric}
-            onUpdateBrief={updateAssignmentBrief}
-            onUpdateRubric={updateRubric}
-          />
-          <div className="mt-6 flex justify-end">
-            <Button onClick={() => setActiveTab('focus')}>
-              Next: Focus Areas
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="focus" className="mt-6">
-          <FocusAreasTab
-            focusAreas={draft.focusAreas ?? []}
-            onUpdate={updateFocusAreas}
-          />
-          <div className="mt-6 flex justify-between">
-            <Button variant="outline" onClick={() => setActiveTab('brief')}>
-              Back
-            </Button>
-            <Button onClick={() => setActiveTab('content')}>
-              Next: Essay Content
-            </Button>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="content" className="mt-6">
-          <EssayContentTab
-            content={draft.content ?? ''}
-            wordCount={wordCount}
-            onUpdate={updateContent}
-          />
-
-          {/* Error Alert */}
-          {submitError && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="size-4" />
-              <AlertDescription>{submitError}</AlertDescription>
-            </Alert>
+      {/* Tab Content with animations */}
+      <div className="relative min-h-[400px]">
+        <AnimatePresence mode="wait" custom={direction}>
+          {activeTab === 'brief' && (
+            <motion.div
+              key="brief"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <AssignmentBriefTab
+                assignmentBrief={draft.assignmentBrief}
+                rubric={draft.rubric}
+                onUpdateBrief={updateAssignmentBrief}
+                onUpdateRubric={updateRubric}
+              />
+            </motion.div>
           )}
 
-          {/* Credits Warning */}
-          {!hasEnoughCredits && (
-            <Alert variant="destructive" className="mt-4">
-              <AlertCircle className="size-4" />
-              <AlertDescription>
-                You need 1.00 credits to submit. You have
-                {' '}
-                {credits?.available ?? '0.00'}
-                {' '}
-                credits available.
-              </AlertDescription>
-            </Alert>
+          {activeTab === 'focus' && (
+            <motion.div
+              key="focus"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <FocusAreasTab
+                focusAreas={draft.focusAreas ?? []}
+                onUpdate={updateFocusAreas}
+              />
+            </motion.div>
           )}
 
-          <div className="mt-6 flex items-center justify-between">
-            <Button variant="outline" onClick={() => setActiveTab('focus')}>
-              Back
-            </Button>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">
-                Cost: 1.00 credits
-              </span>
-              <Button
-                onClick={handleSubmit}
-                disabled={!isValid || !hasEnoughCredits || isSubmitting}
-              >
-                {isSubmitting
-                  ? (
-                      <>
-                        <Loader2 className="mr-2 size-4 animate-spin" />
-                        Submitting...
-                      </>
-                    )
-                  : (
-                      'Submit for Grading'
-                    )}
-              </Button>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+          {activeTab === 'content' && (
+            <motion.div
+              key="content"
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.3, ease: [0.25, 0.1, 0.25, 1] }}
+            >
+              <EssayContentTab
+                content={draft.content ?? ''}
+                wordCount={wordCount}
+                onUpdate={updateContent}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Error Alert */}
+      {submitError && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6"
+        >
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertDescription>{submitError}</AlertDescription>
+          </Alert>
+        </motion.div>
+      )}
+
+      {/* Credits Warning */}
+      {activeTab === 'content' && !hasEnoughCredits && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-6"
+        >
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertDescription>
+              You need 1.00 credits to submit. You have
+              {' '}
+              {credits?.available ?? '0.00'}
+              {' '}
+              credits available.
+            </AlertDescription>
+          </Alert>
+        </motion.div>
+      )}
+
+      {/* Navigation Footer */}
+      <motion.div
+        className="mt-8 flex items-center justify-between border-t pt-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+      >
+        {/* Back button */}
+        <Button
+          variant="outline"
+          onClick={goBack}
+          disabled={currentStepIndex === 0}
+          className="gap-2"
+        >
+          <ArrowLeft className="size-4" />
+          Back
+        </Button>
+
+        {/* Right side */}
+        <div className="flex items-center gap-4">
+          {activeTab === 'content'
+            ? (
+                <>
+                  {/* Cost indicator */}
+                  <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-sm">
+                    <Coins className="size-4 text-primary" />
+                    <span className="font-medium">1.00 credit</span>
+                  </div>
+
+                  {/* Submit button */}
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!isValid || !hasEnoughCredits || isSubmitting}
+                    className="btn-lift gap-2 px-6 shadow-purple hover:shadow-purple-md"
+                    size="lg"
+                  >
+                    {isSubmitting
+                      ? (
+                          <>
+                            <Loader2 className="size-4 animate-spin" />
+                            Submitting...
+                          </>
+                        )
+                      : (
+                          <>
+                            <Sparkles className="size-4" />
+                            Submit for Grading
+                            <Send className="size-4" />
+                          </>
+                        )}
+                  </Button>
+                </>
+              )
+            : (
+                <Button onClick={goNext} className="gap-2">
+                  Continue
+                  <ArrowRight className="size-4" />
+                </Button>
+              )}
+        </div>
+      </motion.div>
     </div>
   );
 }
