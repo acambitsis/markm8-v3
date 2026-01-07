@@ -10,17 +10,16 @@ import { AnimatedNumber } from '@/components/motion/AnimatedNumber';
 import { FloatingOrb } from '@/components/motion/FloatingElements';
 import { buttonVariants } from '@/components/ui/buttonVariants';
 import { Section } from '@/features/landing/Section';
-import { usePricing } from '@/hooks/usePricing';
 import { cn } from '@/utils/Helpers';
+
+// Hardcoded for landing page performance (no DB hit on every visit)
+// Actual pricing is configured in platformSettings and used at runtime
+const DISPLAY_PRICE = 1.0;
 
 export const Pricing = () => {
   const t = useTranslations('Pricing');
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-100px' });
-  const { pricePerEssay, isLoading } = usePricing();
-
-  // Use dynamic price from database, or show loading state
-  const displayPrice = pricePerEssay ? Number.parseFloat(pricePerEssay) : null;
 
   const includedFeatures = [
     { icon: Brain, textKey: 'included_ai_models' as const, delay: 0 },
@@ -120,17 +119,13 @@ export const Pricing = () => {
                   </p>
                   <div className="mt-3 flex items-baseline justify-center gap-1">
                     <span className="text-6xl font-bold tracking-tight text-slate-900 md:text-7xl">
-                      {isLoading
+                      {isInView
                         ? (
-                            <span className="inline-block h-16 w-24 animate-pulse rounded bg-slate-200" />
+                            <AnimatedNumber value={DISPLAY_PRICE} prefix="$" decimals={2} duration={1.5} delay={0.3} />
                           )
-                        : isInView && displayPrice !== null
-                          ? (
-                              <AnimatedNumber value={displayPrice} prefix="$" decimals={2} duration={1.5} delay={0.3} />
-                            )
-                          : (
-                              `$${displayPrice?.toFixed(2) ?? '...'}`
-                            )}
+                        : (
+                            `$${DISPLAY_PRICE.toFixed(2)}`
+                          )}
                     </span>
                   </div>
                   <p className="mt-2 text-sm text-slate-500">{t('price_note')}</p>

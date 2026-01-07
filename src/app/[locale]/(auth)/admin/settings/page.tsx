@@ -247,7 +247,7 @@ export default function AdminSettingsPage() {
               <p className="text-xs text-muted-foreground">Credits received per $1 spent</p>
             </div>
             {/* Calculated price display */}
-            {gradingCost && creditsPerDollar && (
+            {gradingCost && creditsPerDollar && Number.parseFloat(creditsPerDollar) !== 0 && (
               <div className="col-span-full rounded-lg bg-muted p-3">
                 <p className="text-sm">
                   <span className="text-muted-foreground">Price per essay: </span>

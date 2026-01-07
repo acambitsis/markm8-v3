@@ -185,6 +185,9 @@ export const getPricing = query({
     // Calculate price per essay: gradingCost / creditsPerDollar
     const gradingCost = Number.parseFloat(settings.gradingCostPerEssay);
     const creditsPerDollar = Number.parseFloat(settings.creditsPerDollar);
+    if (creditsPerDollar === 0) {
+      throw new Error('Invalid pricing configuration: creditsPerDollar cannot be zero');
+    }
     const pricePerEssay = gradingCost / creditsPerDollar;
 
     return {
