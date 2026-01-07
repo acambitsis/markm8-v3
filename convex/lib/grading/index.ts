@@ -1,8 +1,8 @@
 // Grading Module
 // Re-exports all grading-related functions and types
+// Note: Grading cost is now stored in platformSettings, not hardcoded
 
 export { runAIGrading } from './ai';
-export { GRADING_COST } from './config';
 export { generateMockGrade } from './mock';
 export {
   clampPercentage,

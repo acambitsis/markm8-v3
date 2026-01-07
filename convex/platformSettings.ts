@@ -1,16 +1,16 @@
 // Platform settings queries and mutations
 // Handles admin-configurable platform values
+// All settings are stored in database - no hardcoded fallbacks
 
 import type { DatabaseReader } from './_generated/server';
-import { internalMutation, internalQuery } from './_generated/server';
+import { internalMutation, internalQuery, query } from './_generated/server';
 import {
   type CatalogValidationOptions,
   validateAiConfig,
   validateAiConfigAgainstCatalog,
 } from './lib/aiConfig';
+import { validatePricing } from './lib/pricing';
 import { type AiConfig, aiConfigValidator, type ModelCapability } from './schema';
-
-export const DEFAULT_SIGNUP_BONUS = '1.00';
 
 /**
  * Helper to fetch enabled model slugs by capability
@@ -49,7 +49,7 @@ async function getCatalogValidationOptions(
 
 /**
  * Get platform settings (internal use)
- * Returns singleton with defaults if not exists
+ * Throws if not seeded - run: npx convex run seed/platformSettings:seed
  */
 export const get = internalQuery({
   args: {},
@@ -60,22 +60,110 @@ export const get = internalQuery({
       .unique();
 
     if (!settings) {
-      // Return defaults if singleton doesn't exist
-      return {
-        signupBonusAmount: DEFAULT_SIGNUP_BONUS,
-      };
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
+    if (!settings.gradingCostPerEssay || !settings.creditsPerDollar) {
+      throw new Error(
+        'Pricing not configured. Run: npx convex run seed/platformSettings:setPricing \'{"gradingCostPerEssay": "1.00", "creditsPerDollar": "1.00"}\'',
+      );
     }
 
     return {
       signupBonusAmount: settings.signupBonusAmount,
+      gradingCostPerEssay: settings.gradingCostPerEssay,
+      creditsPerDollar: settings.creditsPerDollar,
     };
   },
 });
 
 /**
  * Get signup bonus amount (convenience function for webhooks)
+ * Throws if not seeded - run: npx convex run seed/platformSettings:seed
  */
 export const getSignupBonus = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<string> => {
+    const settings = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
+    return settings.signupBonusAmount;
+  },
+});
+
+/**
+ * Get grading cost per essay (internal use)
+ * Returns decimal string like "1.00"
+ * Throws if not seeded - run: npx convex run seed/platformSettings:setPricing
+ */
+export const getGradingCost = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<string> => {
+    const settings = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
+    if (!settings.gradingCostPerEssay) {
+      throw new Error(
+        'gradingCostPerEssay not set. Run: npx convex run seed/platformSettings:setPricing \'{"gradingCostPerEssay": "1.00", "creditsPerDollar": "1.00"}\'',
+      );
+    }
+
+    return settings.gradingCostPerEssay;
+  },
+});
+
+/**
+ * Get credits per dollar (internal use)
+ * Returns decimal string like "1.00"
+ * Throws if not seeded - run: npx convex run seed/platformSettings:setPricing
+ */
+export const getCreditsPerDollar = internalQuery({
+  args: {},
+  handler: async (ctx): Promise<string> => {
+    const settings = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
+    if (!settings.creditsPerDollar) {
+      throw new Error(
+        'creditsPerDollar not set. Run: npx convex run seed/platformSettings:setPricing \'{"gradingCostPerEssay": "1.00", "creditsPerDollar": "1.00"}\'',
+      );
+    }
+
+    return settings.creditsPerDollar;
+  },
+});
+
+/**
+ * Get public pricing info (no auth required)
+ * Used by landing page to display current pricing
+ */
+export const getPricing = query({
   args: {},
   handler: async (ctx) => {
     const settings = await ctx.db
@@ -83,7 +171,32 @@ export const getSignupBonus = internalQuery({
       .withIndex('by_key', q => q.eq('key', 'singleton'))
       .unique();
 
-    return settings?.signupBonusAmount ?? DEFAULT_SIGNUP_BONUS;
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
+    if (!settings.gradingCostPerEssay || !settings.creditsPerDollar) {
+      throw new Error(
+        'Pricing not configured. Run: npx convex run seed/platformSettings:setPricing \'{"gradingCostPerEssay": "1.00", "creditsPerDollar": "1.00"}\'',
+      );
+    }
+
+    // Calculate price per essay: gradingCost / creditsPerDollar
+    // Use shared validation to prevent division by zero and invalid values
+    const { gradingCost, creditsPerDollar } = validatePricing(
+      settings.gradingCostPerEssay,
+      settings.creditsPerDollar,
+    );
+    const pricePerEssay = gradingCost / creditsPerDollar;
+
+    return {
+      gradingCostPerEssay: settings.gradingCostPerEssay,
+      creditsPerDollar: settings.creditsPerDollar,
+      pricePerEssayUsd: pricePerEssay.toFixed(2),
+      signupBonusCredits: settings.signupBonusAmount,
+    };
   },
 });
 
@@ -176,16 +289,13 @@ export const updateAiConfig = internalMutation({
       .withIndex('by_key', q => q.eq('key', 'singleton'))
       .unique();
 
-    if (settings) {
-      await ctx.db.patch(settings._id, { aiConfig });
-    } else {
-      // Create singleton if doesn't exist (shouldn't happen if seeded)
-      await ctx.db.insert('platformSettings', {
-        key: 'singleton',
-        signupBonusAmount: DEFAULT_SIGNUP_BONUS,
-        aiConfig,
-      });
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
     }
+
+    await ctx.db.patch(settings._id, { aiConfig });
 
     return { success: true, warnings: allWarnings };
   },

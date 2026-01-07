@@ -12,6 +12,10 @@ import { buttonVariants } from '@/components/ui/buttonVariants';
 import { Section } from '@/features/landing/Section';
 import { cn } from '@/utils/Helpers';
 
+// Hardcoded for landing page performance (no DB hit on every visit)
+// Actual pricing is configured in platformSettings and used at runtime
+const DISPLAY_PRICE = 1.0;
+
 export const Pricing = () => {
   const t = useTranslations('Pricing');
   const ref = useRef<HTMLDivElement>(null);
@@ -117,10 +121,10 @@ export const Pricing = () => {
                     <span className="text-6xl font-bold tracking-tight text-slate-900 md:text-7xl">
                       {isInView
                         ? (
-                            <AnimatedNumber value={0.25} prefix="$" decimals={2} duration={1.5} delay={0.3} />
+                            <AnimatedNumber value={DISPLAY_PRICE} prefix="$" decimals={2} duration={1.5} delay={0.3} />
                           )
                         : (
-                            '$0.25'
+                            `$${DISPLAY_PRICE.toFixed(2)}`
                           )}
                     </span>
                   </div>

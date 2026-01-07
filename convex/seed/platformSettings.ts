@@ -5,6 +5,7 @@
 //   Dev:  npx convex run seed/platformSettings:seed
 //   Prod: npx convex run seed/platformSettings:seed '{"isProd": true}'
 //   Reset: npx convex run seed/platformSettings:reset
+//   Set pricing: npx convex run seed/platformSettings:setPricing '{"gradingCostPerEssay": "1.00", "creditsPerDollar": "1.00"}'
 //
 // Admin emails can be passed as argument:
 //   npx convex run seed/platformSettings:seed '{"adminEmails": ["admin@example.com"]}'
@@ -15,8 +16,13 @@ import { v } from 'convex/values';
 
 import { internalMutation } from '../_generated/server';
 import { DEFAULT_AI_CONFIG, validateAiConfig } from '../lib/aiConfig';
-import { DEFAULT_SIGNUP_BONUS } from '../platformSettings';
+import { calculatePricePerEssay, validatePricing } from '../lib/pricing';
 import type { AiConfig } from '../schema';
+
+// Seed values for new deployments (no hardcoded fallbacks in runtime code)
+const SEED_SIGNUP_BONUS = '1.00';
+const SEED_GRADING_COST_PER_ESSAY = '1.00';
+const SEED_CREDITS_PER_DOLLAR = '1.00';
 
 // Production configuration overrides
 // Mixed models for better consensus accuracy
@@ -85,12 +91,15 @@ export const seed = internalMutation({
 
     const id = await ctx.db.insert('platformSettings', {
       key: 'singleton',
-      signupBonusAmount: DEFAULT_SIGNUP_BONUS,
+      signupBonusAmount: SEED_SIGNUP_BONUS,
+      gradingCostPerEssay: SEED_GRADING_COST_PER_ESSAY,
+      creditsPerDollar: SEED_CREDITS_PER_DOLLAR,
       adminEmails: normalizedEmails,
       aiConfig,
     });
 
     console.log(`Seeded platformSettings (isProd=${isProd})`);
+    console.log('Pricing: gradingCostPerEssay=%s, creditsPerDollar=%s', SEED_GRADING_COST_PER_ESSAY, SEED_CREDITS_PER_DOLLAR);
     console.log('aiConfig:', JSON.stringify(aiConfig, null, 2));
     console.log('adminEmails:', normalizedEmails ?? []);
 
@@ -137,12 +146,15 @@ export const reset = internalMutation({
 
     const id = await ctx.db.insert('platformSettings', {
       key: 'singleton',
-      signupBonusAmount: DEFAULT_SIGNUP_BONUS,
+      signupBonusAmount: SEED_SIGNUP_BONUS,
+      gradingCostPerEssay: SEED_GRADING_COST_PER_ESSAY,
+      creditsPerDollar: SEED_CREDITS_PER_DOLLAR,
       adminEmails: normalizedEmails,
       aiConfig,
     });
 
     console.log(`Reset platformSettings (isProd=${isProd})`);
+    console.log('Pricing: gradingCostPerEssay=%s, creditsPerDollar=%s', SEED_GRADING_COST_PER_ESSAY, SEED_CREDITS_PER_DOLLAR);
     console.log('aiConfig:', JSON.stringify(aiConfig, null, 2));
     console.log('adminEmails:', normalizedEmails ?? []);
 
@@ -152,7 +164,8 @@ export const reset = internalMutation({
 
 /**
  * Update only the AI config portion of platform settings
- * Preserves other settings like signupBonusAmount
+ * Preserves other settings like signupBonusAmount and pricing
+ * Throws if platformSettings not seeded
  */
 export const updateAiConfigOnly = internalMutation({
   args: {
@@ -164,9 +177,13 @@ export const updateAiConfigOnly = internalMutation({
       .withIndex('by_key', q => q.eq('key', 'singleton'))
       .unique();
 
+    if (!existing) {
+      throw new Error('platformSettings not found. Run seed first.');
+    }
+
     const aiConfig = isProd ? PROD_AI_CONFIG : DEFAULT_AI_CONFIG;
 
-    // Validate config before inserting/updating
+    // Validate config before updating
     const validation = validateAiConfig(aiConfig);
     if (!validation.valid) {
       throw new Error(`Invalid AI config: ${validation.errors.join('; ')}`);
@@ -175,21 +192,10 @@ export const updateAiConfigOnly = internalMutation({
       console.warn(`[updateAiConfigOnly] ${warning}`);
     }
 
-    if (existing) {
-      await ctx.db.patch(existing._id, { aiConfig });
-      console.log(`Updated aiConfig (isProd=${isProd})`);
-      console.log('aiConfig:', JSON.stringify(aiConfig, null, 2));
-      return { status: 'updated', id: existing._id };
-    } else {
-      // Create if doesn't exist
-      const id = await ctx.db.insert('platformSettings', {
-        key: 'singleton',
-        signupBonusAmount: DEFAULT_SIGNUP_BONUS,
-        aiConfig,
-      });
-      console.log(`Created platformSettings with aiConfig (isProd=${isProd})`);
-      return { status: 'created', id };
-    }
+    await ctx.db.patch(existing._id, { aiConfig });
+    console.log(`Updated aiConfig (isProd=${isProd})`);
+    console.log('aiConfig:', JSON.stringify(aiConfig, null, 2));
+    return { status: 'updated', id: existing._id };
   },
 });
 
@@ -222,5 +228,43 @@ export const setAdminEmails = internalMutation({
 
     console.log('Set admin emails:', normalizedEmails);
     return { status: 'updated', adminEmails: normalizedEmails };
+  },
+});
+
+/**
+ * Set pricing on existing platform settings
+ * Preserves all other settings
+ *
+ * Usage: npx convex run seed/platformSettings:setPricing '{"gradingCostPerEssay": "1.00", "creditsPerDollar": "1.00"}'
+ */
+export const setPricing = internalMutation({
+  args: {
+    gradingCostPerEssay: v.string(),
+    creditsPerDollar: v.string(),
+  },
+  handler: async (ctx, { gradingCostPerEssay, creditsPerDollar }) => {
+    const existing = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!existing) {
+      throw new Error('platformSettings not found. Run seed first.');
+    }
+
+    // Validate values using shared validation (prevents division by zero, NaN, negative)
+    validatePricing(gradingCostPerEssay, creditsPerDollar);
+
+    await ctx.db.patch(existing._id, {
+      gradingCostPerEssay,
+      creditsPerDollar,
+    });
+
+    const pricePerEssayUsd = calculatePricePerEssay(gradingCostPerEssay, creditsPerDollar);
+    console.log('Set pricing:');
+    console.log('  gradingCostPerEssay:', gradingCostPerEssay);
+    console.log('  creditsPerDollar:', creditsPerDollar);
+    console.log('  pricePerEssayUsd: $%s', pricePerEssayUsd);
+    return { status: 'updated', gradingCostPerEssay, creditsPerDollar, pricePerEssayUsd };
   },
 });

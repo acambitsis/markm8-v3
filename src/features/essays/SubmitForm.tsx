@@ -209,7 +209,8 @@ export function SubmitForm() {
 
   const isValid = isBriefComplete && isContentComplete;
   const availableCredits = Number.parseFloat(credits?.available ?? '0');
-  const hasEnoughCredits = availableCredits >= 1.0;
+  const gradingCost = Number.parseFloat(credits?.gradingCost ?? '1');
+  const hasEnoughCredits = availableCredits >= gradingCost;
 
   // Submit handler
   const handleSubmit = async () => {
@@ -345,7 +346,11 @@ export function SubmitForm() {
           <Alert variant="destructive">
             <AlertCircle className="size-4" />
             <AlertDescription>
-              You need 1.00 credits to submit. You have
+              You need
+              {' '}
+              {credits?.gradingCost ?? '...'}
+              {' '}
+              credits to submit. You have
               {' '}
               {credits?.available ?? '0.00'}
               {' '}
@@ -381,7 +386,11 @@ export function SubmitForm() {
                   {/* Cost indicator */}
                   <div className="flex items-center gap-2 rounded-lg bg-muted px-4 py-2 text-sm">
                     <Coins className="size-4 text-primary" />
-                    <span className="font-medium">1.00 credit</span>
+                    <span className="font-medium">
+                      {credits?.gradingCost ?? '...'}
+                      {' '}
+                      credit
+                    </span>
                   </div>
 
                   {/* Submit button */}

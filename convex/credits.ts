@@ -1,5 +1,6 @@
 // Credit operations
 // Handles balance tracking, reservations, and transactions
+// All pricing values fetched from platformSettings (no hardcoded defaults)
 
 import { v } from 'convex/values';
 
@@ -8,9 +9,6 @@ import type { MutationCtx } from './_generated/server';
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
 import { addDecimal, isGreaterOrEqual, isPositive, subtractDecimal } from './lib/decimal';
-import { GRADING_COST } from './lib/grading';
-
-const DEFAULT_SIGNUP_BONUS = '1.00';
 
 // =============================================================================
 // Helper functions (for use in mutations - single source of truth)
@@ -74,6 +72,18 @@ export const getBalance = query({
   handler: async (ctx) => {
     const userId = await requireAuth(ctx);
 
+    // Fetch grading cost from platformSettings
+    const settings = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
     const credits = await ctx.db
       .query('credits')
       .withIndex('by_user_id', q => q.eq('userId', userId))
@@ -84,7 +94,7 @@ export const getBalance = query({
         balance: '0.00',
         reserved: '0.00',
         available: '0.00',
-        gradingCost: GRADING_COST,
+        gradingCost: settings.gradingCostPerEssay,
       };
     }
 
@@ -94,7 +104,7 @@ export const getBalance = query({
       balance: credits.balance,
       reserved: credits.reserved,
       available: credits.balance, // Not balance - reserved!
-      gradingCost: GRADING_COST,
+      gradingCost: settings.gradingCostPerEssay,
     };
   },
 });
@@ -102,15 +112,14 @@ export const getBalance = query({
 /**
  * Initialize credits for a new user (internal mutation)
  * Called when a user is created via Clerk webhook
+ * Caller must provide signupBonus (fetched from platformSettings.getSignupBonus)
  */
 export const initializeForUser = internalMutation({
   args: {
     userId: v.id('users'),
-    signupBonus: v.optional(v.string()),
+    signupBonus: v.string(), // Required - caller fetches from platformSettings
   },
   handler: async (ctx, { userId, signupBonus }) => {
-    const bonus = signupBonus ?? DEFAULT_SIGNUP_BONUS;
-
     // Check if credits already exist
     const existingCredits = await ctx.db
       .query('credits')
@@ -124,15 +133,15 @@ export const initializeForUser = internalMutation({
     // Create credits record
     const creditsId = await ctx.db.insert('credits', {
       userId,
-      balance: bonus,
+      balance: signupBonus,
       reserved: '0.00',
     });
 
     // Record signup bonus transaction if bonus > 0
-    if (isPositive(bonus)) {
+    if (isPositive(signupBonus)) {
       await ctx.db.insert('creditTransactions', {
         userId,
-        amount: bonus,
+        amount: signupBonus,
         transactionType: 'signup_bonus',
         description: 'Welcome bonus for new signup',
       });

@@ -1,5 +1,6 @@
 // Essay queries and mutations
 // Handles drafts, submission, and essay management
+// Grading cost fetched from platformSettings (no hardcoded defaults)
 
 import { v } from 'convex/values';
 
@@ -10,7 +11,6 @@ import { requireAuth } from './lib/auth';
 // Import validators from schema.ts (single source of truth)
 import { academicLevelValidator, rubricValidator } from './schema';
 
-const GRADING_COST = '1.00';
 const MIN_WORD_COUNT = 50;
 const MAX_WORD_COUNT = 50000;
 
@@ -141,7 +141,21 @@ export const submit = mutation({
   handler: async (ctx) => {
     const userId = await requireAuth(ctx);
 
-    // 1. Get the draft
+    // 1. Get grading cost from platformSettings
+    const settings = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (!settings) {
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
+    }
+
+    const gradingCost = settings.gradingCostPerEssay;
+
+    // 2. Get the draft
     const draft = await ctx.db
       .query('essays')
       .withIndex('by_user_status', q =>
@@ -153,7 +167,7 @@ export const submit = mutation({
       throw new Error('No draft found to submit');
     }
 
-    // 2. Validate required fields
+    // 3. Validate required fields
     const errors: string[] = [];
     const brief = draft.assignmentBrief;
 
@@ -192,18 +206,18 @@ export const submit = mutation({
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
 
-    // 3. Reserve credit (validates balance, deducts, tracks in reserved)
+    // 4. Reserve credit (validates balance, deducts, tracks in reserved)
     // Uses centralized helper from credits.ts (single source of truth)
-    await reserveCreditForUser(ctx, userId, GRADING_COST);
+    await reserveCreditForUser(ctx, userId, gradingCost);
 
-    // 4. Update essay status
+    // 5. Update essay status
     await ctx.db.patch(draft._id, {
       status: 'submitted',
       submittedAt: Date.now(),
       wordCount,
     });
 
-    // 5. Create grade record
+    // 6. Create grade record
     const gradeId = await ctx.db.insert('grades', {
       userId,
       essayId: draft._id,
@@ -211,7 +225,7 @@ export const submit = mutation({
       queuedAt: Date.now(),
     });
 
-    // 6. Schedule grading action
+    // 7. Schedule grading action
     await ctx.scheduler.runAfter(0, internal.grading.processGrade, {
       gradeId,
     });
