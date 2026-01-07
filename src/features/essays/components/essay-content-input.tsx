@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, FileText, FileUp, Loader2, Upload, X } from 'lucide-react';
+import { AlertCircle, FileUp, Loader2, Lock, Upload, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
@@ -171,8 +171,11 @@ export function EssayContentInput({
                 {/* File header */}
                 <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <FileText className="size-4 text-muted-foreground" />
+                    <Lock className="size-4 text-muted-foreground" />
                     <span className="font-medium">{uploadedFileName}</span>
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                      Read-only
+                    </span>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button
@@ -201,8 +204,8 @@ export function EssayContentInput({
                 </div>
 
                 {/* Formatted content preview - skipHtml for XSS protection */}
-                <div className="max-h-[500px] min-h-[400px] overflow-y-auto p-6">
-                  <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground">
+                <div className="max-h-[500px] min-h-[400px] cursor-default overflow-y-auto p-6">
+                  <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground/70">
                     <Markdown skipHtml>{value}</Markdown>
                   </div>
                 </div>
