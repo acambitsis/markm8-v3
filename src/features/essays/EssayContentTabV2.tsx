@@ -1,12 +1,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, FileText, Upload } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
+import { useState } from 'react';
 
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useDocumentUpload } from '@/hooks/useDocumentUpload';
 import { cn } from '@/utils/Helpers';
+
+import { FileUploadZone } from './FileUploadZone';
 
 type Props = {
   content: string;
@@ -36,12 +41,22 @@ const itemVariants = {
 };
 
 export function EssayContentTabV2({ content, wordCount, onUpdate }: Props) {
+  const [inputMode, setInputMode] = useState<'paste' | 'upload'>('paste');
+  const upload = useDocumentUpload();
+
   const isTooShort = wordCount > 0 && wordCount < MIN_WORDS;
   const isTooLong = wordCount > MAX_WORDS;
   const isValid = wordCount >= MIN_WORDS && wordCount <= MAX_WORDS;
 
   // Calculate progress percentage (capped at 100%)
   const progressPercent = Math.min((wordCount / MIN_WORDS) * 100, 100);
+
+  // Handle accepting uploaded content
+  const handleAcceptUpload = (markdown: string) => {
+    onUpdate(markdown);
+    setInputMode('paste'); // Switch to paste view to show/edit content
+    upload.reset();
+  };
 
   return (
     <motion.div
@@ -54,32 +69,39 @@ export function EssayContentTabV2({ content, wordCount, onUpdate }: Props) {
       <motion.div variants={itemVariants} className="space-y-1">
         <h2 className="text-xl font-semibold">Essay Content</h2>
         <p className="text-sm text-muted-foreground">
-          Paste your essay below. We&apos;ll analyze it and provide detailed feedback.
+          Paste your essay or upload a document. We&apos;ll analyze it and provide detailed feedback.
         </p>
       </motion.div>
 
-      {/* Textarea */}
-      <motion.div variants={itemVariants} className="space-y-3">
-        <div className="flex items-center justify-between">
-          <Label className="flex items-center gap-2 text-sm font-medium">
-            <FileText className="size-4 text-muted-foreground" />
-            Your Essay
-            <span className="text-destructive">*</span>
-          </Label>
-          <span className="text-xs text-muted-foreground">
-            {MIN_WORDS.toLocaleString()}
-            {' '}
-            -
-            {' '}
-            {MAX_WORDS.toLocaleString()}
-            {' '}
-            words
-          </span>
-        </div>
+      {/* Input Mode Tabs */}
+      <motion.div variants={itemVariants}>
+        <Tabs value={inputMode} onValueChange={v => setInputMode(v as 'paste' | 'upload')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="paste">Paste Text</TabsTrigger>
+            <TabsTrigger value="upload">Upload Document</TabsTrigger>
+          </TabsList>
 
-        <div className="relative">
-          <Textarea
-            placeholder="Paste your essay content here...
+          <TabsContent value="paste" className="mt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <FileText className="size-4 text-muted-foreground" />
+                Your Essay
+                <span className="text-destructive">*</span>
+              </Label>
+              <span className="text-xs text-muted-foreground">
+                {MIN_WORDS.toLocaleString()}
+                {' '}
+                -
+                {' '}
+                {MAX_WORDS.toLocaleString()}
+                {' '}
+                words
+              </span>
+            </div>
+
+            <div className="relative">
+              <Textarea
+                placeholder="Paste your essay content here...
 
 Your essay will be analyzed by multiple AI models to provide comprehensive feedback on:
 • Thesis clarity and argument structure
@@ -87,11 +109,25 @@ Your essay will be analyzed by multiple AI models to provide comprehensive feedb
 • Writing style and tone
 • Grammar, spelling, and mechanics
 • Overall coherence and flow"
-            className="min-h-[400px] resize-y font-mono text-sm leading-relaxed"
-            value={content}
-            onChange={e => onUpdate(e.target.value)}
-          />
-        </div>
+                className="min-h-[400px] resize-y font-mono text-sm leading-relaxed"
+                value={content}
+                onChange={e => onUpdate(e.target.value)}
+              />
+            </div>
+          </TabsContent>
+
+          <TabsContent value="upload" className="mt-4">
+            <FileUploadZone
+              state={upload.state}
+              error={upload.error}
+              result={upload.result}
+              onUpload={upload.upload}
+              onReset={upload.reset}
+              onDragOver={upload.setDragOver}
+              onAccept={handleAcceptUpload}
+            />
+          </TabsContent>
+        </Tabs>
       </motion.div>
 
       {/* Word Count Bar */}
@@ -128,7 +164,7 @@ Your essay will be analyzed by multiple AI models to provide comprehensive feedb
                   words
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {wordCount === 0 && 'Start typing or paste your essay'}
+                  {wordCount === 0 && 'Start typing, paste, or upload your essay'}
                   {isTooShort && `${MIN_WORDS - wordCount} more words needed`}
                   {isTooLong && `${wordCount - MAX_WORDS} words over limit`}
                   {isValid && 'Ready to submit'}
@@ -168,24 +204,6 @@ Your essay will be analyzed by multiple AI models to provide comprehensive feedb
               <Progress value={progressPercent} className="mt-2 h-2" />
             </div>
           )}
-        </div>
-      </motion.div>
-
-      {/* Document Upload Placeholder */}
-      <motion.div
-        variants={itemVariants}
-        className="rounded-xl border border-dashed bg-muted/20 p-6"
-      >
-        <div className="flex items-center gap-4">
-          <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
-            <Upload className="size-6 text-muted-foreground" />
-          </div>
-          <div>
-            <p className="font-medium text-muted-foreground">Document upload coming soon</p>
-            <p className="text-sm text-muted-foreground">
-              Support for PDF and DOCX files is on the roadmap.
-            </p>
-          </div>
         </div>
       </motion.div>
     </motion.div>
