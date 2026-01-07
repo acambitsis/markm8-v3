@@ -3,9 +3,9 @@
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle2, FileText } from 'lucide-react';
 
+import { EssayContentInput } from '@/components/ui/essay-content-input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { TextareaWithUpload } from '@/components/ui/textarea-with-upload';
 import { cn } from '@/utils/Helpers';
 
 type Props = {
@@ -77,19 +77,10 @@ export function EssayContentTab({ content, wordCount, onUpdate }: Props) {
           </span>
         </div>
 
-        <TextareaWithUpload
-          placeholder="Paste your essay content here, or drag & drop a PDF, Word, or text file...
-
-Your essay will be analyzed by multiple AI models to provide comprehensive feedback on:
-• Thesis clarity and argument structure
-• Evidence quality and integration
-• Writing style and tone
-• Grammar, spelling, and mechanics
-• Overall coherence and flow"
-          className="min-h-[400px] resize-y font-mono text-sm leading-relaxed"
+        <EssayContentInput
+          placeholder="Paste your essay here, or drag & drop a PDF, Word, or text file..."
           value={content}
           onChange={onUpdate}
-          uploadLabel="Upload essay document"
         />
       </motion.div>
 
