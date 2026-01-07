@@ -242,7 +242,7 @@ export const parseDocument = action({
         fileName,
         fileType,
       };
-    } catch (error) {
+    } catch {
       // Clean up the file on error
       try {
         await ctx.storage.delete(storageId);
@@ -250,7 +250,7 @@ export const parseDocument = action({
         // Ignore cleanup errors
       }
 
-      console.error('Document parsing failed:', error);
+      // Convex auto-logs exceptions, no need for console.error
       return {
         success: false,
         error: 'PARSE_FAILED',
@@ -289,11 +289,12 @@ export const checkRateLimit = internalQuery({
   handler: async (ctx, { userId, windowMs, maxRequests }): Promise<boolean> => {
     const windowStart = Date.now() - windowMs;
 
+    // Use .take() to stop early once we know user is over limit
     const recentRequests = await ctx.db
       .query('documentParseRequests')
       .withIndex('by_user_timestamp', q =>
         q.eq('userId', userId).gte('timestamp', windowStart))
-      .collect();
+      .take(maxRequests + 1);
 
     return recentRequests.length < maxRequests;
   },
@@ -309,6 +310,30 @@ export const recordRequest = internalMutation({
       userId,
       timestamp: Date.now(),
     });
+  },
+});
+
+/**
+ * Clean up old parse requests (older than 1 hour)
+ * Called by cron job to prevent table bloat
+ */
+export const cleanupOldRequests = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+
+    // Query old records (no user filter needed, just by timestamp)
+    // We'll delete in batches to avoid timeout
+    const oldRequests = await ctx.db
+      .query('documentParseRequests')
+      .filter(q => q.lt(q.field('timestamp'), oneHourAgo))
+      .take(100);
+
+    for (const request of oldRequests) {
+      await ctx.db.delete(request._id);
+    }
+
+    return { deleted: oldRequests.length };
   },
 });
 

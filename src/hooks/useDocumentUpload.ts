@@ -3,6 +3,8 @@
 import { useAction, useMutation } from 'convex/react';
 import { useCallback, useState } from 'react';
 
+import { logger } from '@/libs/Logger';
+
 import { api } from '../../convex/_generated/api';
 
 // =============================================================================
@@ -139,7 +141,7 @@ export function useDocumentUpload() {
         setState('success');
         return uploadResult;
       } catch (err) {
-        console.error('Upload failed:', err);
+        logger.error(err, 'Upload failed');
         const uploadError: UploadError = {
           code: 'UPLOAD_FAILED',
           message: 'We couldn\'t upload this file. Please try again.',

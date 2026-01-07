@@ -10,6 +10,7 @@
 
 import type * as admin from "../admin.js";
 import type * as credits from "../credits.js";
+import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
 import type * as essays from "../essays.js";
 import type * as gradeFailures from "../gradeFailures.js";
@@ -42,6 +43,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   credits: typeof credits;
+  crons: typeof crons;
   documents: typeof documents;
   essays: typeof essays;
   gradeFailures: typeof gradeFailures;
