@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Bot, Check, Coins, Loader2, Settings, Shield, X } from 'lucide-react';
+import { Bot, Check, Coins, DollarSign, Loader2, Settings, Shield, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
@@ -20,6 +20,8 @@ export default function AdminSettingsPage() {
   const { updatePlatformSettings } = useAdminMutations();
 
   const [signupBonus, setSignupBonus] = useState('');
+  const [gradingCost, setGradingCost] = useState('');
+  const [creditsPerDollar, setCreditsPerDollar] = useState('');
   const [aiConfig, setAiConfig] = useState<AiConfig | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -32,11 +34,17 @@ export default function AdminSettingsPage() {
       if (!signupBonus) {
         setSignupBonus(settings.signupBonusAmount);
       }
+      if (!gradingCost && settings.gradingCostPerEssay) {
+        setGradingCost(settings.gradingCostPerEssay);
+      }
+      if (!creditsPerDollar && settings.creditsPerDollar) {
+        setCreditsPerDollar(settings.creditsPerDollar);
+      }
       if (!aiConfig && settings.aiConfig) {
         setAiConfig(settings.aiConfig);
       }
     }
-  }, [settings, signupBonus, aiConfig]);
+  }, [settings, signupBonus, gradingCost, creditsPerDollar, aiConfig]);
 
   // Handle AI config changes
   const handleAiConfigChange = useCallback((newConfig: AiConfig) => {
@@ -54,6 +62,21 @@ export default function AdminSettingsPage() {
     setError(null);
   }, []);
 
+  // Handle pricing changes
+  const handleGradingCostChange = useCallback((value: string) => {
+    setGradingCost(value);
+    setHasChanges(true);
+    setSuccess(null);
+    setError(null);
+  }, []);
+
+  const handleCreditsPerDollarChange = useCallback((value: string) => {
+    setCreditsPerDollar(value);
+    setHasChanges(true);
+    setSuccess(null);
+    setError(null);
+  }, []);
+
   const handleSave = async () => {
     setError(null);
     setSuccess(null);
@@ -64,6 +87,18 @@ export default function AdminSettingsPage() {
       const bonus = Number.parseFloat(signupBonus);
       if (Number.isNaN(bonus) || bonus < 0) {
         throw new Error('Invalid signup bonus amount');
+      }
+
+      // Validate grading cost
+      const cost = Number.parseFloat(gradingCost);
+      if (Number.isNaN(cost) || cost <= 0) {
+        throw new Error('Grading cost must be a positive number');
+      }
+
+      // Validate credits per dollar
+      const cpd = Number.parseFloat(creditsPerDollar);
+      if (Number.isNaN(cpd) || cpd <= 0) {
+        throw new Error('Credits per dollar must be a positive number');
       }
 
       // Validate AI config
@@ -84,6 +119,8 @@ export default function AdminSettingsPage() {
 
       await updatePlatformSettings({
         signupBonusAmount: bonus.toFixed(2),
+        gradingCostPerEssay: cost.toFixed(2),
+        creditsPerDollar: cpd.toFixed(2),
         ...(aiConfig && { aiConfig }),
       });
 
@@ -160,12 +197,76 @@ export default function AdminSettingsPage() {
           </div>
         </motion.div>
 
-        {/* Admin Access */}
+        {/* Pricing */}
         <motion.div
           className="rounded-xl border bg-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-purple-500/10">
+                <DollarSign className="size-5 text-purple-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold">Pricing</h2>
+                <p className="text-sm text-muted-foreground">Essay grading cost and credit rates</p>
+              </div>
+            </div>
+          </div>
+          <div className="grid gap-6 p-5 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="gradingCost" className="text-muted-foreground">Grading Cost (credits)</Label>
+              <div className="relative">
+                <Coins className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="gradingCost"
+                  type="text"
+                  value={gradingCost}
+                  onChange={e => handleGradingCostChange(e.target.value)}
+                  placeholder="1.00"
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Credits charged per essay graded</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="creditsPerDollar" className="text-muted-foreground">Credits per Dollar</Label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="creditsPerDollar"
+                  type="text"
+                  value={creditsPerDollar}
+                  onChange={e => handleCreditsPerDollarChange(e.target.value)}
+                  placeholder="1.00"
+                  className="pl-9"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">Credits received per $1 spent</p>
+            </div>
+            {/* Calculated price display */}
+            {gradingCost && creditsPerDollar && (
+              <div className="col-span-full rounded-lg bg-muted p-3">
+                <p className="text-sm">
+                  <span className="text-muted-foreground">Price per essay: </span>
+                  <span className="font-semibold">
+                    $
+                    {(Number.parseFloat(gradingCost) / Number.parseFloat(creditsPerDollar)).toFixed(2)}
+                  </span>
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+
+        {/* Admin Access */}
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.5 }}
         >
           <div className="border-b p-5">
             <div className="flex items-center gap-3">
@@ -188,7 +289,7 @@ export default function AdminSettingsPage() {
           className="rounded-xl border bg-card"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3, duration: 0.5 }}
+          transition={{ delay: 0.4, duration: 0.5 }}
         >
           <div className="border-b p-5">
             <div className="flex items-center gap-3">
@@ -214,7 +315,7 @@ export default function AdminSettingsPage() {
           className="sticky bottom-4 flex items-center gap-4 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4, duration: 0.5 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
         >
           <Button
             onClick={handleSave}

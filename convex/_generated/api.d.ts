@@ -23,7 +23,6 @@ import type * as lib_auth from "../lib/auth.js";
 import type * as lib_decimal from "../lib/decimal.js";
 import type * as lib_gradeSchema from "../lib/gradeSchema.js";
 import type * as lib_grading_ai from "../lib/grading/ai.js";
-import type * as lib_grading_config from "../lib/grading/config.js";
 import type * as lib_grading_index from "../lib/grading/index.js";
 import type * as lib_grading_mock from "../lib/grading/mock.js";
 import type * as lib_grading_utils from "../lib/grading/utils.js";
@@ -56,7 +55,6 @@ declare const fullApi: ApiFromModules<{
   "lib/decimal": typeof lib_decimal;
   "lib/gradeSchema": typeof lib_gradeSchema;
   "lib/grading/ai": typeof lib_grading_ai;
-  "lib/grading/config": typeof lib_grading_config;
   "lib/grading/index": typeof lib_grading_index;
   "lib/grading/mock": typeof lib_grading_mock;
   "lib/grading/utils": typeof lib_grading_utils;

@@ -430,6 +430,7 @@ export const getTransactions = query({
 /**
  * Get platform settings (admin only)
  * Returns full settings including admin allowlist
+ * Throws if not seeded - run: npx convex run seed/platformSettings:seed
  */
 export const getPlatformSettings = query({
   args: {},
@@ -442,15 +443,15 @@ export const getPlatformSettings = query({
       .unique();
 
     if (!settings) {
-      return {
-        signupBonusAmount: '1.00',
-        adminEmails: [],
-        aiConfig: null,
-      };
+      throw new Error(
+        'platformSettings not found. Run seed script: npx convex run seed/platformSettings:seed',
+      );
     }
 
     return {
       signupBonusAmount: settings.signupBonusAmount,
+      gradingCostPerEssay: settings.gradingCostPerEssay,
+      creditsPerDollar: settings.creditsPerDollar,
       adminEmails: settings.adminEmails ?? [],
       aiConfig: settings.aiConfig,
     };
@@ -535,11 +536,13 @@ export const adjustCredits = mutation({
 
 /**
  * Update platform settings
- * Can update signup bonus, admin emails, and AI config
+ * Can update signup bonus, pricing, admin emails, and AI config
  */
 export const updatePlatformSettings = mutation({
   args: {
     signupBonusAmount: v.optional(v.string()),
+    gradingCostPerEssay: v.optional(v.string()),
+    creditsPerDollar: v.optional(v.string()),
     adminEmails: v.optional(v.array(v.string())),
     aiConfig: v.optional(aiConfigValidator),
   },
@@ -579,6 +582,24 @@ export const updatePlatformSettings = mutation({
         throw new Error('Invalid signup bonus amount');
       }
       updates.signupBonusAmount = args.signupBonusAmount;
+    }
+
+    if (args.gradingCostPerEssay !== undefined) {
+      // Validate grading cost - must be positive
+      const cost = Number.parseFloat(args.gradingCostPerEssay);
+      if (Number.isNaN(cost) || cost <= 0) {
+        throw new Error('Grading cost must be a positive number');
+      }
+      updates.gradingCostPerEssay = args.gradingCostPerEssay;
+    }
+
+    if (args.creditsPerDollar !== undefined) {
+      // Validate credits per dollar - must be positive
+      const cpd = Number.parseFloat(args.creditsPerDollar);
+      if (Number.isNaN(cpd) || cpd <= 0) {
+        throw new Error('Credits per dollar must be a positive number');
+      }
+      updates.creditsPerDollar = args.creditsPerDollar;
     }
 
     if (normalizedEmails !== undefined) {

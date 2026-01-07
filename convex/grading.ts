@@ -1,5 +1,6 @@
 // AI Grading Action
 // Background job that processes essay grading
+// Grading cost fetched from platformSettings (no hardcoded defaults)
 
 import { v } from 'convex/values';
 
@@ -7,7 +8,6 @@ import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
 import {
   generateMockGrade,
-  GRADING_COST,
   runAIGrading,
   USER_ERROR_MESSAGE,
 } from './lib/grading';
@@ -19,6 +19,12 @@ import {
 export const processGrade = internalAction({
   args: { gradeId: v.id('grades') },
   handler: async (ctx, { gradeId }) => {
+    // Fetch grading cost from platformSettings (used for both success and failure paths)
+    const gradingCost = await ctx.runQuery(
+      internal.platformSettings.getGradingCost,
+      {},
+    );
+
     try {
       // Fetch AI config from database
       const aiConfig = await ctx.runQuery(
@@ -80,7 +86,7 @@ export const processGrade = internalAction({
       // 8. Clear credit reservation and record transaction
       await ctx.runMutation(internal.credits.clearReservation, {
         userId: grade.userId,
-        amount: GRADING_COST,
+        amount: gradingCost,
         gradeId,
         description: `Grading for essay: ${essay.assignmentBrief?.title ?? 'Untitled'}`,
       });
@@ -120,7 +126,7 @@ export const processGrade = internalAction({
           // Refund the credit (generic reason, no internal details)
           await ctx.runMutation(internal.credits.refundReservation, {
             userId: grade.userId,
-            amount: GRADING_COST,
+            amount: gradingCost,
             gradeId,
             reason: 'Grading failed - credit refunded',
           });
