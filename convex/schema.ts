@@ -313,6 +313,14 @@ export default defineSchema({
   })
     .index('by_grade_id', ['gradeId'])
     .index('by_user_id', ['userId']),
+
+  // Document Parse Requests (rate limiting for file uploads)
+  // Tracks recent parse requests per user for rate limiting (10/min)
+  documentParseRequests: defineTable({
+    userId: v.id('users'),
+    timestamp: v.number(), // Unix timestamp in ms
+  })
+    .index('by_user_timestamp', ['userId', 'timestamp']),
 });
 
 // =============================================================================
