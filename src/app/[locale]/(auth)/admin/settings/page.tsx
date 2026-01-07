@@ -246,18 +246,26 @@ export default function AdminSettingsPage() {
               </div>
               <p className="text-xs text-muted-foreground">Credits received per $1 spent</p>
             </div>
-            {/* Calculated price display */}
-            {gradingCost && creditsPerDollar && Number.parseFloat(creditsPerDollar) !== 0 && (
-              <div className="col-span-full rounded-lg bg-muted p-3">
-                <p className="text-sm">
-                  <span className="text-muted-foreground">Price per essay: </span>
-                  <span className="font-semibold">
-                    $
-                    {(Number.parseFloat(gradingCost) / Number.parseFloat(creditsPerDollar)).toFixed(2)}
-                  </span>
-                </p>
-              </div>
-            )}
+            {/* Calculated price display - validate both values to prevent NaN/Infinity */}
+            {(() => {
+              const cost = Number.parseFloat(gradingCost);
+              const cpd = Number.parseFloat(creditsPerDollar);
+              const isValid = !Number.isNaN(cost) && !Number.isNaN(cpd) && cpd > 0 && cost >= 0;
+              if (!isValid) {
+                return null;
+              }
+              return (
+                <div className="col-span-full rounded-lg bg-muted p-3">
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">Price per essay: </span>
+                    <span className="font-semibold">
+                      $
+                      {(cost / cpd).toFixed(2)}
+                    </span>
+                  </p>
+                </div>
+              );
+            })()}
           </div>
         </motion.div>
 

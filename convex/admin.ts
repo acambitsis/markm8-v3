@@ -7,6 +7,7 @@ import type { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { isAdmin, requireAdmin } from './lib/auth';
 import { addDecimal, isNegative, isZero } from './lib/decimal';
+import { validatePricingValue } from './lib/pricing';
 import { aiConfigValidator, transactionTypeValidator } from './schema';
 
 /**
@@ -585,20 +586,14 @@ export const updatePlatformSettings = mutation({
     }
 
     if (args.gradingCostPerEssay !== undefined) {
-      // Validate grading cost - must be positive
-      const cost = Number.parseFloat(args.gradingCostPerEssay);
-      if (Number.isNaN(cost) || cost <= 0) {
-        throw new Error('Grading cost must be a positive number');
-      }
+      // Validate grading cost - must be positive (uses shared validation)
+      validatePricingValue(args.gradingCostPerEssay, 'Grading cost');
       updates.gradingCostPerEssay = args.gradingCostPerEssay;
     }
 
     if (args.creditsPerDollar !== undefined) {
-      // Validate credits per dollar - must be positive
-      const cpd = Number.parseFloat(args.creditsPerDollar);
-      if (Number.isNaN(cpd) || cpd <= 0) {
-        throw new Error('Credits per dollar must be a positive number');
-      }
+      // Validate credits per dollar - must be positive (uses shared validation)
+      validatePricingValue(args.creditsPerDollar, 'Credits per dollar');
       updates.creditsPerDollar = args.creditsPerDollar;
     }
 

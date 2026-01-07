@@ -16,6 +16,7 @@ import { v } from 'convex/values';
 
 import { internalMutation } from '../_generated/server';
 import { DEFAULT_AI_CONFIG, validateAiConfig } from '../lib/aiConfig';
+import { calculatePricePerEssay, validatePricing } from '../lib/pricing';
 import type { AiConfig } from '../schema';
 
 // Seed values for new deployments (no hardcoded fallbacks in runtime code)
@@ -251,27 +252,19 @@ export const setPricing = internalMutation({
       throw new Error('platformSettings not found. Run seed first.');
     }
 
-    // Validate values
-    const cost = Number.parseFloat(gradingCostPerEssay);
-    if (Number.isNaN(cost) || cost <= 0) {
-      throw new Error('gradingCostPerEssay must be a positive number');
-    }
-
-    const cpd = Number.parseFloat(creditsPerDollar);
-    if (Number.isNaN(cpd) || cpd <= 0) {
-      throw new Error('creditsPerDollar must be a positive number');
-    }
+    // Validate values using shared validation (prevents division by zero, NaN, negative)
+    validatePricing(gradingCostPerEssay, creditsPerDollar);
 
     await ctx.db.patch(existing._id, {
       gradingCostPerEssay,
       creditsPerDollar,
     });
 
-    const pricePerEssay = cost / cpd;
+    const pricePerEssayUsd = calculatePricePerEssay(gradingCostPerEssay, creditsPerDollar);
     console.log('Set pricing:');
     console.log('  gradingCostPerEssay:', gradingCostPerEssay);
     console.log('  creditsPerDollar:', creditsPerDollar);
-    console.log('  pricePerEssayUsd: $%s', pricePerEssay.toFixed(2));
-    return { status: 'updated', gradingCostPerEssay, creditsPerDollar, pricePerEssayUsd: pricePerEssay.toFixed(2) };
+    console.log('  pricePerEssayUsd: $%s', pricePerEssayUsd);
+    return { status: 'updated', gradingCostPerEssay, creditsPerDollar, pricePerEssayUsd };
   },
 });
