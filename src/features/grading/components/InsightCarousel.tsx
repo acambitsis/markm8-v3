@@ -1,10 +1,10 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { BarChart3, BookOpen, FileText, Lightbulb, Sparkles, Users, Zap } from 'lucide-react';
+import { BookOpen, FileText, Lightbulb, Quote, Sparkles, Users, Zap } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getTipsForSubject } from '@/data/waitingTips';
+import { getQuotes } from '@/data/waitingTips';
 import type { EssayStats } from '@/utils/essayStats';
 
 import type { TopicInsights } from '../../../../convex/schema';
@@ -41,18 +41,12 @@ export function InsightCarousel({
   const items: InsightItem[] = useMemo(() => {
     const allItems: InsightItem[] = [];
 
-    // Essay stats (always first if available)
+    // Essay stats (single item)
     if (essayStats) {
       allItems.push({
         icon: <FileText className="size-4" />,
         label: 'Your essay',
-        text: `${essayStats.wordCount.toLocaleString()} words across ${essayStats.sentenceCount} sentences`,
-      });
-
-      allItems.push({
-        icon: <BarChart3 className="size-4" />,
-        label: 'Reading level',
-        text: `${essayStats.readingLevel} · Average ${essayStats.avgSentenceLength} words per sentence`,
+        text: `${essayStats.wordCount.toLocaleString()} words · ${essayStats.sentenceCount} sentences · ${essayStats.readingLevel} level`,
       });
     }
 
@@ -98,13 +92,13 @@ export function InsightCarousel({
         });
       });
     } else {
-      // Tier 1: Subject tips while waiting for LLM
-      const tips = getTipsForSubject(subject);
-      tips.forEach((tip) => {
+      // Tier 1: Famous quotes while waiting for LLM
+      const quotes = getQuotes();
+      quotes.forEach((quote) => {
         allItems.push({
-          icon: <Lightbulb className="size-4" />,
-          label: 'Writing tip',
-          text: tip,
+          icon: <Quote className="size-4" />,
+          label: quote.author,
+          text: `"${quote.text}"`,
         });
       });
     }

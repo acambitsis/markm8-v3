@@ -213,9 +213,8 @@ function ProcessingExperience({
         if (!cancelled) {
           setTopicInsights(insights);
         }
-      } catch (error) {
+      } catch {
         // Silent failure - topic insights are non-critical
-        console.error('Failed to fetch topic insights:', error);
       } finally {
         if (!cancelled) {
           setInsightsLoading(false);

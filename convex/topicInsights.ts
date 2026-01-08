@@ -76,7 +76,13 @@ CONTENT RULES:
 export const generate = action({
   args: { gradeId: v.id('grades') },
   handler: async (ctx, { gradeId }): Promise<z.infer<typeof topicInsightsSchema>> => {
-    // 1. Get the grade record
+    // 1. Auth check - get authenticated user
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error('Unauthorized: Not authenticated');
+    }
+
+    // 2. Get the grade record
     const grade = await ctx.runQuery(internal.grades.getInternal, {
       gradeId,
     });
@@ -85,7 +91,15 @@ export const generate = action({
       throw new Error('Grade not found');
     }
 
-    // 2. Get the essay
+    // 3. Verify user owns this grade
+    const user = await ctx.runQuery(internal.users.getByClerkId, {
+      clerkId: identity.subject,
+    });
+    if (!user || grade.userId !== user._id) {
+      throw new Error('Unauthorized: Cannot access this grade');
+    }
+
+    // 4. Get the essay
     const essay = await ctx.runQuery(internal.essays.getInternal, {
       essayId: grade.essayId,
     });
@@ -94,14 +108,14 @@ export const generate = action({
       throw new Error('Essay not found');
     }
 
-    // 3. Prepare essay excerpt (first ~500 words to keep costs low)
+    // 5. Prepare essay excerpt (first ~500 words to keep costs low)
     const content = essay.content ?? '';
-    const words = content.split(/\s+/);
+    const words = content.split(/\s+/).filter(w => w.length > 0);
     const excerpt = words.slice(0, 500).join(' ');
     const title = essay.assignmentBrief?.title ?? 'Untitled Essay';
     const subject = essay.assignmentBrief?.subject ?? 'General';
 
-    // 4. Build the user prompt
+    // 6. Build the user prompt
     const userPrompt = `ESSAY TITLE: ${title}
 SUBJECT AREA: ${subject}
 
@@ -110,7 +124,7 @@ ${excerpt}
 
 Based on the topic of this essay, provide engaging context about the subject area. Remember: discuss the TOPIC, not the essay itself.`;
 
-    // 5. Call Grok 4.1 Fast for structured output
+    // 7. Call Grok 4.1 Fast for structured output
     const model = getGradingModel(TOPIC_INSIGHTS_MODEL);
 
     const result = await generateObject({
@@ -122,7 +136,7 @@ Based on the topic of this essay, provide engaging context about the subject are
       maxOutputTokens: 600, // Keep response concise
     });
 
-    // 6. Return the insights directly (not persisted)
+    // 8. Return the insights directly (not persisted)
     return result.object;
   },
 });
