@@ -6,6 +6,7 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, unstable_setRequestLocale } from 'next-intl/server';
 
 import { AllLocales, AppConfig } from '@/utils/AppConfig';
+import { getBaseUrl } from '@/utils/Helpers';
 
 // Geist font family - clean, modern, optimized for UI
 const geistSans = Geist({
@@ -21,7 +22,7 @@ const geistMono = Geist_Mono({
 });
 
 // Base URL for metadata (OG images, canonical URLs)
-const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markm8.com';
+const baseUrl = getBaseUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),

@@ -10,7 +10,8 @@ import { Pricing } from '@/templates/Pricing';
 import { Testimonials } from '@/templates/Testimonials';
 import { ToolHero } from '@/templates/ToolHero';
 import { TrustStrip } from '@/templates/TrustStrip';
-import { AllLocales } from '@/utils/AppConfig';
+import { AllLocales, getAlternateOgLocales, getOgLocale } from '@/utils/AppConfig';
+import { getI18nPath } from '@/utils/Helpers';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -19,24 +20,24 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
     namespace: 'Index',
   });
 
-  // Build locale alternates for hreflang tags
+  // Build locale alternates for hreflang tags (scalable for any number of locales)
   const languages: Record<string, string> = {};
   for (const loc of AllLocales) {
-    languages[loc] = loc === 'en' ? '/' : `/${loc}`;
+    languages[loc] = getI18nPath('/', loc);
   }
 
   return {
     title: t('meta_title'),
     description: t('meta_description'),
     alternates: {
-      canonical: locale === 'en' ? '/' : `/${locale}`,
+      canonical: getI18nPath('/', locale),
       languages,
     },
     openGraph: {
       title: t('meta_title'),
       description: t('meta_description'),
-      locale: locale === 'en' ? 'en_US' : 'fr_FR',
-      alternateLocale: locale === 'en' ? ['fr_FR'] : ['en_US'],
+      locale: getOgLocale(locale),
+      alternateLocale: getAlternateOgLocales(locale),
     },
   };
 }

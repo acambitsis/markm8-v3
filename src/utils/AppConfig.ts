@@ -9,14 +9,32 @@ export const AppConfig = {
     {
       id: 'en',
       name: 'English',
+      ogLocale: 'en_US', // Open Graph locale format
     },
-    { id: 'fr', name: 'Français' },
+    {
+      id: 'fr',
+      name: 'Français',
+      ogLocale: 'fr_FR',
+    },
   ],
   defaultLocale: 'en',
   localePrefix,
 };
 
 export const AllLocales = AppConfig.locales.map(locale => locale.id);
+
+// Get Open Graph locale for a given locale ID (e.g., 'en' -> 'en_US')
+export function getOgLocale(localeId: string): string {
+  const locale = AppConfig.locales.find(l => l.id === localeId);
+  return locale?.ogLocale ?? localeId;
+}
+
+// Get all OG locales except the specified one (for alternateLocale)
+export function getAlternateOgLocales(currentLocaleId: string): string[] {
+  return AppConfig.locales
+    .filter(l => l.id !== currentLocaleId)
+    .map(l => l.ogLocale);
+}
 
 // =============================================================================
 // Credit Packages (Pay-per-essay pricing)
