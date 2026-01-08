@@ -54,6 +54,13 @@
     "feature6_title": "Private & Secure",
     "feature6_description": "Your essays are never stored, shared, or used for training. Grade with confidence."
   },
+  "SampleFeedback": {
+    "section_subtitle": "See Real Results",
+    "section_title": "What Your Feedback Looks Like",
+    "section_description": "Explore sample grades across different subjects and academic levels",
+    "words": "words",
+    "cta_button": "Get This For Your Essay"
+  },
   "Testimonials": {
     "section_subtitle": "Student Reviews",
     "section_title": "Trusted by Thousands of Students",
