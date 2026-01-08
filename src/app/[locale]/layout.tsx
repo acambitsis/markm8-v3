@@ -5,7 +5,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, unstable_setRequestLocale } from 'next-intl/server';
 
-import { AllLocales } from '@/utils/AppConfig';
+import { AllLocales, AppConfig } from '@/utils/AppConfig';
 
 // Geist font family - clean, modern, optimized for UI
 const geistSans = Geist({
@@ -20,7 +20,16 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+// Base URL for metadata (OG images, canonical URLs)
+const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://markm8.com';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
+  title: {
+    template: `%s | ${AppConfig.name}`,
+    default: `${AppConfig.name} - AI Essay Grading for Students`,
+  },
+  description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay.',
   icons: [
     {
       rel: 'apple-touch-icon',
@@ -43,6 +52,28 @@ export const metadata: Metadata = {
       url: '/favicon.ico',
     },
   ],
+  // Open Graph - for Facebook, LinkedIn, Discord, etc.
+  openGraph: {
+    type: 'website',
+    siteName: AppConfig.name,
+    title: `${AppConfig.name} - AI Essay Grading for Students`,
+    description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay.',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: `${AppConfig.name} - AI Essay Grading`,
+      },
+    ],
+  },
+  // Twitter Card
+  twitter: {
+    card: 'summary_large_image',
+    title: `${AppConfig.name} - AI Essay Grading for Students`,
+    description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade.',
+    images: ['/og-image.png'],
+  },
 };
 
 export function generateStaticParams() {
