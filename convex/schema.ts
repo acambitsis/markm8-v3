@@ -43,6 +43,7 @@ export const academicLevelValidator = v.union(
   v.literal('high_school'),
   v.literal('undergraduate'),
   v.literal('postgraduate'),
+  v.literal('professional'),
 );
 
 // =============================================================================
@@ -191,6 +192,7 @@ export default defineSchema({
     institution: v.optional(v.string()), // User's institution (free text)
     course: v.optional(v.string()), // User's course (free text)
     defaultGradingScale: v.optional(gradingScaleValidator), // Preferred grading scale
+    academicLevel: v.optional(academicLevelValidator), // User's default academic level
   })
     .index('by_clerk_id', ['clerkId'])
     .index('by_email', ['email']),

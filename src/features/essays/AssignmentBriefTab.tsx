@@ -193,6 +193,7 @@ export function AssignmentBriefTab({
               <SelectItem value="high_school">High School</SelectItem>
               <SelectItem value="undergraduate">Undergraduate</SelectItem>
               <SelectItem value="postgraduate">Postgraduate</SelectItem>
+              <SelectItem value="professional">Professional (Law, MBA, etc.)</SelectItem>
             </SelectContent>
           </Select>
         </FieldWrapper>

@@ -598,6 +598,20 @@
     animation: var(--animate-pulse-ring);
   }
 
+  /* Accordion animations */
+  .animate-accordion-down {
+    animation: var(--animate-accordion-down);
+  }
+
+  .animate-accordion-up {
+    animation: var(--animate-accordion-up);
+  }
+
+  /* Ring offset background (required for Tailwind 4 - not auto-generated) */
+  .ring-offset-background {
+    --tw-ring-offset-color: var(--color-background);
+  }
+
   /* Brand gradient text */
   .text-gradient {
     background: linear-gradient(135deg, #1e1b4b 0%, #7c3aed 50%, #a78bfa 100%);

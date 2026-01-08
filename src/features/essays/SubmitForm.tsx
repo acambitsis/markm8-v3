@@ -16,9 +16,16 @@ import { EssayContentTab } from '@/features/essays/EssayContentTab';
 import { FocusAreasTab } from '@/features/essays/FocusAreasTab';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useCredits } from '@/hooks/useCredits';
+import { useProfile } from '@/hooks/useProfile';
 
 import { api } from '../../../convex/_generated/api';
 import type { AcademicLevel, AssignmentBrief, Rubric } from '../../../convex/schema';
+
+const VALID_ACADEMIC_LEVELS: AcademicLevel[] = ['high_school', 'undergraduate', 'postgraduate', 'professional'];
+
+function isAcademicLevel(value: unknown): value is AcademicLevel {
+  return typeof value === 'string' && VALID_ACADEMIC_LEVELS.includes(value as AcademicLevel);
+}
 
 export type DraftData = {
   assignmentBrief: Partial<AssignmentBrief> | null;
@@ -52,6 +59,7 @@ export function SubmitForm() {
   const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
   const { credits } = useCredits();
+  const { profile } = useProfile();
 
   const [activeTab, setActiveTab] = useState('brief');
   const [direction, setDirection] = useState(0);
@@ -76,27 +84,53 @@ export function SubmitForm() {
     focusAreas: null,
   });
 
-  // Sync draft from Convex when it loads
+  // Sync draft from Convex when it loads, pre-filling academic level from profile if not set
   useEffect(() => {
     if (existingDraft) {
+      const draftAcademicLevel = existingDraft.assignmentBrief?.academicLevel;
+      const profileAcademicLevel = profile?.academicLevel;
+
       setDraft({
-        assignmentBrief: existingDraft.assignmentBrief ?? null,
+        assignmentBrief: existingDraft.assignmentBrief
+          ? {
+              ...existingDraft.assignmentBrief,
+              // Pre-fill from profile if draft doesn't have an academic level set
+              academicLevel: draftAcademicLevel ?? profileAcademicLevel,
+            }
+          : profileAcademicLevel
+            ? { academicLevel: profileAcademicLevel }
+            : null,
         rubric: existingDraft.rubric ?? null,
         content: existingDraft.content ?? null,
         focusAreas: existingDraft.focusAreas ?? null,
       });
+    } else if (profile?.academicLevel) {
+      // No draft exists yet, but we have a profile academic level - pre-fill it
+      setDraft(prev => ({
+        ...prev,
+        assignmentBrief: prev.assignmentBrief
+          ? { ...prev.assignmentBrief, academicLevel: profile.academicLevel }
+          : { academicLevel: profile.academicLevel },
+      }));
     }
-  }, [existingDraft]);
+  }, [existingDraft, profile?.academicLevel]);
 
   // Helper: Transform draft data to saveDraft format
+  // Only includes assignmentBrief if it has at least one text field populated
+  // (academicLevel alone isn't enough - schema requires title/instructions/subject)
   const transformDraftForSave = useCallback((data: DraftData) => {
+    const academicLevel = data.assignmentBrief?.academicLevel;
+    const hasTextContent = data.assignmentBrief?.title
+      || data.assignmentBrief?.instructions
+      || data.assignmentBrief?.subject;
+
     return {
-      assignmentBrief: data.assignmentBrief
+      assignmentBrief: hasTextContent
         ? {
-            title: data.assignmentBrief.title ?? undefined,
-            instructions: data.assignmentBrief.instructions ?? undefined,
-            subject: data.assignmentBrief.subject ?? undefined,
-            academicLevel: data.assignmentBrief.academicLevel as AcademicLevel,
+            title: data.assignmentBrief?.title ?? undefined,
+            instructions: data.assignmentBrief?.instructions ?? undefined,
+            subject: data.assignmentBrief?.subject ?? undefined,
+            academicLevel: isAcademicLevel(academicLevel) ? academicLevel : undefined,
           }
         : undefined,
       rubric: data.rubric

@@ -4,6 +4,7 @@
 import { generateObject } from 'ai';
 
 import type {
+  AcademicLevel,
   CategoryScores,
   GradeFeedback,
   GradingConfig,
@@ -34,7 +35,7 @@ export async function runAIGrading(
   essay: {
     assignmentBrief?: {
       instructions: string;
-      academicLevel: 'high_school' | 'undergraduate' | 'postgraduate';
+      academicLevel: AcademicLevel;
     } | null;
     rubric?: { customCriteria?: string; focusAreas?: string[] } | null;
     focusAreas?: string[];
@@ -106,10 +107,12 @@ export async function runAIGrading(
       if (r.status === 'fulfilled') {
         return r.value;
       }
-      // Failed - log error but continue with other results
+      // Failed - log concise error but continue with other results
+      const error = r.reason;
+      const errorName = error?.name ?? 'Unknown';
+      const errorMessage = error?.message ?? String(error);
       console.error(
-        `Grading failed for model ${runs[i]?.model}:`,
-        r.reason,
+        `Grading failed for model ${runs[i]?.model}: [${errorName}] ${errorMessage.slice(0, 200)}`,
       );
       return null;
     })

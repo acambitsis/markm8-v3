@@ -12,7 +12,7 @@ import { useCredits } from '@/hooks/useCredits';
 function SettingsContent() {
   const t = useTranslations('Settings');
   const searchParams = useSearchParams();
-  const defaultTab = searchParams.get('tab') || 'profile';
+  const defaultTab = searchParams.get('tab') || 'credits';
   const { credits, isLoading } = useCredits();
 
   return (
@@ -24,26 +24,9 @@ function SettingsContent() {
 
       <Tabs defaultValue={defaultTab} className="space-y-4">
         <TabsList>
-          <TabsTrigger value="profile">{t('profile_tab')}</TabsTrigger>
           <TabsTrigger value="credits">{t('credits_tab')}</TabsTrigger>
           <TabsTrigger value="billing">{t('billing_tab')}</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('profile_title')}</CardTitle>
-              <CardDescription>
-                {t('profile_description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                {t('profile_coming_soon')}
-              </p>
-            </CardContent>
-          </Card>
-        </TabsContent>
 
         <TabsContent value="credits">
           <Card>
