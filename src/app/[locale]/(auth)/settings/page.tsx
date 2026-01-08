@@ -19,6 +19,12 @@ import { useProfile } from '@/hooks/useProfile';
 
 import type { AcademicLevel } from '../../../../../convex/schema';
 
+const VALID_ACADEMIC_LEVELS: AcademicLevel[] = ['high_school', 'undergraduate', 'postgraduate', 'professional'];
+
+function isAcademicLevel(value: string): value is AcademicLevel {
+  return VALID_ACADEMIC_LEVELS.includes(value as AcademicLevel);
+}
+
 function SettingsContent() {
   const t = useTranslations('Settings');
   const searchParams = useSearchParams();
@@ -26,11 +32,20 @@ function SettingsContent() {
   const { credits, isLoading } = useCredits();
   const { profile, updateProfile, isLoading: isProfileLoading } = useProfile();
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   const handleAcademicLevelChange = async (value: string) => {
+    if (!isAcademicLevel(value)) {
+      setSaveError('Invalid academic level selected');
+      return;
+    }
+
     setIsSaving(true);
+    setSaveError(null);
     try {
-      await updateProfile({ academicLevel: value as AcademicLevel });
+      await updateProfile({ academicLevel: value });
+    } catch (err) {
+      setSaveError(err instanceof Error ? err.message : 'Failed to save academic level');
     } finally {
       setIsSaving(false);
     }
@@ -83,6 +98,9 @@ function SettingsContent() {
                   <p className="text-xs text-muted-foreground">
                     {t('academic_level_help')}
                   </p>
+                  {saveError && (
+                    <p className="mt-2 text-sm text-destructive">{saveError}</p>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -21,6 +21,12 @@ import { useProfile } from '@/hooks/useProfile';
 import { api } from '../../../convex/_generated/api';
 import type { AcademicLevel, AssignmentBrief, Rubric } from '../../../convex/schema';
 
+const VALID_ACADEMIC_LEVELS: AcademicLevel[] = ['high_school', 'undergraduate', 'postgraduate', 'professional'];
+
+function isAcademicLevel(value: unknown): value is AcademicLevel {
+  return typeof value === 'string' && VALID_ACADEMIC_LEVELS.includes(value as AcademicLevel);
+}
+
 export type DraftData = {
   assignmentBrief: Partial<AssignmentBrief> | null;
   rubric: Partial<Rubric> | null;
@@ -111,13 +117,14 @@ export function SubmitForm() {
 
   // Helper: Transform draft data to saveDraft format
   const transformDraftForSave = useCallback((data: DraftData) => {
+    const academicLevel = data.assignmentBrief?.academicLevel;
     return {
       assignmentBrief: data.assignmentBrief
         ? {
             title: data.assignmentBrief.title ?? undefined,
             instructions: data.assignmentBrief.instructions ?? undefined,
             subject: data.assignmentBrief.subject ?? undefined,
-            academicLevel: data.assignmentBrief.academicLevel as AcademicLevel,
+            academicLevel: isAcademicLevel(academicLevel) ? academicLevel : undefined,
           }
         : undefined,
       rubric: data.rubric
