@@ -116,14 +116,20 @@ export function SubmitForm() {
   }, [existingDraft, profile?.academicLevel]);
 
   // Helper: Transform draft data to saveDraft format
+  // Only includes assignmentBrief if it has at least one text field populated
+  // (academicLevel alone isn't enough - schema requires title/instructions/subject)
   const transformDraftForSave = useCallback((data: DraftData) => {
     const academicLevel = data.assignmentBrief?.academicLevel;
+    const hasTextContent = data.assignmentBrief?.title
+      || data.assignmentBrief?.instructions
+      || data.assignmentBrief?.subject;
+
     return {
-      assignmentBrief: data.assignmentBrief
+      assignmentBrief: hasTextContent
         ? {
-            title: data.assignmentBrief.title ?? undefined,
-            instructions: data.assignmentBrief.instructions ?? undefined,
-            subject: data.assignmentBrief.subject ?? undefined,
+            title: data.assignmentBrief?.title ?? undefined,
+            instructions: data.assignmentBrief?.instructions ?? undefined,
+            subject: data.assignmentBrief?.subject ?? undefined,
             academicLevel: isAcademicLevel(academicLevel) ? academicLevel : undefined,
           }
         : undefined,
