@@ -54,6 +54,13 @@
     "feature6_title": "Privé et sécurisé",
     "feature6_description": "Vos essais ne sont jamais stockés, partagés ou utilisés pour l'entraînement. Corrigez en toute confiance."
   },
+  "SampleFeedback": {
+    "section_subtitle": "Voyez les vrais résultats",
+    "section_title": "À quoi ressemblent vos commentaires",
+    "section_description": "Explorez des exemples de corrections pour différentes matières et niveaux académiques",
+    "words": "mots",
+    "cta_button": "Obtenez ceci pour votre essai"
+  },
   "Testimonials": {
     "section_subtitle": "Avis des étudiants",
     "section_title": "La confiance de milliers d'étudiants",

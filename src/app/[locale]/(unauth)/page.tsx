@@ -7,6 +7,7 @@ import { Footer } from '@/templates/Footer';
 import { HowItWorks } from '@/templates/HowItWorks';
 import { Navbar } from '@/templates/Navbar';
 import { Pricing } from '@/templates/Pricing';
+import { SampleFeedback } from '@/templates/SampleFeedback';
 import { Testimonials } from '@/templates/Testimonials';
 import { ToolHero } from '@/templates/ToolHero';
 import { TrustStrip } from '@/templates/TrustStrip';
@@ -47,6 +48,11 @@ const IndexPage = async (props: { params: Promise<{ locale: string }> }) => {
       {/* Features - Bento Grid */}
       <section id="features">
         <FeaturesGrid />
+      </section>
+
+      {/* Sample Feedback Showcase */}
+      <section id="sample-feedback">
+        <SampleFeedback />
       </section>
 
       {/* Testimonials */}
