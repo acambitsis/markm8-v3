@@ -22,6 +22,7 @@ export function buildGradingPrompt(essay: EssayData): string {
     high_school: 'High School',
     undergraduate: 'Undergraduate',
     postgraduate: 'Postgraduate',
+    professional: 'Professional',
   }[academicLevel];
 
   let prompt = `You are an expert academic essay grader with extensive experience evaluating student work at the ${academicLevelLabel} level. Your task is to provide a comprehensive, constructive assessment of the following essay.

@@ -4,6 +4,7 @@
 import { generateObject } from 'ai';
 
 import type {
+  AcademicLevel,
   CategoryScores,
   GradeFeedback,
   GradingConfig,
@@ -34,7 +35,7 @@ export async function runAIGrading(
   essay: {
     assignmentBrief?: {
       instructions: string;
-      academicLevel: 'high_school' | 'undergraduate' | 'postgraduate';
+      academicLevel: AcademicLevel;
     } | null;
     rubric?: { customCriteria?: string; focusAreas?: string[] } | null;
     focusAreas?: string[];

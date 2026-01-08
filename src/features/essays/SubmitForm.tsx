@@ -16,6 +16,7 @@ import { EssayContentTab } from '@/features/essays/EssayContentTab';
 import { FocusAreasTab } from '@/features/essays/FocusAreasTab';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useCredits } from '@/hooks/useCredits';
+import { useProfile } from '@/hooks/useProfile';
 
 import { api } from '../../../convex/_generated/api';
 import type { AcademicLevel, AssignmentBrief, Rubric } from '../../../convex/schema';
@@ -52,6 +53,7 @@ export function SubmitForm() {
   const router = useRouter();
   const { isAuthenticated } = useConvexAuth();
   const { credits } = useCredits();
+  const { profile } = useProfile();
 
   const [activeTab, setActiveTab] = useState('brief');
   const [direction, setDirection] = useState(0);
@@ -76,17 +78,33 @@ export function SubmitForm() {
     focusAreas: null,
   });
 
-  // Sync draft from Convex when it loads
+  // Sync draft from Convex when it loads, pre-filling academic level from profile if not set
   useEffect(() => {
     if (existingDraft) {
+      const draftAcademicLevel = existingDraft.assignmentBrief?.academicLevel;
+      const profileAcademicLevel = profile?.academicLevel;
+
       setDraft({
-        assignmentBrief: existingDraft.assignmentBrief ?? null,
+        assignmentBrief: {
+          ...existingDraft.assignmentBrief,
+          // Pre-fill from profile if draft doesn't have an academic level set
+          academicLevel: draftAcademicLevel ?? profileAcademicLevel,
+        },
         rubric: existingDraft.rubric ?? null,
         content: existingDraft.content ?? null,
         focusAreas: existingDraft.focusAreas ?? null,
       });
+    } else if (profile?.academicLevel) {
+      // No draft exists yet, but we have a profile academic level - pre-fill it
+      setDraft(prev => ({
+        ...prev,
+        assignmentBrief: {
+          ...prev.assignmentBrief,
+          academicLevel: profile.academicLevel,
+        },
+      }));
     }
-  }, [existingDraft]);
+  }, [existingDraft, profile?.academicLevel]);
 
   // Helper: Transform draft data to saveDraft format
   const transformDraftForSave = useCallback((data: DraftData) => {

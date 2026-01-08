@@ -9,6 +9,7 @@ import { internalQuery, mutation, query } from './_generated/server';
 import { reserveCreditForUser } from './credits';
 import { requireAuth } from './lib/auth';
 // Import validators from schema.ts (single source of truth)
+import type { AcademicLevel } from './schema';
 import { academicLevelValidator, rubricValidator } from './schema';
 
 const MIN_WORD_COUNT = 50;
@@ -98,7 +99,7 @@ export const saveDraft = mutation({
             title: string;
             instructions: string;
             subject: string;
-            academicLevel: 'high_school' | 'undergraduate' | 'postgraduate';
+            academicLevel: AcademicLevel;
           },
         }),
         ...(args.rubric && { rubric: args.rubric }),
@@ -119,7 +120,7 @@ export const saveDraft = mutation({
           title: string;
           instructions: string;
           subject: string;
-          academicLevel: 'high_school' | 'undergraduate' | 'postgraduate';
+          academicLevel: AcademicLevel;
         },
       }),
       ...(args.rubric && { rubric: args.rubric }),

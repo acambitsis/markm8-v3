@@ -2,18 +2,39 @@
 
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { Suspense } from 'react';
+import { Suspense, useState } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CreditsPurchaseSection } from '@/features/billing/CreditsPurchaseSection';
 import { useCredits } from '@/hooks/useCredits';
+import { useProfile } from '@/hooks/useProfile';
+
+import type { AcademicLevel } from '../../../../../convex/schema';
 
 function SettingsContent() {
   const t = useTranslations('Settings');
   const searchParams = useSearchParams();
   const defaultTab = searchParams.get('tab') || 'profile';
   const { credits, isLoading } = useCredits();
+  const { profile, updateProfile, isLoading: isProfileLoading } = useProfile();
+  const [isSaving, setIsSaving] = useState(false);
+
+  const handleAcademicLevelChange = async (value: string) => {
+    setIsSaving(true);
+    try {
+      await updateProfile({ academicLevel: value as AcademicLevel });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -30,19 +51,57 @@ function SettingsContent() {
         </TabsList>
 
         <TabsContent value="profile">
-          <Card>
-            <CardHeader>
-              <CardTitle>{t('profile_title')}</CardTitle>
-              <CardDescription>
-                {t('profile_description')}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">
-                {t('profile_coming_soon')}
-              </p>
-            </CardContent>
-          </Card>
+          <div className="space-y-6">
+            {/* Academic Profile Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('academic_profile_title')}</CardTitle>
+                <CardDescription>
+                  {t('academic_profile_description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">
+                    {t('academic_level_label')}
+                  </label>
+                  <Select
+                    value={profile?.academicLevel ?? ''}
+                    onValueChange={handleAcademicLevelChange}
+                    disabled={isProfileLoading || isSaving}
+                  >
+                    <SelectTrigger className="w-full max-w-xs">
+                      <SelectValue placeholder={t('academic_level_placeholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="high_school">{t('level_high_school')}</SelectItem>
+                      <SelectItem value="undergraduate">{t('level_undergraduate')}</SelectItem>
+                      <SelectItem value="postgraduate">{t('level_postgraduate')}</SelectItem>
+                      <SelectItem value="professional">{t('level_professional')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-muted-foreground">
+                    {t('academic_level_help')}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Additional Profile Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('profile_title')}</CardTitle>
+                <CardDescription>
+                  {t('profile_description')}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground">
+                  {t('profile_coming_soon')}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         <TabsContent value="credits">
