@@ -85,11 +85,15 @@ export function SubmitForm() {
       const profileAcademicLevel = profile?.academicLevel;
 
       setDraft({
-        assignmentBrief: {
-          ...existingDraft.assignmentBrief,
-          // Pre-fill from profile if draft doesn't have an academic level set
-          academicLevel: draftAcademicLevel ?? profileAcademicLevel,
-        },
+        assignmentBrief: existingDraft.assignmentBrief
+          ? {
+              ...existingDraft.assignmentBrief,
+              // Pre-fill from profile if draft doesn't have an academic level set
+              academicLevel: draftAcademicLevel ?? profileAcademicLevel,
+            }
+          : profileAcademicLevel
+            ? { academicLevel: profileAcademicLevel }
+            : null,
         rubric: existingDraft.rubric ?? null,
         content: existingDraft.content ?? null,
         focusAreas: existingDraft.focusAreas ?? null,
@@ -98,10 +102,9 @@ export function SubmitForm() {
       // No draft exists yet, but we have a profile academic level - pre-fill it
       setDraft(prev => ({
         ...prev,
-        assignmentBrief: {
-          ...prev.assignmentBrief,
-          academicLevel: profile.academicLevel,
-        },
+        assignmentBrief: prev.assignmentBrief
+          ? { ...prev.assignmentBrief, academicLevel: profile.academicLevel }
+          : { academicLevel: profile.academicLevel },
       }));
     }
   }, [existingDraft, profile?.academicLevel]);
