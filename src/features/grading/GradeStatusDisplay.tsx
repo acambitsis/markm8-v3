@@ -1,61 +1,27 @@
 'use client';
 
+import { useAction } from 'convex/react';
 import { motion } from 'framer-motion';
-import { AlertCircle, ArrowRight, CheckCircle2, Clock, FileText, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight, FileText, RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { GradeResults } from '@/features/grading/GradeResults';
 import { useGradeStatus } from '@/hooks/useGradeStatus';
+import { calculateEssayStats } from '@/utils/essayStats';
 
+import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
+import type { TopicInsights } from '../../../convex/schema';
+import { InsightCarousel, MatrixRain } from './components';
+import { GradeResults } from './GradeResults';
 
 type Props = {
   gradeId: Id<'grades'>;
 };
-
-// Processing step animation
-function ProcessingStep({ label, status }: { label: string; status: 'complete' | 'active' | 'pending' }) {
-  return (
-    <motion.div
-      className="flex items-center gap-3"
-      initial={{ opacity: 0, x: -10 }}
-      animate={{ opacity: 1, x: 0 }}
-      transition={{ duration: 0.3 }}
-    >
-      {status === 'complete' && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-        >
-          <CheckCircle2 className="size-5 text-green-500" />
-        </motion.div>
-      )}
-      {status === 'active' && (
-        <div className="relative">
-          <Loader2 className="size-5 animate-spin text-primary" />
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-primary/30"
-            initial={{ scale: 1, opacity: 0 }}
-            animate={{ scale: 1.5, opacity: [0.5, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeOut' }}
-          />
-        </div>
-      )}
-      {status === 'pending' && (
-        <div className="size-5 rounded-full border-2 border-muted-foreground/30" />
-      )}
-      <span className={status === 'pending' ? 'text-muted-foreground' : 'text-foreground'}>
-        {label}
-      </span>
-    </motion.div>
-  );
-}
 
 export function GradeStatusDisplay({ gradeId }: Props) {
   const { grade, isLoading, isError } = useGradeStatus(gradeId);
@@ -91,146 +57,15 @@ export function GradeStatusDisplay({ gradeId }: Props) {
   const { status, essay } = grade;
   const essayTitle = essay?.assignmentBrief?.title ?? 'Your Essay';
 
-  // Queued Status
-  if (status === 'queued') {
+  // Processing Status - Simplified waiting experience
+  if (status === 'processing' || status === 'queued') {
     return (
-      <PageTransition>
-        <Card className="border-0 shadow-lg">
-          <CardContent className="py-16">
-            <div className="mx-auto max-w-md text-center">
-              {/* Animated icon */}
-              <motion.div
-                className="relative mx-auto mb-6 flex size-20 items-center justify-center"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                {/* Pulsing rings */}
-                <motion.div
-                  className="absolute inset-0 rounded-full border-2 border-primary/30"
-                  animate={{ scale: [1, 1.4], opacity: [0.6, 0] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: 'easeOut' }}
-                />
-                <motion.div
-                  className="absolute inset-0 rounded-full border-2 border-primary/20"
-                  animate={{ scale: [1, 1.6], opacity: [0.4, 0] }}
-                  transition={{ repeat: Infinity, duration: 2, ease: 'easeOut', delay: 0.3 }}
-                />
-                {/* Icon */}
-                <div className="flex size-16 items-center justify-center rounded-full bg-primary/10">
-                  <Clock className="size-8 text-primary" />
-                </div>
-              </motion.div>
-
-              <motion.h3
-                className="text-xl font-semibold"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                Essay Queued
-              </motion.h3>
-              <motion.p
-                className="mt-2 text-muted-foreground"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                &ldquo;
-                {essayTitle}
-                &rdquo; is in the queue and will be graded shortly.
-              </motion.p>
-
-              {/* Progress bar */}
-              <motion.div
-                className="mt-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.4 }}
-              >
-                <Progress value={10} className="h-2" />
-                <p className="mt-2 text-xs text-muted-foreground">Waiting to start...</p>
-              </motion.div>
-            </div>
-          </CardContent>
-        </Card>
-      </PageTransition>
-    );
-  }
-
-  // Processing Status
-  if (status === 'processing') {
-    return (
-      <PageTransition>
-        <Card className="border-0 shadow-lg">
-          <CardContent className="py-16">
-            <div className="mx-auto max-w-md text-center">
-              {/* Animated icon */}
-              <motion.div
-                className="relative mx-auto mb-6 flex size-20 items-center justify-center"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.5 }}
-              >
-                {/* Spinning gradient ring */}
-                <motion.div
-                  className="absolute inset-0 rounded-full bg-gradient-to-tr from-primary via-purple-400 to-primary"
-                  style={{ padding: '3px' }}
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 3, ease: 'linear' }}
-                >
-                  <div className="size-full rounded-full bg-card" />
-                </motion.div>
-                {/* Icon */}
-                <Sparkles className="size-8 text-primary" />
-              </motion.div>
-
-              <motion.h3
-                className="text-xl font-semibold"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-              >
-                Grading in Progress
-              </motion.h3>
-              <motion.p
-                className="mt-2 text-muted-foreground"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                Multiple AI models are analyzing your essay...
-              </motion.p>
-
-              {/* Processing steps */}
-              <motion.div
-                className="mt-8 space-y-3 text-left"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                <ProcessingStep label="Analyzing essay structure" status="complete" />
-                <ProcessingStep label="Evaluating argument quality" status="active" />
-                <ProcessingStep label="Checking grammar & style" status="pending" />
-                <ProcessingStep label="Generating feedback" status="pending" />
-              </motion.div>
-
-              {/* Progress bar */}
-              <motion.div
-                className="mt-8"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-              >
-                <Progress value={50} className="h-2" />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  This usually takes 30-60 seconds
-                </p>
-              </motion.div>
-            </div>
-          </CardContent>
-        </Card>
-      </PageTransition>
+      <ProcessingExperience
+        gradeId={gradeId}
+        essayTitle={essayTitle}
+        essayContent={essay?.content}
+        essaySubject={essay?.assignmentBrief?.subject}
+      />
     );
   }
 
@@ -342,5 +177,120 @@ export function GradeStatusDisplay({ gradeId }: Props) {
         The grade is in an unexpected state. Please refresh the page.
       </AlertDescription>
     </Alert>
+  );
+}
+
+// =============================================================================
+// Processing Experience Component (Simplified)
+// =============================================================================
+
+type ProcessingExperienceProps = {
+  gradeId: Id<'grades'>;
+  essayTitle: string;
+  essayContent?: string;
+  essaySubject?: string;
+};
+
+function ProcessingExperience({
+  gradeId,
+  essayTitle,
+  essayContent,
+  essaySubject,
+}: ProcessingExperienceProps) {
+  // Topic insights state (fetched via action, not persisted)
+  const [topicInsights, setTopicInsights] = useState<TopicInsights | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
+  const generateTopicInsights = useAction(api.topicInsights.generate);
+
+  // Fetch topic insights on mount
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchInsights() {
+      setInsightsLoading(true);
+      try {
+        const insights = await generateTopicInsights({ gradeId });
+        if (!cancelled) {
+          setTopicInsights(insights);
+        }
+      } catch {
+        // Silent failure - topic insights are non-critical
+      } finally {
+        if (!cancelled) {
+          setInsightsLoading(false);
+        }
+      }
+    }
+
+    fetchInsights();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [gradeId, generateTopicInsights]);
+
+  // Calculate essay stats client-side
+  const essayStats = useMemo(() => {
+    if (!essayContent) {
+      return null;
+    }
+    return calculateEssayStats(essayContent);
+  }, [essayContent]);
+
+  const subject = essaySubject ?? 'General';
+  const hasTopicInsights = topicInsights !== null && !insightsLoading;
+
+  return (
+    <PageTransition>
+      <Card className="border-0 shadow-lg">
+        <CardContent className="py-8">
+          <div className="mx-auto max-w-lg">
+            {/* Header */}
+            <div className="mb-6 text-center">
+              <motion.h3
+                className="text-lg font-semibold"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                Grading Your Essay
+              </motion.h3>
+              <motion.p
+                className="mt-1 text-sm text-muted-foreground"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.05 }}
+              >
+                &ldquo;
+                {essayTitle}
+                &rdquo;
+                {subject !== 'General' && (
+                  <span className="ml-1">
+                    ·
+                    {subject}
+                  </span>
+                )}
+              </motion.p>
+            </div>
+
+            {/* Matrix animation */}
+            <motion.div
+              className="mb-6"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              <MatrixRain height={50} />
+            </motion.div>
+
+            {/* Unified carousel (stats + tips/insights) */}
+            <InsightCarousel
+              essayStats={essayStats}
+              topicInsights={topicInsights ?? undefined}
+              hasTopicInsights={hasTopicInsights}
+            />
+          </div>
+        </CardContent>
+      </Card>
+    </PageTransition>
   );
 }

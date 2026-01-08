@@ -32,6 +32,7 @@ import type * as modelCatalog from "../modelCatalog.js";
 import type * as platformSettings from "../platformSettings.js";
 import type * as seed_modelCatalog from "../seed/modelCatalog.js";
 import type * as seed_platformSettings from "../seed/platformSettings.js";
+import type * as topicInsights from "../topicInsights.js";
 import type * as users from "../users.js";
 
 import type {
@@ -65,6 +66,7 @@ declare const fullApi: ApiFromModules<{
   platformSettings: typeof platformSettings;
   "seed/modelCatalog": typeof seed_modelCatalog;
   "seed/platformSettings": typeof seed_platformSettings;
+  topicInsights: typeof topicInsights;
   users: typeof users;
 }>;
 
