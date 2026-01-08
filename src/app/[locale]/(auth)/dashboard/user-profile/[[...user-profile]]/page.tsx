@@ -1,7 +1,7 @@
-import { UserProfile } from '@clerk/nextjs';
 import { getTranslations } from 'next-intl/server';
 
 import { TitleBar } from '@/components/TitleBar';
+import { UserProfileWithPreferences } from '@/features/profile/UserProfileWithPreferences';
 import { getI18nPath } from '@/utils/Helpers';
 
 const UserProfilePage = async (props: { params: Promise<{ locale: string }> }) => {
@@ -15,16 +15,7 @@ const UserProfilePage = async (props: { params: Promise<{ locale: string }> }) =
         description={t('title_bar_description')}
       />
 
-      <UserProfile
-        routing="path"
-        path={getI18nPath('/dashboard/user-profile', locale)}
-        appearance={{
-          elements: {
-            rootBox: 'w-full',
-            cardBox: 'w-full flex',
-          },
-        }}
-      />
+      <UserProfileWithPreferences path={getI18nPath('/dashboard/user-profile', locale)} />
     </>
   );
 };
