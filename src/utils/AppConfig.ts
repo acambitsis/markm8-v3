@@ -9,14 +9,47 @@ export const AppConfig = {
     {
       id: 'en',
       name: 'English',
+      ogLocale: 'en_US', // Open Graph locale format
     },
-    { id: 'fr', name: 'Français' },
+    {
+      id: 'fr',
+      name: 'Français',
+      ogLocale: 'fr_FR',
+    },
   ],
   defaultLocale: 'en',
   localePrefix,
+  // SEO defaults (English fallback for root layout metadata)
+  seo: {
+    title: 'AI Essay Grading for Students',
+    description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay.',
+    descriptionShort: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade.',
+  },
 };
 
 export const AllLocales = AppConfig.locales.map(locale => locale.id);
+
+// Get Open Graph locale for a given locale ID (e.g., 'en' -> 'en_US')
+// Throws if locale is not found to fail fast on invalid input
+export function getOgLocale(localeId: string): string {
+  const locale = AppConfig.locales.find(l => l.id === localeId);
+  if (!locale) {
+    throw new Error(`Unknown locale: ${localeId}. Valid locales: ${AllLocales.join(', ')}`);
+  }
+  return locale.ogLocale;
+}
+
+// Get all OG locales except the specified one (for alternateLocale)
+// Throws if locale is not found to fail fast on invalid input
+export function getAlternateOgLocales(currentLocaleId: string): string[] {
+  const locale = AppConfig.locales.find(l => l.id === currentLocaleId);
+  if (!locale) {
+    throw new Error(`Unknown locale: ${currentLocaleId}. Valid locales: ${AllLocales.join(', ')}`);
+  }
+  return AppConfig.locales
+    .filter(l => l.id !== currentLocaleId)
+    .map(l => l.ogLocale);
+}
 
 // =============================================================================
 // Credit Packages (Pay-per-essay pricing)

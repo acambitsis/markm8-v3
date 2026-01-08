@@ -5,7 +5,8 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, unstable_setRequestLocale } from 'next-intl/server';
 
-import { AllLocales } from '@/utils/AppConfig';
+import { AllLocales, AppConfig } from '@/utils/AppConfig';
+import { getBaseUrl } from '@/utils/Helpers';
 
 // Geist font family - clean, modern, optimized for UI
 const geistSans = Geist({
@@ -20,7 +21,19 @@ const geistMono = Geist_Mono({
   display: 'swap',
 });
 
+// Base URL for metadata (OG images, canonical URLs)
+const baseUrl = getBaseUrl();
+
+// Default SEO title combining app name and tagline
+const defaultTitle = `${AppConfig.name} - ${AppConfig.seo.title}`;
+
 export const metadata: Metadata = {
+  metadataBase: new URL(baseUrl),
+  title: {
+    template: `%s | ${AppConfig.name}`,
+    default: defaultTitle,
+  },
+  description: AppConfig.seo.description,
   icons: [
     {
       rel: 'apple-touch-icon',
@@ -43,6 +56,28 @@ export const metadata: Metadata = {
       url: '/favicon.ico',
     },
   ],
+  // Open Graph - for Facebook, LinkedIn, Discord, etc.
+  openGraph: {
+    type: 'website',
+    siteName: AppConfig.name,
+    title: defaultTitle,
+    description: AppConfig.seo.description,
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: `${AppConfig.name} - AI Essay Grading`,
+      },
+    ],
+  },
+  // Twitter Card (uses shorter description to fit character limits)
+  twitter: {
+    card: 'summary_large_image',
+    title: defaultTitle,
+    description: AppConfig.seo.descriptionShort,
+    images: ['/og-image.png'],
+  },
 };
 
 export function generateStaticParams() {
