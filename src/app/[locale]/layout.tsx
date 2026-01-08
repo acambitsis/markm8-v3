@@ -24,13 +24,16 @@ const geistMono = Geist_Mono({
 // Base URL for metadata (OG images, canonical URLs)
 const baseUrl = getBaseUrl();
 
+// Default SEO title combining app name and tagline
+const defaultTitle = `${AppConfig.name} - ${AppConfig.seo.title}`;
+
 export const metadata: Metadata = {
   metadataBase: new URL(baseUrl),
   title: {
     template: `%s | ${AppConfig.name}`,
-    default: `${AppConfig.name} - AI Essay Grading for Students`,
+    default: defaultTitle,
   },
-  description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay.',
+  description: AppConfig.seo.description,
   icons: [
     {
       rel: 'apple-touch-icon',
@@ -57,8 +60,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     siteName: AppConfig.name,
-    title: `${AppConfig.name} - AI Essay Grading for Students`,
-    description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay.',
+    title: defaultTitle,
+    description: AppConfig.seo.description,
     images: [
       {
         url: '/og-image.png',
@@ -68,11 +71,11 @@ export const metadata: Metadata = {
       },
     ],
   },
-  // Twitter Card
+  // Twitter Card (uses shorter description to fit character limits)
   twitter: {
     card: 'summary_large_image',
-    title: `${AppConfig.name} - AI Essay Grading for Students`,
-    description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade.',
+    title: defaultTitle,
+    description: AppConfig.seo.descriptionShort,
     images: ['/og-image.png'],
   },
 };
