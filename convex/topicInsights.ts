@@ -127,16 +127,21 @@ Based on the topic of this essay, provide engaging context about the subject are
     // 7. Call Grok 4.1 Fast for structured output
     const model = getGradingModel(TOPIC_INSIGHTS_MODEL);
 
-    const result = await generateObject({
-      model,
-      schema: topicInsightsSchema,
-      system: SYSTEM_PROMPT,
-      prompt: userPrompt,
-      temperature: 0.7, // Slightly creative for engaging content
-      maxOutputTokens: 600, // Keep response concise
-    });
+    try {
+      const result = await generateObject({
+        model,
+        schema: topicInsightsSchema,
+        system: SYSTEM_PROMPT,
+        prompt: userPrompt,
+        temperature: 0.7, // Slightly creative for engaging content
+        maxOutputTokens: 600, // Keep response concise
+      });
 
-    // 8. Return the insights directly (not persisted)
-    return result.object;
+      // 8. Return the insights directly (not persisted)
+      return result.object;
+    } catch {
+      // LLM call failed - throw generic error (non-critical feature)
+      throw new Error('Failed to generate topic insights');
+    }
   },
 });

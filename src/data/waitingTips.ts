@@ -32,8 +32,3 @@ export function getQuotes(): Array<{ text: string; author: string }> {
   // Shuffle the quotes so they appear in random order each time
   return [...quotes].sort(() => Math.random() - 0.5);
 }
-
-// Legacy export for compatibility (now returns quotes formatted as tips)
-export function getTipsForSubject(_subject: string): string[] {
-  return getQuotes().map(q => `"${q.text}" — ${q.author}`);
-}

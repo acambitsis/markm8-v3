@@ -16,7 +16,6 @@ type InsightItem = {
 };
 
 type InsightCarouselProps = {
-  subject: string;
   essayStats?: EssayStats | null;
   topicInsights?: TopicInsights;
   hasTopicInsights: boolean;
@@ -28,7 +27,6 @@ type InsightCarouselProps = {
  * Single source of rotating information during grading wait
  */
 export function InsightCarousel({
-  subject,
   essayStats,
   topicInsights,
   hasTopicInsights,
@@ -104,7 +102,7 @@ export function InsightCarousel({
     }
 
     return allItems;
-  }, [essayStats, hasTopicInsights, topicInsights, subject]);
+  }, [essayStats, hasTopicInsights, topicInsights]);
 
   // Reset index when content changes significantly
   useEffect(() => {

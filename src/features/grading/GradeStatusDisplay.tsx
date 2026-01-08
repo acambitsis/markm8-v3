@@ -284,7 +284,6 @@ function ProcessingExperience({
 
             {/* Unified carousel (stats + tips/insights) */}
             <InsightCarousel
-              subject={subject}
               essayStats={essayStats}
               topicInsights={topicInsights ?? undefined}
               hasTopicInsights={hasTopicInsights}
