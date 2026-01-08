@@ -83,6 +83,7 @@ export async function runAIGrading(
           schema: gradeOutputSchema,
           prompt,
           temperature,
+          maxOutputTokens: 8192,
           system: 'You are an expert academic essay grader. You MUST respond with valid JSON only. Do NOT include any text before or after the JSON. Do NOT wrap the JSON in markdown code blocks (no ```json ... ```). Return raw, parseable JSON data.',
         });
 

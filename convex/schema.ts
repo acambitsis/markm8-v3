@@ -112,6 +112,21 @@ export const modelResultValidator = v.object({
   reason: v.optional(v.string()),
 });
 
+// =============================================================================
+// Topic Insights Validators (for waiting experience)
+// Non-evaluative content returned by action (not persisted)
+// =============================================================================
+
+export const topicInsightsValidator = v.object({
+  // All fields should be SHORT phrases (max 12 words each)
+  // Designed for casual scanning, not reading
+  hooks: v.array(v.string()), // 3 punchy one-liners about the topic (max 12 words each)
+  thinkers: v.array(v.string()), // 3 names with tiny descriptor "Freud — psychoanalysis pioneer"
+  concepts: v.array(v.string()), // 3 key terms/ideas (5-8 words each)
+  funFact: v.string(), // One surprising fact (max 15 words)
+  reads: v.array(v.string()), // 2 book titles only (no descriptions)
+});
+
 export const categoryScoresValidator = v.object({
   contentUnderstanding: v.number(),
   structureOrganization: v.number(),
@@ -355,3 +370,6 @@ export type RetryConfig = Infer<typeof retryConfigValidator>;
 export type GradingConfig = Infer<typeof gradingConfigValidator>;
 export type TitleGenerationConfig = Infer<typeof titleGenerationConfigValidator>;
 export type AiConfig = Infer<typeof aiConfigValidator>;
+
+// Topic Insights Types
+export type TopicInsights = Infer<typeof topicInsightsValidator>;
