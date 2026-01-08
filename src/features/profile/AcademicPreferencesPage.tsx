@@ -12,14 +12,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useProfile } from '@/hooks/useProfile';
-
-import type { AcademicLevel } from '../../../convex/schema';
-
-const VALID_ACADEMIC_LEVELS: AcademicLevel[] = ['high_school', 'undergraduate', 'postgraduate', 'professional'];
-
-function isAcademicLevel(value: string): value is AcademicLevel {
-  return VALID_ACADEMIC_LEVELS.includes(value as AcademicLevel);
-}
+import { isAcademicLevel } from '@/utils/academicLevel';
 
 /**
  * Academic Preferences page for Clerk UserProfile custom page
@@ -34,7 +27,7 @@ export function AcademicPreferencesPage() {
 
   const handleAcademicLevelChange = async (value: string) => {
     if (!isAcademicLevel(value)) {
-      setSaveError('Invalid academic level selected');
+      setSaveError(t('invalid_academic_level'));
       return;
     }
 
@@ -90,7 +83,7 @@ export function AcademicPreferencesPage() {
             <p className="text-sm text-destructive">{saveError}</p>
           )}
           {saveSuccess && (
-            <p className="text-sm text-green-600">Saved successfully</p>
+            <p className="text-sm text-green-600">{t('saved_successfully')}</p>
           )}
         </div>
       </div>

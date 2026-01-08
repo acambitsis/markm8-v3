@@ -2,6 +2,7 @@
 
 import { UserProfile } from '@clerk/nextjs';
 import { GraduationCap } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import { AcademicPreferencesPage } from './AcademicPreferencesPage';
 
@@ -14,6 +15,8 @@ type Props = {
  * Wraps Clerk's UserProfile and adds our custom pages
  */
 export function UserProfileWithPreferences({ path }: Props) {
+  const t = useTranslations('Settings');
+
   return (
     <UserProfile
       routing="path"
@@ -26,7 +29,7 @@ export function UserProfileWithPreferences({ path }: Props) {
       }}
     >
       <UserProfile.Page
-        label="Academic"
+        label={t('academic_tab')}
         url="academic"
         labelIcon={<GraduationCap className="size-4" />}
       >

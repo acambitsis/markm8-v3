@@ -17,15 +17,10 @@ import { FocusAreasTab } from '@/features/essays/FocusAreasTab';
 import { useAutosave } from '@/hooks/useAutosave';
 import { useCredits } from '@/hooks/useCredits';
 import { useProfile } from '@/hooks/useProfile';
+import { isAcademicLevel } from '@/utils/academicLevel';
 
 import { api } from '../../../convex/_generated/api';
-import type { AcademicLevel, AssignmentBrief, Rubric } from '../../../convex/schema';
-
-const VALID_ACADEMIC_LEVELS: AcademicLevel[] = ['high_school', 'undergraduate', 'postgraduate', 'professional'];
-
-function isAcademicLevel(value: unknown): value is AcademicLevel {
-  return typeof value === 'string' && VALID_ACADEMIC_LEVELS.includes(value as AcademicLevel);
-}
+import type { AssignmentBrief, Rubric } from '../../../convex/schema';
 
 export type DraftData = {
   assignmentBrief: Partial<AssignmentBrief> | null;
