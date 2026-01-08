@@ -29,9 +29,6 @@ export const AppConfig = {
 
 export const AllLocales = AppConfig.locales.map(locale => locale.id);
 
-// Type for valid locale IDs (derived from AppConfig)
-export type LocaleId = (typeof AllLocales)[number];
-
 // Get Open Graph locale for a given locale ID (e.g., 'en' -> 'en_US')
 // Throws if locale is not found to fail fast on invalid input
 export function getOgLocale(localeId: string): string {
