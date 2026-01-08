@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { ArrowRight, BookOpen, FileText, GraduationCap, Scale } from 'lucide-react';
+import { ArrowRight, FileText, GraduationCap, Landmark, Scale } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -14,9 +14,9 @@ import { cn } from '@/utils/Helpers';
 
 // Icons for each subject
 const subjectIcons: Record<string, React.ElementType> = {
-  Philosophy: BookOpen,
-  Law: Scale,
   Literature: FileText,
+  History: Landmark,
+  Law: Scale,
 };
 
 // Sample metadata header component
