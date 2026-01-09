@@ -123,7 +123,7 @@ export const getTransactionHistory = query({
       .query('creditTransactions')
       .withIndex('by_user_id', q => q.eq('userId', userId))
       .order('desc')
-      .collect();
+      .take(100);
 
     // Return only user-facing fields (exclude adminNote, performedBy)
     return transactions.map(tx => ({

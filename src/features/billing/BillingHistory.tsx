@@ -3,7 +3,7 @@
 import { useQuery } from 'convex/react';
 import { motion } from 'framer-motion';
 import { CreditCard } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 
 import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +15,11 @@ import { api } from '../../../convex/_generated/api';
 
 export function BillingHistory() {
   const t = useTranslations('BillingHistory');
+  const locale = useLocale();
   const transactions = useQuery(api.credits.getTransactionHistory);
 
   const formatDate = (timestamp: number) => {
-    return new Date(timestamp).toLocaleDateString('en-US', {
+    return new Date(timestamp).toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
