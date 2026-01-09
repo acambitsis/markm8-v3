@@ -552,7 +552,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                 min={1024}
                 max={65536}
                 step={1024}
-                value={localConfig.grading.maxTokens ?? 8192}
+                value={localConfig.grading.maxTokens}
                 onChange={e =>
                   updateGrading({
                     maxTokens: Math.max(1024, Math.min(65536, Number.parseInt(e.target.value) || 8192)),
@@ -561,18 +561,18 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               />
               <span className="text-sm text-muted-foreground">
                 tokens (
-                {(localConfig.grading.maxTokens ?? 8192) < 4096 && 'low'}
-                {(localConfig.grading.maxTokens ?? 8192) >= 4096 && (localConfig.grading.maxTokens ?? 8192) <= 16384 && 'typical'}
-                {(localConfig.grading.maxTokens ?? 8192) > 16384 && 'high'}
+                {localConfig.grading.maxTokens !== undefined && localConfig.grading.maxTokens < 4096 && 'low'}
+                {localConfig.grading.maxTokens !== undefined && localConfig.grading.maxTokens >= 4096 && localConfig.grading.maxTokens <= 16384 && 'typical'}
+                {localConfig.grading.maxTokens !== undefined && localConfig.grading.maxTokens > 16384 && 'high'}
                 )
               </span>
             </div>
-            {(localConfig.grading.maxTokens ?? 8192) < 4096 && (
+            {localConfig.grading.maxTokens !== undefined && localConfig.grading.maxTokens < 4096 && (
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 Low token limit may truncate detailed feedback
               </p>
             )}
-            {(localConfig.grading.maxTokens ?? 8192) > 16384 && (
+            {localConfig.grading.maxTokens !== undefined && localConfig.grading.maxTokens > 16384 && (
               <p className="text-xs text-amber-600 dark:text-amber-400">
                 High token limit increases pre-authorization cost on OpenRouter
               </p>

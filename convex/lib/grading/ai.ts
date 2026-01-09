@@ -61,8 +61,14 @@ export async function runAIGrading(
     );
   }
 
-  // Extract config values (maxTokens defaults to 8192 for backward compatibility)
-  const { runs, temperature, outlierThresholdPercent, retry, maxTokens = 8192 } = config;
+  // Extract config values (maxTokens is required - must be set via seed/migration)
+  const { runs, temperature, outlierThresholdPercent, retry, maxTokens } = config;
+
+  if (maxTokens === undefined) {
+    throw new Error(
+      'maxTokens not configured in platformSettings.aiConfig.grading. Run migration: npx convex run seed/migrations/addMaxTokensToGrading:migrate',
+    );
+  }
 
   // Build grading prompt
   const prompt = buildGradingPrompt({
