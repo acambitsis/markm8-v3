@@ -9,7 +9,7 @@ import Link from 'next/link';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
-import { getGradeColors } from '@/utils/gradeColors';
+import { formatPercentageRange, getGradeColors } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
@@ -78,85 +78,86 @@ export function RecentEssaysV2() {
       initial="hidden"
       animate="visible"
     >
-      {essays.map(essay => (
-        <motion.div key={essay._id} variants={itemVariants}>
-          <Link
-            href={essay.grade ? `/grades/${essay.grade._id}` : '#'}
-            className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-md"
-          >
-            {/* Icon */}
-            <div className={cn(
-              'flex size-12 shrink-0 items-center justify-center rounded-lg transition-colors',
-              essay.grade?.percentageRange
-                ? getGradeColors((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).light
-                : 'bg-muted',
-            )}
+      {essays.map((essay) => {
+        const midScore = essay.grade?.percentageRange
+          ? (essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2
+          : null;
+        const gradeColors = midScore !== null ? getGradeColors(midScore) : null;
+
+        return (
+          <motion.div key={essay._id} variants={itemVariants}>
+            <Link
+              href={essay.grade ? `/grades/${essay.grade._id}` : '#'}
+              className="group flex items-center gap-4 rounded-xl border bg-card p-4 transition-all duration-200 hover:border-primary/20 hover:shadow-md"
             >
-              <FileText className={cn(
-                'size-6',
-                essay.grade?.percentageRange
-                  ? getGradeColors((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).text
-                  : 'text-muted-foreground',
+              {/* Icon */}
+              <div className={cn(
+                'flex size-12 shrink-0 items-center justify-center rounded-lg transition-colors',
+                gradeColors?.light ?? 'bg-muted',
               )}
-              />
-            </div>
-
-            {/* Content */}
-            <div className="min-w-0 flex-1">
-              <h3 className="truncate font-medium group-hover:text-primary">
-                {essay.assignmentBrief?.title ?? 'Untitled Essay'}
-              </h3>
-              <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                <Clock className="size-3.5" />
-                <span>
-                  {essay.submittedAt
-                    ? formatDistanceToNow(new Date(essay.submittedAt), { addSuffix: true })
-                    : 'Draft'}
-                </span>
-                {essay.wordCount && (
-                  <>
-                    <span className="text-border">·</span>
-                    <span>
-                      {essay.wordCount.toLocaleString()}
-                      {' '}
-                      words
-                    </span>
-                  </>
+              >
+                <FileText className={cn(
+                  'size-6',
+                  gradeColors?.text ?? 'text-muted-foreground',
                 )}
+                />
               </div>
-            </div>
 
-            {/* Grade badge and arrow */}
-            <div className="flex items-center gap-3">
-              {essay.grade?.status === 'complete' && essay.grade.percentageRange && (
-                <Badge
-                  className={cn(
-                    'px-3 py-1 text-sm font-semibold',
-                    getGradeColors((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).bg,
-                    'text-white',
+              {/* Content */}
+              <div className="min-w-0 flex-1">
+                <h3 className="truncate font-medium group-hover:text-primary">
+                  {essay.assignmentBrief?.title ?? 'Untitled Essay'}
+                </h3>
+                <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+                  <Clock className="size-3.5" />
+                  <span>
+                    {essay.submittedAt
+                      ? formatDistanceToNow(new Date(essay.submittedAt), { addSuffix: true })
+                      : 'Draft'}
+                  </span>
+                  {essay.wordCount && (
+                    <>
+                      <span className="text-border">·</span>
+                      <span>
+                        {essay.wordCount.toLocaleString()}
+                        {' '}
+                        words
+                      </span>
+                    </>
                   )}
-                >
-                  {essay.grade.percentageRange.lower === essay.grade.percentageRange.upper
-                    ? `${essay.grade.percentageRange.lower}%`
-                    : `${essay.grade.percentageRange.lower}-${essay.grade.percentageRange.upper}%`}
-                </Badge>
-              )}
-              {essay.grade?.status === 'processing' && (
-                <Badge variant="secondary" className="px-3 py-1">
-                  <span className="mr-1.5 inline-block size-2 animate-pulse rounded-full bg-primary" />
-                  Grading
-                </Badge>
-              )}
-              {essay.grade?.status === 'queued' && (
-                <Badge variant="outline" className="px-3 py-1">
-                  Queued
-                </Badge>
-              )}
-              <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
-            </div>
-          </Link>
-        </motion.div>
-      ))}
+                </div>
+              </div>
+
+              {/* Grade badge and arrow */}
+              <div className="flex items-center gap-3">
+                {essay.grade?.status === 'complete' && essay.grade.percentageRange && gradeColors && (
+                  <Badge
+                    className={cn(
+                      'px-3 py-1 text-sm font-semibold',
+                      gradeColors.bg,
+                      'text-white',
+                    )}
+                  >
+                    {formatPercentageRange(essay.grade.percentageRange)}
+                  </Badge>
+                )}
+                {essay.grade?.status === 'processing' && (
+                  <Badge variant="secondary" className="px-3 py-1">
+                    <span className="mr-1.5 inline-block size-2 animate-pulse rounded-full bg-primary" />
+                    Grading
+                  </Badge>
+                )}
+                {essay.grade?.status === 'queued' && (
+                  <Badge variant="outline" className="px-3 py-1">
+                    Queued
+                  </Badge>
+                )}
+                <ArrowRight className="size-5 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+              </div>
+            </Link>
+          </motion.div>
+        );
+      })}
     </motion.div>
   );
 }

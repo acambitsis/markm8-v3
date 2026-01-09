@@ -22,7 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { getGradeColors } from '@/utils/gradeColors';
+import { formatPercentageRange, getGradeColors } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
@@ -86,9 +86,7 @@ export function GradeResults({ percentageRange, feedback, modelResults }: Props)
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 1.2, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
                   >
-                    {percentageRange.lower === percentageRange.upper
-                      ? `${percentageRange.lower}%`
-                      : `${percentageRange.lower}-${percentageRange.upper}%`}
+                    {formatPercentageRange(percentageRange)}
                   </motion.div>
                   <motion.p
                     className="mt-1 text-muted-foreground"

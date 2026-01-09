@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatPercentageRange } from '@/utils/gradeColors';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -124,9 +125,7 @@ export function EssayHistoryTable() {
                       </TableCell>
                       <TableCell>
                         {essay.grade?.percentageRange
-                          ? essay.grade.percentageRange.lower === essay.grade.percentageRange.upper
-                            ? `${essay.grade.percentageRange.lower}%`
-                            : `${essay.grade.percentageRange.lower}-${essay.grade.percentageRange.upper}%`
+                          ? formatPercentageRange(essay.grade.percentageRange)
                           : '-'}
                       </TableCell>
                       <TableCell>

@@ -5,6 +5,7 @@ import { formatDistanceToNow } from 'date-fns';
 import Link from 'next/link';
 
 import { StatusBadge } from '@/components/StatusBadge';
+import { formatPercentageRange } from '@/utils/gradeColors';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -54,9 +55,7 @@ export function RecentEssays() {
             <div className="flex items-center gap-3">
               {essay.grade?.percentageRange && (
                 <span className="font-semibold">
-                  {essay.grade.percentageRange.lower === essay.grade.percentageRange.upper
-                    ? `${essay.grade.percentageRange.lower}%`
-                    : `${essay.grade.percentageRange.lower}-${essay.grade.percentageRange.upper}%`}
+                  {formatPercentageRange(essay.grade.percentageRange)}
                 </span>
               )}
               {essay.grade && <StatusBadge status={essay.grade.status} />}

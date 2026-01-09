@@ -1,6 +1,8 @@
 // Grade color utilities
 // Shared color mapping for percentage-based grade display
 
+import type { PercentageRange } from '../../convex/schema';
+
 export type GradeColorSet = {
   bg: string;
   text: string;
@@ -32,4 +34,14 @@ export function getGradeColors(percentage: number): GradeColorSet {
     return { bg: 'bg-orange-500', text: 'text-orange-600', light: 'bg-orange-50' };
   }
   return { bg: 'bg-red-500', text: 'text-red-600', light: 'bg-red-50' };
+}
+
+/**
+ * Format a percentage range for display
+ * Shows single value if lower === upper, otherwise shows "lower-upper%"
+ */
+export function formatPercentageRange(range: PercentageRange): string {
+  return range.lower === range.upper
+    ? `${range.lower}%`
+    : `${range.lower}-${range.upper}%`;
 }
