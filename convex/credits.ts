@@ -110,6 +110,33 @@ export const getBalance = query({
 });
 
 /**
+ * Get the current user's transaction history
+ * Returns transactions sorted by creation time (newest first)
+ * Excludes admin-only fields (adminNote, performedBy) for privacy
+ */
+export const getTransactionHistory = query({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+
+    const transactions = await ctx.db
+      .query('creditTransactions')
+      .withIndex('by_user_id', q => q.eq('userId', userId))
+      .order('desc')
+      .take(100);
+
+    // Return only user-facing fields (exclude adminNote, performedBy)
+    return transactions.map(tx => ({
+      _id: tx._id,
+      amount: tx.amount,
+      transactionType: tx.transactionType,
+      description: tx.description,
+      createdAt: tx._creationTime,
+    }));
+  },
+});
+
+/**
  * Initialize credits for a new user (internal mutation)
  * Called when a user is created via Clerk webhook
  * Caller must provide signupBonus (fetched from platformSettings.getSignupBonus)
