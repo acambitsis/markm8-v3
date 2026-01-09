@@ -42,6 +42,7 @@ const PROD_AI_CONFIG: AiConfig = {
       maxRetries: 3,
       backoffMs: [5000, 15000, 45000],
     },
+    maxTokens: 8192,
   },
   titleGeneration: {
     model: 'anthropic/claude-haiku-4.5',

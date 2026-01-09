@@ -61,8 +61,8 @@ export async function runAIGrading(
     );
   }
 
-  // Extract config values
-  const { runs, temperature, outlierThresholdPercent, retry } = config;
+  // Extract config values (maxTokens defaults to 8192 for backward compatibility)
+  const { runs, temperature, outlierThresholdPercent, retry, maxTokens = 8192 } = config;
 
   // Build grading prompt
   const prompt = buildGradingPrompt({
@@ -83,7 +83,7 @@ export async function runAIGrading(
           schema: gradeOutputSchema,
           prompt,
           temperature,
-          maxOutputTokens: 8192,
+          maxOutputTokens: maxTokens,
           system: 'You are an expert academic essay grader. You MUST respond with valid JSON only. Do NOT include any text before or after the JSON. Do NOT wrap the JSON in markdown code blocks (no ```json ... ```). Return raw, parseable JSON data.',
         });
 

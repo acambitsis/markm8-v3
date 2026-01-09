@@ -7,6 +7,7 @@ import {
   Bot,
   Clock,
   Cpu,
+  Hash,
   Info,
   Minus,
   Plus,
@@ -91,6 +92,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
         maxRetries: 3,
         backoffMs: [5000, 15000, 45000],
       },
+      maxTokens: 8192,
     },
     titleGeneration: {
       model: defaultTitleModel,
@@ -519,6 +521,62 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                 ))}
               </div>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Max Output Tokens Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+          className="space-y-4"
+        >
+          <div className="flex items-center gap-2">
+            <Hash className="size-5 text-cyan-500" />
+            <h3 className="font-semibold">Max Output Tokens</h3>
+            <Tooltip>
+              <TooltipTrigger>
+                <Info className="size-4 text-muted-foreground" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-xs">
+                <p>Maximum tokens the AI can generate in its response. OpenRouter pre-authorizes this amount, which affects budget usage.</p>
+                <p className="mt-1">Recommended: 8192 (default). Range: 1024-65536</p>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center gap-4">
+              <Input
+                type="number"
+                min={1024}
+                max={65536}
+                step={1024}
+                value={localConfig.grading.maxTokens ?? 8192}
+                onChange={e =>
+                  updateGrading({
+                    maxTokens: Math.max(1024, Math.min(65536, Number.parseInt(e.target.value) || 8192)),
+                  })}
+                className="w-32"
+              />
+              <span className="text-sm text-muted-foreground">
+                tokens (
+                {(localConfig.grading.maxTokens ?? 8192) < 4096 && 'low'}
+                {(localConfig.grading.maxTokens ?? 8192) >= 4096 && (localConfig.grading.maxTokens ?? 8192) <= 16384 && 'typical'}
+                {(localConfig.grading.maxTokens ?? 8192) > 16384 && 'high'}
+                )
+              </span>
+            </div>
+            {(localConfig.grading.maxTokens ?? 8192) < 4096 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                Low token limit may truncate detailed feedback
+              </p>
+            )}
+            {(localConfig.grading.maxTokens ?? 8192) > 16384 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                High token limit increases pre-authorization cost on OpenRouter
+              </p>
+            )}
           </div>
         </motion.div>
 
