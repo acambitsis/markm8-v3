@@ -61,8 +61,14 @@ export async function runAIGrading(
     );
   }
 
-  // Extract config values
-  const { runs, temperature, outlierThresholdPercent, retry } = config;
+  // Extract config values (maxTokens is required - must be set via seed/migration)
+  const { runs, temperature, outlierThresholdPercent, retry, maxTokens } = config;
+
+  if (maxTokens === undefined) {
+    throw new Error(
+      'maxTokens not configured in platformSettings.aiConfig.grading. Run migration: npx convex run seed/migrations/addMaxTokensToGrading:migrate',
+    );
+  }
 
   // Build grading prompt
   const prompt = buildGradingPrompt({
@@ -83,7 +89,7 @@ export async function runAIGrading(
           schema: gradeOutputSchema,
           prompt,
           temperature,
-          maxOutputTokens: 8192,
+          maxOutputTokens: maxTokens,
           system: 'You are an expert academic essay grader. You MUST respond with valid JSON only. Do NOT include any text before or after the JSON. Do NOT wrap the JSON in markdown code blocks (no ```json ... ```). Return raw, parseable JSON data.',
         });
 

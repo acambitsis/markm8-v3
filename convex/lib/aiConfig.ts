@@ -24,6 +24,7 @@ export const DEFAULT_GRADING_CONFIG: GradingConfig = {
     maxRetries: 3,
     backoffMs: [5000, 15000, 45000],
   },
+  maxTokens: 8192, // Max output tokens for AI response (OpenRouter pre-authorizes this amount)
 };
 
 export const DEFAULT_TITLE_GENERATION_CONFIG: TitleGenerationConfig = {
@@ -104,6 +105,15 @@ export function validateGradingConfig(config: GradingConfig): ValidationResult {
   }
   if (config.retry.backoffMs.length === 0 && config.retry.maxRetries > 0) {
     warnings.push('backoffMs array is empty but maxRetries > 0');
+  }
+
+  // Max tokens validation - minimal constraints, model-dependent
+  if (config.maxTokens !== undefined) {
+    if (config.maxTokens < 1) {
+      errors.push('maxTokens must be positive');
+    } else if (config.maxTokens < 256) {
+      warnings.push('maxTokens below 256 may truncate structured output');
+    }
   }
 
   return {
