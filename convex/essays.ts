@@ -88,20 +88,43 @@ export const saveDraft = mutation({
         .filter(w => w.length > 0).length
       : undefined;
 
+    // Build complete assignmentBrief with required fields (empty strings as placeholders for drafts)
+    type PartialBrief = {
+      title?: string;
+      instructions?: string;
+      subject?: string;
+      academicLevel?: AcademicLevel;
+    } | null | undefined;
+
+    const buildAssignmentBrief = (
+      existing: PartialBrief,
+      updates: PartialBrief,
+    ) => {
+      if (!updates && !existing) {
+        return undefined;
+      }
+
+      return {
+        title: updates?.title ?? existing?.title ?? '',
+        instructions: updates?.instructions ?? existing?.instructions ?? '', // Empty placeholder for drafts
+        subject: updates?.subject ?? existing?.subject ?? '',
+        academicLevel: updates?.academicLevel ?? existing?.academicLevel ?? 'undergraduate',
+      } as {
+        title: string;
+        instructions: string;
+        subject: string;
+        academicLevel: AcademicLevel;
+      };
+    };
+
     if (existingDraft) {
       // Update existing draft
+      const newBrief = args.assignmentBrief
+        ? buildAssignmentBrief(existingDraft.assignmentBrief, args.assignmentBrief)
+        : undefined;
+
       await ctx.db.patch(existingDraft._id, {
-        ...(args.assignmentBrief && {
-          assignmentBrief: {
-            ...existingDraft.assignmentBrief,
-            ...args.assignmentBrief,
-          } as {
-            title: string;
-            instructions: string;
-            subject: string;
-            academicLevel: AcademicLevel;
-          },
-        }),
+        ...(newBrief && { assignmentBrief: newBrief }),
         ...(args.rubric && { rubric: args.rubric }),
         ...(args.content !== undefined && { content: args.content }),
         ...(args.focusAreas && { focusAreas: args.focusAreas }),
@@ -112,17 +135,12 @@ export const saveDraft = mutation({
     }
 
     // Create new draft
+    const newBrief = buildAssignmentBrief(undefined, args.assignmentBrief);
+
     const essayId = await ctx.db.insert('essays', {
       userId,
       status: 'draft',
-      ...(args.assignmentBrief && {
-        assignmentBrief: args.assignmentBrief as {
-          title: string;
-          instructions: string;
-          subject: string;
-          academicLevel: AcademicLevel;
-        },
-      }),
+      ...(newBrief && { assignmentBrief: newBrief }),
       ...(args.rubric && { rubric: args.rubric }),
       ...(args.content && { content: args.content }),
       ...(args.focusAreas && { focusAreas: args.focusAreas }),
@@ -168,15 +186,12 @@ export const submit = mutation({
       throw new Error('No draft found to submit');
     }
 
-    // 3. Validate required fields
+    // 3. Validate required fields (instructions optional in essay-first flow)
     const errors: string[] = [];
     const brief = draft.assignmentBrief;
 
     if (!brief?.title) {
       errors.push('Title is required');
-    }
-    if (!brief?.instructions) {
-      errors.push('Instructions are required');
     }
     if (!brief?.subject) {
       errors.push('Subject is required');
@@ -207,18 +222,37 @@ export const submit = mutation({
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
 
-    // 4. Reserve credit (validates balance, deducts, tracks in reserved)
+    // 4. Get user profile for academic level
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    const academicLevel = user.academicLevel ?? 'undergraduate'; // Default fallback
+
+    // 5. Reserve credit (validates balance, deducts, tracks in reserved)
     // Uses centralized helper from credits.ts (single source of truth)
     await reserveCreditForUser(ctx, userId, gradingCost);
 
-    // 5. Update essay status
+    // 6. Build complete assignmentBrief with defaults
+    const DEFAULT_INSTRUCTIONS = `Please evaluate this ${brief?.subject ?? 'academic'} essay. Assess the quality of writing, argument structure, evidence usage, and overall effectiveness. Provide constructive feedback to help improve the essay.`;
+
+    const completeAssignmentBrief = {
+      title: brief?.title ?? '',
+      subject: brief?.subject ?? '',
+      instructions: brief?.instructions || DEFAULT_INSTRUCTIONS,
+      academicLevel: academicLevel as AcademicLevel,
+    };
+
+    // 7. Update essay with complete brief and status (single atomic patch)
     await ctx.db.patch(draft._id, {
+      assignmentBrief: completeAssignmentBrief,
       status: 'submitted',
       submittedAt: Date.now(),
       wordCount,
     });
 
-    // 6. Create grade record
+    // 8. Create grade record
     const gradeId = await ctx.db.insert('grades', {
       userId,
       essayId: draft._id,
@@ -226,7 +260,7 @@ export const submit = mutation({
       queuedAt: Date.now(),
     });
 
-    // 7. Schedule grading action
+    // 9. Schedule grading action
     await ctx.scheduler.runAfter(0, internal.grading.processGrade, {
       gradeId,
     });

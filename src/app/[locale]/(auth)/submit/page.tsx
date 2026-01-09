@@ -3,7 +3,7 @@ import { getTranslations } from 'next-intl/server';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Card, CardContent } from '@/components/ui/card';
 import { MainLayout } from '@/features/dashboard/MainLayout';
-import { SubmitForm } from '@/features/essays/SubmitForm';
+import { EssaySubmitCanvas } from '@/features/essays/EssaySubmitCanvas';
 import { SubmitPageHeader } from '@/features/essays/SubmitPageHeader';
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
@@ -26,10 +26,10 @@ export default function SubmitPage() {
         {/* Header with cost transparency */}
         <SubmitPageHeader />
 
-        {/* Form Card */}
+        {/* Essay-first submission flow */}
         <Card className="border-0 shadow-lg">
           <CardContent className="p-6 md:p-8">
-            <SubmitForm />
+            <EssaySubmitCanvas />
           </CardContent>
         </Card>
       </PageTransition>

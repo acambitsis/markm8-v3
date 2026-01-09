@@ -33,6 +33,7 @@ import type * as platformSettings from "../platformSettings.js";
 import type * as seed_migrations_addMaxTokensToGrading from "../seed/migrations/addMaxTokensToGrading.js";
 import type * as seed_modelCatalog from "../seed/modelCatalog.js";
 import type * as seed_platformSettings from "../seed/platformSettings.js";
+import type * as suggestions from "../suggestions.js";
 import type * as topicInsights from "../topicInsights.js";
 import type * as users from "../users.js";
 
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "seed/migrations/addMaxTokensToGrading": typeof seed_migrations_addMaxTokensToGrading;
   "seed/modelCatalog": typeof seed_modelCatalog;
   "seed/platformSettings": typeof seed_platformSettings;
+  suggestions: typeof suggestions;
   topicInsights: typeof topicInsights;
   users: typeof users;
 }>;
