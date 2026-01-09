@@ -22,12 +22,12 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { formatPercentageRange, getGradeColors } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
 
 type Props = {
-  letterGradeRange: string;
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
   modelResults: ModelResult[];
@@ -53,24 +53,7 @@ const itemVariants = {
   },
 };
 
-// Get grade color
-const getGradeColor = (letterGrade: string) => {
-  if (letterGrade.startsWith('A')) {
-    return 'text-green-600';
-  }
-  if (letterGrade.startsWith('B')) {
-    return 'text-blue-600';
-  }
-  if (letterGrade.startsWith('C')) {
-    return 'text-yellow-600';
-  }
-  if (letterGrade.startsWith('D')) {
-    return 'text-orange-600';
-  }
-  return 'text-red-600';
-};
-
-export function GradeResults({ letterGradeRange, percentageRange, feedback, modelResults }: Props) {
+export function GradeResults({ percentageRange, feedback, modelResults }: Props) {
   const [showModelDetails, setShowModelDetails] = useState(false);
   const midScore = (percentageRange.lower + percentageRange.upper) / 2;
 
@@ -95,15 +78,15 @@ export function GradeResults({ letterGradeRange, percentageRange, feedback, mode
                   delay={0.5}
                 />
 
-                {/* Grade and range */}
+                {/* Percentage range display */}
                 <div className="text-center md:text-left">
                   <motion.div
-                    className={cn('text-5xl font-bold', getGradeColor(letterGradeRange))}
+                    className={cn('text-5xl font-bold', getGradeColors(midScore).text)}
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 1.2, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
                   >
-                    {letterGradeRange}
+                    {formatPercentageRange(percentageRange)}
                   </motion.div>
                   <motion.p
                     className="mt-1 text-muted-foreground"
@@ -111,10 +94,7 @@ export function GradeResults({ letterGradeRange, percentageRange, feedback, mode
                     animate={{ opacity: 1 }}
                     transition={{ delay: 1.4 }}
                   >
-                    {percentageRange.lower}
-                    -
-                    {percentageRange.upper}
-                    % range
+                    Overall Score
                   </motion.p>
                 </div>
               </div>

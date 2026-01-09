@@ -7,7 +7,6 @@ export { generateMockGrade } from './mock';
 export {
   clampPercentage,
   classifyError,
-  convertToLetterGrade,
   detectOutliers,
   retryWithBackoff,
   USER_ERROR_MESSAGE,

@@ -16,7 +16,6 @@ import { gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt } from '../gradingPrompt';
 import {
   clampPercentage,
-  convertToLetterGrade,
   detectOutliers,
   retryWithBackoff,
 } from './utils';
@@ -43,7 +42,6 @@ export async function runAIGrading(
   },
   config: GradingConfig,
 ): Promise<{
-    letterGradeRange: string;
     percentageRange: PercentageRange;
     feedback: GradeFeedback;
     categoryScores: CategoryScores;
@@ -231,7 +229,6 @@ export async function runAIGrading(
   const apiCost = undefined;
 
   return {
-    letterGradeRange: convertToLetterGrade(lowerBound, upperBound),
     percentageRange: {
       lower: lowerBound,
       upper: upperBound,

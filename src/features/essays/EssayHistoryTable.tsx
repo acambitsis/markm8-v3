@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { formatPercentageRange } from '@/utils/gradeColors';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -123,7 +124,9 @@ export function EssayHistoryTable() {
                         {essay.wordCount?.toLocaleString() ?? '-'}
                       </TableCell>
                       <TableCell>
-                        {essay.grade?.letterGradeRange ?? '-'}
+                        {essay.grade?.percentageRange
+                          ? formatPercentageRange(essay.grade.percentageRange)
+                          : '-'}
                       </TableCell>
                       <TableCell>
                         {essay.grade && <StatusBadge status={essay.grade.status} />}

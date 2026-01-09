@@ -155,9 +155,8 @@ export function GradeStatusDisplay({ gradeId }: Props) {
           </motion.div>
 
           {/* Grade Results */}
-          {grade.letterGradeRange && grade.percentageRange && grade.feedback && grade.modelResults && (
+          {grade.percentageRange && grade.feedback && grade.modelResults && (
             <GradeResults
-              letterGradeRange={grade.letterGradeRange}
               percentageRange={grade.percentageRange}
               feedback={grade.feedback}
               modelResults={grade.modelResults}

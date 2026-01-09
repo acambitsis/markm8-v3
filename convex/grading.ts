@@ -74,7 +74,6 @@ export const processGrade = internalAction({
       // 6. Complete the grade
       await ctx.runMutation(internal.grades.complete, {
         gradeId,
-        letterGradeRange: results.letterGradeRange,
         percentageRange: results.percentageRange,
         feedback: results.feedback,
         categoryScores: results.categoryScores,

@@ -100,7 +100,6 @@ export const startProcessing = internalMutation({
 export const complete = internalMutation({
   args: {
     gradeId: v.id('grades'),
-    letterGradeRange: v.string(),
     percentageRange: percentageRangeValidator,
     feedback: feedbackValidator,
     categoryScores: v.optional(categoryScoresValidator),

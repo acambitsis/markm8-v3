@@ -16,21 +16,19 @@ export type SampleGrade = {
   subject: string;
   academicLevel: AcademicLevel;
   wordCount: number;
-  letterGradeRange: string;
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
   modelResults: ModelResult[];
 };
 
 export const sampleGrades: SampleGrade[] = [
-  // Sample 1: Shakespeare/Hamlet - High School - A-/A (Real feedback)
+  // Sample 1: Shakespeare/Hamlet - High School (Real feedback)
   {
     id: 'literature-hamlet',
     title: 'Internal Conflicts in Hamlet',
     subject: 'Literature',
     academicLevel: 'high_school',
     wordCount: 1247,
-    letterGradeRange: 'A- to A',
     percentageRange: { lower: 92, upper: 93 },
     feedback: {
       strengths: [
@@ -138,14 +136,13 @@ export const sampleGrades: SampleGrade[] = [
     ],
   },
 
-  // Sample 2: Industrial Revolution - Undergraduate - B (Real feedback)
+  // Sample 2: Industrial Revolution - Undergraduate (Real feedback)
   {
     id: 'history-industrial',
     title: 'Social and Economic Impacts of the Industrial Revolution',
     subject: 'History',
     academicLevel: 'undergraduate',
     wordCount: 1456,
-    letterGradeRange: 'B',
     percentageRange: { lower: 85, upper: 85 },
     feedback: {
       strengths: [
@@ -264,14 +261,13 @@ export const sampleGrades: SampleGrade[] = [
     ],
   },
 
-  // Sample 3: Employment Law - Professional - D-/D (Real feedback)
+  // Sample 3: Employment Law - Professional (Real feedback)
   {
     id: 'law-employment',
     title: 'Employment Tribunal Advice: Harassment and Unfair Dismissal',
     subject: 'Law',
     academicLevel: 'professional',
     wordCount: 2407,
-    letterGradeRange: 'D- to D',
     percentageRange: { lower: 62, upper: 65 },
     feedback: {
       strengths: [
