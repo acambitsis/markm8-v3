@@ -540,7 +540,6 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               </TooltipTrigger>
               <TooltipContent className="max-w-xs">
                 <p>Maximum tokens the AI can generate in its response. OpenRouter pre-authorizes this amount, which affects budget usage.</p>
-                <p className="mt-1">Recommended: 8192 (default). Range: 1024-65536</p>
               </TooltipContent>
             </Tooltip>
           </div>

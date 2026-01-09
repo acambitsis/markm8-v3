@@ -180,7 +180,7 @@ export const gradingConfigValidator = v.object({
   runs: v.array(gradingRunValidator), // 1-10 runs, each with its own model
   outlierThresholdPercent: v.number(), // Deviation threshold for outlier detection
   retry: retryConfigValidator,
-  maxTokens: v.optional(v.number()), // Max output tokens for AI response (1024-65536, default 8192)
+  maxTokens: v.optional(v.number()), // Max output tokens for AI response
 });
 
 export const titleGenerationConfigValidator = v.object({
