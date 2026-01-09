@@ -6,6 +6,7 @@ import { Suspense } from 'react';
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { BillingHistory } from '@/features/billing/BillingHistory';
 import { CreditsPurchaseSection } from '@/features/billing/CreditsPurchaseSection';
 import { useCredits } from '@/hooks/useCredits';
 
@@ -59,9 +60,7 @@ function SettingsContent() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground">
-                {t('billing_coming_soon')}
-              </p>
+              <BillingHistory />
             </CardContent>
           </Card>
         </TabsContent>

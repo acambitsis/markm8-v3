@@ -271,8 +271,15 @@
     "current_balance": "Your current balance:",
     "credits_unit": "credits",
     "billing_title": "Billing History",
-    "billing_description": "View your past purchases and download receipts",
-    "billing_coming_soon": "Billing history coming soon."
+    "billing_description": "View your credit transaction history"
+  },
+  "BillingHistory": {
+    "no_transactions": "No transactions yet",
+    "type_signup_bonus": "Signup Bonus",
+    "type_purchase": "Purchase",
+    "type_grading": "Grading",
+    "type_refund": "Refund",
+    "type_admin_adjustment": "Adjustment"
   },
   "Credits": {
     "buy_now": "Buy Now",

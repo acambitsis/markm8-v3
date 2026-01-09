@@ -259,8 +259,15 @@
     "current_balance": "Votre solde actuel :",
     "credits_unit": "crédits",
     "billing_title": "Historique de facturation",
-    "billing_description": "Consultez vos achats passés et téléchargez vos reçus",
-    "billing_coming_soon": "Historique de facturation bientôt disponible."
+    "billing_description": "Consultez l'historique de vos transactions de crédits"
+  },
+  "BillingHistory": {
+    "no_transactions": "Aucune transaction pour le moment",
+    "type_signup_bonus": "Bonus d'inscription",
+    "type_purchase": "Achat",
+    "type_grading": "Correction",
+    "type_refund": "Remboursement",
+    "type_admin_adjustment": "Ajustement"
   },
   "Credits": {
     "buy_now": "Acheter",
