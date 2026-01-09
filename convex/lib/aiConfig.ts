@@ -107,21 +107,12 @@ export function validateGradingConfig(config: GradingConfig): ValidationResult {
     warnings.push('backoffMs array is empty but maxRetries > 0');
   }
 
-  // Max tokens validation (hard: 1024-65536, soft: 4096-16384 typical)
-  // Optional field - only validate if present (defaults to 8192 at runtime)
+  // Max tokens validation - minimal constraints, model-dependent
   if (config.maxTokens !== undefined) {
-    if (config.maxTokens < 1024) {
-      errors.push(`maxTokens ${config.maxTokens} is below minimum 1024`);
-    } else if (config.maxTokens > 65536) {
-      errors.push(`maxTokens ${config.maxTokens} exceeds maximum 65536`);
-    } else if (config.maxTokens < 4096) {
-      warnings.push(
-        `maxTokens ${config.maxTokens} is low; may truncate detailed feedback`,
-      );
-    } else if (config.maxTokens > 16384) {
-      warnings.push(
-        `maxTokens ${config.maxTokens} is high; increases pre-authorization cost on OpenRouter`,
-      );
+    if (config.maxTokens < 1) {
+      errors.push('maxTokens must be positive');
+    } else if (config.maxTokens < 256) {
+      warnings.push('maxTokens below 256 may truncate structured output');
     }
   }
 
