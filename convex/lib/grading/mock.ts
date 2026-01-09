@@ -15,7 +15,6 @@ import { clampPercentage } from './utils';
  * Uses the configured runs from GradingConfig
  */
 export function generateMockGrade(config: GradingConfig): {
-  letterGradeRange: string;
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
   categoryScores: CategoryScores;
@@ -53,8 +52,6 @@ export function generateMockGrade(config: GradingConfig): {
   };
 
   return {
-    letterGradeRange:
-      basePercentage >= 90 ? 'A' : basePercentage >= 80 ? 'B' : 'C',
     percentageRange: {
       lower: lowerBound,
       upper: upperBound,

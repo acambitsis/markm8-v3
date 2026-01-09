@@ -52,9 +52,11 @@ export function RecentEssays() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              {essay.grade?.letterGradeRange && (
+              {essay.grade?.percentageRange && (
                 <span className="font-semibold">
-                  {essay.grade.letterGradeRange}
+                  {essay.grade.percentageRange.lower === essay.grade.percentageRange.upper
+                    ? `${essay.grade.percentageRange.lower}%`
+                    : `${essay.grade.percentageRange.lower}-${essay.grade.percentageRange.upper}%`}
                 </span>
               )}
               {essay.grade && <StatusBadge status={essay.grade.status} />}

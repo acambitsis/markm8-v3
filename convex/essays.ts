@@ -328,7 +328,7 @@ export const list = query({
             ? {
                 _id: grade._id,
                 status: grade.status,
-                letterGradeRange: grade.letterGradeRange,
+                percentageRange: grade.percentageRange,
               }
             : null,
         };
@@ -378,7 +378,7 @@ export const recent = query({
             ? {
                 _id: grade._id,
                 status: grade.status,
-                letterGradeRange: grade.letterGradeRange,
+                percentageRange: grade.percentageRange,
               }
             : null,
         };

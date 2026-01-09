@@ -3,7 +3,7 @@
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 
 import { api } from '../../convex/_generated/api';
-import type { AcademicLevel, GradingScale } from '../../convex/schema';
+import type { AcademicLevel } from '../../convex/schema';
 
 /**
  * Hook to get and update the current user's profile
@@ -23,7 +23,6 @@ export function useProfile() {
   const updateProfile = async (updates: {
     institution?: string;
     course?: string;
-    defaultGradingScale?: GradingScale;
     academicLevel?: AcademicLevel;
   }) => {
     return updateProfileMutation(updates);

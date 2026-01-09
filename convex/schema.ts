@@ -10,14 +10,6 @@ import { v } from 'convex/values';
 // Validators for reusable types (exported for type inference)
 // =============================================================================
 
-export const gradingScaleValidator = v.union(
-  v.literal('percentage'),
-  v.literal('letter'),
-  v.literal('uk'),
-  v.literal('gpa'),
-  v.literal('pass_fail'),
-);
-
 export const essayStatusValidator = v.union(
   v.literal('draft'),
   v.literal('submitted'),
@@ -207,7 +199,6 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     institution: v.optional(v.string()), // User's institution (free text)
     course: v.optional(v.string()), // User's course (free text)
-    defaultGradingScale: v.optional(gradingScaleValidator), // Preferred grading scale
     academicLevel: v.optional(academicLevelValidator), // User's default academic level
   })
     .index('by_clerk_id', ['clerkId'])
@@ -265,7 +256,8 @@ export default defineSchema({
     status: gradeStatusValidator,
 
     // Results (populated when status = 'complete')
-    letterGradeRange: v.optional(v.string()), // "A" or "A-B"
+    // Note: letterGradeRange is deprecated but kept for backward compatibility with existing data
+    letterGradeRange: v.optional(v.string()),
     percentageRange: v.optional(percentageRangeValidator),
     feedback: v.optional(feedbackValidator),
     categoryScores: v.optional(categoryScoresValidator),
@@ -347,7 +339,6 @@ export default defineSchema({
 // Inferred Types (for use in UI components - single source of truth)
 // =============================================================================
 
-export type GradingScale = Infer<typeof gradingScaleValidator>;
 export type EssayStatus = Infer<typeof essayStatusValidator>;
 export type GradeStatus = Infer<typeof gradeStatusValidator>;
 export type TransactionType = Infer<typeof transactionTypeValidator>;

@@ -99,7 +99,6 @@ export function SampleFeedbackShowcase() {
             {/* Grade Results - Reuse existing component */}
             <div className="[&_.space-y-6]:space-y-4">
               <GradeResults
-                letterGradeRange={sample.letterGradeRange}
                 percentageRange={sample.percentageRange}
                 feedback={sample.feedback}
                 modelResults={sample.modelResults}

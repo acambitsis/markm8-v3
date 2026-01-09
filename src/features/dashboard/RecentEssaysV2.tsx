@@ -13,18 +13,18 @@ import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
 
-// Get color based on letter grade
-const getGradeColor = (letterGrade: string) => {
-  if (letterGrade.startsWith('A')) {
+// Get color based on percentage
+const getPercentageColor = (percentage: number) => {
+  if (percentage >= 90) {
     return { bg: 'bg-green-500', text: 'text-green-600', light: 'bg-green-50' };
   }
-  if (letterGrade.startsWith('B')) {
+  if (percentage >= 80) {
     return { bg: 'bg-blue-500', text: 'text-blue-600', light: 'bg-blue-50' };
   }
-  if (letterGrade.startsWith('C')) {
+  if (percentage >= 70) {
     return { bg: 'bg-yellow-500', text: 'text-yellow-600', light: 'bg-yellow-50' };
   }
-  if (letterGrade.startsWith('D')) {
+  if (percentage >= 60) {
     return { bg: 'bg-orange-500', text: 'text-orange-600', light: 'bg-orange-50' };
   }
   return { bg: 'bg-red-500', text: 'text-red-600', light: 'bg-red-50' };
@@ -103,15 +103,15 @@ export function RecentEssaysV2() {
             {/* Icon */}
             <div className={cn(
               'flex size-12 shrink-0 items-center justify-center rounded-lg transition-colors',
-              essay.grade?.letterGradeRange
-                ? getGradeColor(essay.grade.letterGradeRange).light
+              essay.grade?.percentageRange
+                ? getPercentageColor((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).light
                 : 'bg-muted',
             )}
             >
               <FileText className={cn(
                 'size-6',
-                essay.grade?.letterGradeRange
-                  ? getGradeColor(essay.grade.letterGradeRange).text
+                essay.grade?.percentageRange
+                  ? getPercentageColor((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).text
                   : 'text-muted-foreground',
               )}
               />
@@ -144,15 +144,17 @@ export function RecentEssaysV2() {
 
             {/* Grade badge and arrow */}
             <div className="flex items-center gap-3">
-              {essay.grade?.status === 'complete' && essay.grade.letterGradeRange && (
+              {essay.grade?.status === 'complete' && essay.grade.percentageRange && (
                 <Badge
                   className={cn(
                     'px-3 py-1 text-sm font-semibold',
-                    getGradeColor(essay.grade.letterGradeRange).bg,
+                    getPercentageColor((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).bg,
                     'text-white',
                   )}
                 >
-                  {essay.grade.letterGradeRange}
+                  {essay.grade.percentageRange.lower === essay.grade.percentageRange.upper
+                    ? `${essay.grade.percentageRange.lower}%`
+                    : `${essay.grade.percentageRange.lower}-${essay.grade.percentageRange.upper}%`}
                 </Badge>
               )}
               {essay.grade?.status === 'processing' && (

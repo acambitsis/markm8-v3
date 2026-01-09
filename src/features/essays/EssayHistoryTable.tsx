@@ -123,7 +123,11 @@ export function EssayHistoryTable() {
                         {essay.wordCount?.toLocaleString() ?? '-'}
                       </TableCell>
                       <TableCell>
-                        {essay.grade?.letterGradeRange ?? '-'}
+                        {essay.grade?.percentageRange
+                          ? essay.grade.percentageRange.lower === essay.grade.percentageRange.upper
+                            ? `${essay.grade.percentageRange.lower}%`
+                            : `${essay.grade.percentageRange.lower}-${essay.grade.percentageRange.upper}%`
+                          : '-'}
                       </TableCell>
                       <TableCell>
                         {essay.grade && <StatusBadge status={essay.grade.status} />}
