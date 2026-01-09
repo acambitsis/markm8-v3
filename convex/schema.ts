@@ -52,9 +52,9 @@ export const academicLevelValidator = v.union(
 
 export const assignmentBriefValidator = v.object({
   title: v.string(),
-  instructions: v.string(),
+  instructions: v.string(), // Default provided if user doesn't supply
   subject: v.string(),
-  academicLevel: academicLevelValidator,
+  academicLevel: academicLevelValidator, // Pulled from user profile at submit
 });
 
 export const rubricValidator = v.object({
