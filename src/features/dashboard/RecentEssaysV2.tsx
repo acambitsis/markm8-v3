@@ -9,26 +9,10 @@ import Link from 'next/link';
 import { EmptyState } from '@/components/EmptyState';
 import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
+import { getGradeColors } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
-
-// Get color based on percentage
-const getPercentageColor = (percentage: number) => {
-  if (percentage >= 90) {
-    return { bg: 'bg-green-500', text: 'text-green-600', light: 'bg-green-50' };
-  }
-  if (percentage >= 80) {
-    return { bg: 'bg-blue-500', text: 'text-blue-600', light: 'bg-blue-50' };
-  }
-  if (percentage >= 70) {
-    return { bg: 'bg-yellow-500', text: 'text-yellow-600', light: 'bg-yellow-50' };
-  }
-  if (percentage >= 60) {
-    return { bg: 'bg-orange-500', text: 'text-orange-600', light: 'bg-orange-50' };
-  }
-  return { bg: 'bg-red-500', text: 'text-red-600', light: 'bg-red-50' };
-};
 
 const containerVariants = {
   hidden: {},
@@ -104,14 +88,14 @@ export function RecentEssaysV2() {
             <div className={cn(
               'flex size-12 shrink-0 items-center justify-center rounded-lg transition-colors',
               essay.grade?.percentageRange
-                ? getPercentageColor((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).light
+                ? getGradeColors((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).light
                 : 'bg-muted',
             )}
             >
               <FileText className={cn(
                 'size-6',
                 essay.grade?.percentageRange
-                  ? getPercentageColor((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).text
+                  ? getGradeColors((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).text
                   : 'text-muted-foreground',
               )}
               />
@@ -148,7 +132,7 @@ export function RecentEssaysV2() {
                 <Badge
                   className={cn(
                     'px-3 py-1 text-sm font-semibold',
-                    getPercentageColor((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).bg,
+                    getGradeColors((essay.grade.percentageRange.lower + essay.grade.percentageRange.upper) / 2).bg,
                     'text-white',
                   )}
                 >

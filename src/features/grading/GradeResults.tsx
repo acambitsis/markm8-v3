@@ -22,6 +22,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { getGradeColors } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
@@ -52,23 +53,6 @@ const itemVariants = {
   },
 };
 
-// Get grade color based on percentage
-const getPercentageColor = (percentage: number) => {
-  if (percentage >= 90) {
-    return 'text-green-600';
-  }
-  if (percentage >= 80) {
-    return 'text-blue-600';
-  }
-  if (percentage >= 70) {
-    return 'text-yellow-600';
-  }
-  if (percentage >= 60) {
-    return 'text-orange-600';
-  }
-  return 'text-red-600';
-};
-
 export function GradeResults({ percentageRange, feedback, modelResults }: Props) {
   const [showModelDetails, setShowModelDetails] = useState(false);
   const midScore = (percentageRange.lower + percentageRange.upper) / 2;
@@ -97,7 +81,7 @@ export function GradeResults({ percentageRange, feedback, modelResults }: Props)
                 {/* Percentage range display */}
                 <div className="text-center md:text-left">
                   <motion.div
-                    className={cn('text-5xl font-bold', getPercentageColor(midScore))}
+                    className={cn('text-5xl font-bold', getGradeColors(midScore).text)}
                     initial={{ opacity: 0, scale: 0.5 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 1.2, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
