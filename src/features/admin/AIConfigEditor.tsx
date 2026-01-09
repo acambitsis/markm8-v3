@@ -515,7 +515,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                     step={1000}
                     value={ms}
                     onChange={e => updateBackoff(index, Number.parseInt(e.target.value) || 5000)}
-                    className="w-20 text-center"
+                    className="w-24 tabular-nums text-center"
                     title={`Retry ${index + 1}: ${(ms / 1000).toFixed(0)}s`}
                   />
                 ))}
