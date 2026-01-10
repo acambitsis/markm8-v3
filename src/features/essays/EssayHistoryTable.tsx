@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
+import { GradeBadge } from '@/components/GradeBadge';
 import { StatusBadge } from '@/components/StatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,7 +19,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { formatPercentageRange } from '@/utils/gradeColors';
 
 import { api } from '../../../convex/_generated/api';
 
@@ -125,7 +125,7 @@ export function EssayHistoryTable() {
                       </TableCell>
                       <TableCell>
                         {essay.grade?.percentageRange
-                          ? formatPercentageRange(essay.grade.percentageRange)
+                          ? <GradeBadge percentageRange={essay.grade.percentageRange} />
                           : '-'}
                       </TableCell>
                       <TableCell>
