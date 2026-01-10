@@ -34,7 +34,7 @@ export type UploadResult = {
 // Constants
 // =============================================================================
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (aligned with Vercel Pro body limit)
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -48,6 +48,17 @@ const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt'];
 // Hook
 // =============================================================================
 
+type ParseResponse = {
+  success: boolean;
+  error?: string;
+  message?: string;
+  markdown?: string;
+  wordCount?: number;
+  preview?: string;
+  fileName?: string;
+  fileType?: 'pdf' | 'docx' | 'txt';
+};
+
 export function useDocumentUpload() {
   const [state, setState] = useState<UploadState>('idle');
   const [error, setError] = useState<UploadError | null>(null);
@@ -55,6 +66,92 @@ export function useDocumentUpload() {
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const parseDocument = useAction(api.documents.parseDocument);
+
+  /**
+   * Process parse response and update state
+   * Returns the upload result on success, null on failure
+   */
+  const handleParseResponse = useCallback(
+    (parseResult: ParseResponse): UploadResult | null => {
+      if (!parseResult.success) {
+        setError({ code: parseResult.error ?? 'UNKNOWN', message: parseResult.message ?? 'Unknown error' });
+        setState('error');
+        return null;
+      }
+
+      const uploadResult: UploadResult = {
+        markdown: parseResult.markdown!,
+        wordCount: parseResult.wordCount!,
+        preview: parseResult.preview!,
+        fileName: parseResult.fileName!,
+        fileType: parseResult.fileType!,
+      };
+
+      setResult(uploadResult);
+      setState('success');
+      return uploadResult;
+    },
+    [],
+  );
+
+  /**
+   * Upload and parse a DOCX file via Next.js API route
+   * (mammoth.js can't run in Convex due to eval restrictions)
+   */
+  const uploadDocxViaApi = useCallback(
+    async (file: File): Promise<UploadResult | null> => {
+      setState('uploading');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('/api/parse-docx', {
+        method: 'POST',
+        body: formData,
+      });
+
+      setState('processing');
+
+      // API always returns JSON with { success, error?, message? }
+      // Let handleParseResponse handle both success and error cases
+      const parseResult = await response.json();
+      return handleParseResponse(parseResult);
+    },
+    [handleParseResponse],
+  );
+
+  /**
+   * Upload and parse a PDF/TXT file via Convex
+   */
+  const uploadViaConvex = useCallback(
+    async (file: File): Promise<UploadResult | null> => {
+      setState('uploading');
+
+      const uploadUrl = await generateUploadUrl();
+
+      const uploadResponse = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': file.type || 'application/octet-stream' },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file');
+      }
+
+      const { storageId } = await uploadResponse.json();
+
+      setState('processing');
+
+      const parseResult = await parseDocument({
+        storageId,
+        fileName: file.name,
+      });
+
+      return handleParseResponse(parseResult);
+    },
+    [generateUploadUrl, parseDocument, handleParseResponse],
+  );
 
   /**
    * Upload and parse a file
@@ -69,7 +166,7 @@ export function useDocumentUpload() {
         if (file.size > MAX_FILE_SIZE) {
           const err: UploadError = {
             code: 'FILE_TOO_LARGE',
-            message: 'This file is over 10 MB. Try a shorter document or paste text directly.',
+            message: 'This file is over 4 MB. Try a shorter document or paste text directly.',
           };
           setError(err);
           setState('error');
@@ -90,56 +187,12 @@ export function useDocumentUpload() {
           return null;
         }
 
-        // Start upload
-        setState('uploading');
-
-        // Get upload URL from Convex
-        const uploadUrl = await generateUploadUrl();
-
-        // Upload file directly to Convex storage
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': file.type || 'application/octet-stream' },
-          body: file,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file');
+        // Route DOCX files to Next.js API (mammoth can't run in Convex)
+        // Route PDF/TXT files to Convex action
+        if (ext === 'docx') {
+          return await uploadDocxViaApi(file);
         }
-
-        const { storageId } = await uploadResponse.json();
-
-        // Start processing
-        setState('processing');
-
-        // Parse the document
-        const parseResult = await parseDocument({
-          storageId,
-          fileName: file.name,
-        });
-
-        if (!parseResult.success) {
-          const err: UploadError = {
-            code: parseResult.error,
-            message: parseResult.message,
-          };
-          setError(err);
-          setState('error');
-          return null;
-        }
-
-        // Success
-        const uploadResult: UploadResult = {
-          markdown: parseResult.markdown,
-          wordCount: parseResult.wordCount,
-          preview: parseResult.preview,
-          fileName: parseResult.fileName,
-          fileType: parseResult.fileType,
-        };
-
-        setResult(uploadResult);
-        setState('success');
-        return uploadResult;
+        return await uploadViaConvex(file);
       } catch {
         // Error is handled and shown to user - no logging needed in client code
         const uploadError: UploadError = {
@@ -151,7 +204,7 @@ export function useDocumentUpload() {
         return null;
       }
     },
-    [generateUploadUrl, parseDocument],
+    [uploadDocxViaApi, uploadViaConvex],
   );
 
   /**
