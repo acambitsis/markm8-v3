@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [react(), tsconfigPaths()],
   test: {
     globals: true, // This is needed by @testing-library to be cleaned up after each test
-    include: ['src/**/*.test.{js,jsx,ts,tsx}'],
+    include: ['src/**/*.test.{js,jsx,ts,tsx}', 'convex/**/*.test.ts'],
     coverage: {
       include: ['src/**/*'],
       exclude: ['src/**/*.stories.{js,jsx,ts,tsx}', '**/*.d.ts'],
