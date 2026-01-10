@@ -12,13 +12,63 @@ import type {
   PercentageRange,
 } from '../../schema';
 import { getGradingModel } from '../ai';
-import { gradeOutputSchema } from '../gradeSchema';
+import { type GradeOutput, gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt } from '../gradingPrompt';
 import {
   clampPercentage,
   detectOutliers,
   retryWithBackoff,
 } from './utils';
+
+/**
+ * Attempts to extract and parse JSON from an AI SDK error response.
+ * Some models (like Grok via OpenRouter) return valid JSON with leading whitespace,
+ * which causes AI_JSONParseError. This helper extracts the raw text, trims it,
+ * and validates against the schema.
+ */
+function tryParseFromError(error: unknown): GradeOutput | null {
+  // Check if this is an AI SDK error with a text property
+  const errorObj = error as { name?: string; text?: string; cause?: { text?: string } };
+
+  // Get the raw text from the error (could be in text or cause.text)
+  const rawText = errorObj.text ?? errorObj.cause?.text;
+  if (!rawText) {
+    return null;
+  }
+
+  // Only attempt recovery for JSON parse errors
+  const errorName = errorObj.name;
+  if (errorName !== 'AI_NoObjectGeneratedError' && errorName !== 'AI_JSONParseError') {
+    return null;
+  }
+
+  try {
+    // Trim whitespace and remove any markdown code fence wrappers
+    let cleanText = rawText.trim();
+
+    // Remove markdown code fences if present (```json ... ```)
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\n?```\s*$/, '');
+    }
+
+    // Parse the cleaned JSON
+    const parsed = JSON.parse(cleanText);
+
+    // Basic structure validation (the schema validation happens in generateObject,
+    // so we do a minimal check here)
+    if (
+      typeof parsed.percentage !== 'number'
+      || !parsed.feedback
+      || !parsed.categoryScores
+    ) {
+      return null;
+    }
+
+    return parsed as GradeOutput;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * Runs AI grading using the configured ensemble approach
@@ -88,7 +138,7 @@ export async function runAIGrading(
           prompt,
           temperature,
           maxOutputTokens: maxTokens,
-          system: 'You are an expert academic essay grader. Provide thorough, constructive feedback.',
+          system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
         });
 
         return {
@@ -106,17 +156,34 @@ export async function runAIGrading(
   // Wait for all calls to complete (or fail)
   const results = await Promise.allSettled(gradingPromises);
 
-  // Extract successful results
+  // Extract successful results (includes recovery from JSON parse errors)
   const successfulResults = results
     .map((r, i) => {
       if (r.status === 'fulfilled') {
         return r.value;
       }
-      // Failed - log detailed error for debugging
+
+      // Failed - attempt recovery from JSON parse errors
       const error = r.reason;
       const errorName = error?.name ?? 'Unknown';
       const errorMessage = error?.message ?? String(error);
-      // Log full error details including any response text
+
+      // Try to recover from JSON parse errors (e.g., leading whitespace)
+      const recoveredResult = tryParseFromError(error);
+      if (recoveredResult) {
+        // Log recovery success (using console.error as it's the only console method allowed)
+        console.error(
+          `[RECOVERED] JSON parse error for model ${runs[i]?.model} (had whitespace/formatting issues)`,
+        );
+        return {
+          model: runs[i]!.model,
+          index: i,
+          result: recoveredResult,
+          usage: undefined, // Usage data not available from error recovery
+        };
+      }
+
+      // Recovery failed - log detailed error for debugging
       console.error(
         `Grading failed for model ${runs[i]?.model}: [${errorName}] ${errorMessage}`,
       );
