@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, FileUp, Loader2, Lock, Upload, X } from 'lucide-react';
+import { AlertCircle, FileUp, Loader2, Lock, Type, Upload, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
@@ -41,12 +41,15 @@ export function EssayContentInput({
 }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [isTypingMode, setIsTypingMode] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const upload = useDocumentUpload();
 
   const isProcessing = upload.state === 'uploading' || upload.state === 'processing';
   const hasError = upload.state === 'error';
   const isUploadMode = uploadedFileName !== null;
+  const showEmptyState = !isUploadMode && !isTypingMode && value.length === 0;
 
   // ---------------------------------------------------------------------------
   // Drag & Drop Handlers
@@ -69,6 +72,19 @@ export function EssayContentInput({
     setIsDragging(false);
   }, []);
 
+  // Process uploaded file and update state
+  const processFile = useCallback(
+    async (file: File) => {
+      const result = await upload.upload(file);
+      if (result) {
+        onChange(result.markdown);
+        setUploadedFileName(result.fileName);
+        upload.reset();
+      }
+    },
+    [upload, onChange],
+  );
+
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
@@ -81,15 +97,10 @@ export function EssayContentInput({
 
       const file = e.dataTransfer.files[0];
       if (file) {
-        const result = await upload.upload(file);
-        if (result) {
-          onChange(result.markdown);
-          setUploadedFileName(result.fileName);
-          upload.reset();
-        }
+        await processFile(file);
       }
     },
-    [disabled, isProcessing, upload, onChange],
+    [disabled, isProcessing, processFile],
   );
 
   // ---------------------------------------------------------------------------
@@ -100,19 +111,14 @@ export function EssayContentInput({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        const result = await upload.upload(file);
-        if (result) {
-          onChange(result.markdown);
-          setUploadedFileName(result.fileName);
-          upload.reset();
-        }
+        await processFile(file);
       }
       // Reset input for re-selection
       if (inputRef.current) {
         inputRef.current.value = '';
       }
     },
-    [upload, onChange],
+    [processFile],
   );
 
   const handleBrowseClick = (e: React.MouseEvent) => {
@@ -211,43 +217,115 @@ export function EssayContentInput({
                 </div>
               </div>
             )
-          : (
-              // Paste mode: Editable textarea
-              <>
-                <Textarea
-                  value={value}
-                  onChange={e => onChange(e.target.value)}
-                  disabled={disabled || isProcessing}
-                  placeholder={placeholder}
+          : showEmptyState
+            ? (
+                // Empty state: Prominent upload zone with paste option
+                <div
                   className={cn(
-                    'min-h-[400px] resize-y text-base leading-relaxed',
-                    // Proportional font for paste mode (not monospace)
-                    'font-sans',
-                    isDragging && 'border-primary bg-primary/5 ring-2 ring-primary/20',
-                    isProcessing && 'opacity-50',
+                    'relative min-h-[400px] rounded-lg border-2 border-dashed',
+                    'flex flex-col items-center justify-center gap-6 p-8',
+                    'transition-all duration-200',
+                    isDragging
+                      ? 'border-primary bg-primary/5'
+                      : 'border-muted-foreground/25 bg-muted/30 hover:border-muted-foreground/40 hover:bg-muted/40',
+                    isProcessing && 'pointer-events-none opacity-50',
                     className,
                   )}
-                />
-
-                {/* Upload button in corner */}
-                <button
-                  type="button"
-                  onClick={handleBrowseClick}
-                  disabled={disabled || isProcessing}
-                  className={cn(
-                    'absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5',
-                    'bg-muted/80 text-xs font-medium text-muted-foreground',
-                    'transition-all hover:bg-muted hover:text-foreground',
-                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                    'disabled:pointer-events-none disabled:opacity-50',
-                  )}
-                  aria-label="Upload document"
                 >
-                  <FileUp className="size-3.5" />
-                  <span className="hidden sm:inline">Upload</span>
-                </button>
-              </>
-            )}
+                  {/* Upload section */}
+                  <div className="flex flex-col items-center gap-4 text-center">
+                    <div className="rounded-full bg-primary/10 p-4">
+                      <FileUp className="size-8 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-foreground">
+                        Drop your essay here
+                      </h3>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        PDF, Word, or text files supported
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="default"
+                      size="lg"
+                      onClick={handleBrowseClick}
+                      disabled={disabled || isProcessing}
+                      className="mt-2 gap-2"
+                    >
+                      <Upload className="size-4" />
+                      Choose File
+                    </Button>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="flex w-full max-w-xs items-center gap-4">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                      or
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+
+                  {/* Paste option */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsTypingMode(true);
+                      // Focus the textarea after it renders
+                      setTimeout(() => textareaRef.current?.focus(), 50);
+                    }}
+                    disabled={disabled || isProcessing}
+                    className={cn(
+                      'group flex items-center gap-3 rounded-lg border border-border/50 bg-background/50 px-6 py-3',
+                      'transition-all hover:border-border hover:bg-background hover:shadow-sm',
+                      'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+                    )}
+                  >
+                    <div className="rounded-md bg-muted p-2 transition-colors group-hover:bg-muted/80">
+                      <Type className="size-4 text-muted-foreground" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-foreground">Paste or type</p>
+                      <p className="text-xs text-muted-foreground">Write directly in the editor</p>
+                    </div>
+                  </button>
+                </div>
+              )
+            : (
+                // Has content or typing mode: Editable textarea with upload option
+                <div className="relative">
+                  <Textarea
+                    ref={textareaRef}
+                    value={value}
+                    onChange={e => onChange(e.target.value)}
+                    disabled={disabled || isProcessing}
+                    placeholder={placeholder}
+                    className={cn(
+                      'min-h-[400px] resize-y text-base leading-relaxed',
+                      'font-sans',
+                      isDragging && 'border-primary bg-primary/5 ring-2 ring-primary/20',
+                      isProcessing && 'opacity-50',
+                      className,
+                    )}
+                  />
+
+                  {/* Floating toolbar */}
+                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      onClick={handleBrowseClick}
+                      disabled={disabled || isProcessing}
+                      className="h-8 gap-1.5 text-xs shadow-sm"
+                    >
+                      <FileUp className="size-3.5" />
+                      Replace with file
+                    </Button>
+                  </div>
+                </div>
+              )}
 
         {/* Drag overlay */}
         <AnimatePresence>

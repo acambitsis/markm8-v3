@@ -12,13 +12,107 @@ import type {
   PercentageRange,
 } from '../../schema';
 import { getGradingModel } from '../ai';
-import { gradeOutputSchema } from '../gradeSchema';
+import { type GradeOutput, gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt } from '../gradingPrompt';
 import {
   clampPercentage,
   detectOutliers,
   retryWithBackoff,
 } from './utils';
+
+/**
+ * Categorizes why a grading run failed for clear logging
+ */
+type FailureReason =
+  | { type: 'recovered'; issue: string }
+  | { type: 'parse_error'; issue: string }
+  | { type: 'truncated' }
+  | { type: 'api_error'; issue: string }
+  | { type: 'unknown'; issue: string };
+
+/**
+ * Attempts to extract and parse JSON from an AI SDK error response.
+ * Handles: leading/trailing whitespace, markdown code fences, minor formatting issues.
+ */
+function tryParseFromError(error: unknown): { result: GradeOutput; issue: string } | null {
+  const errorObj = error as { name?: string; text?: string; cause?: { text?: string } };
+  const rawText = errorObj.text ?? errorObj.cause?.text;
+  if (!rawText) {
+    return null;
+  }
+
+  // Only attempt recovery for JSON parse errors
+  const errorName = errorObj.name;
+  if (errorName !== 'AI_NoObjectGeneratedError' && errorName !== 'AI_JSONParseError') {
+    return null;
+  }
+
+  try {
+    let cleanText = rawText.trim();
+
+    // Track what we're fixing for logging
+    const issues: string[] = [];
+    if (rawText !== cleanText) {
+      issues.push('whitespace');
+    }
+
+    // Remove markdown code fences if present
+    if (cleanText.startsWith('```')) {
+      cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\n?```\s*$/, '');
+      issues.push('markdown');
+    }
+
+    // Parse the cleaned JSON
+    const parsed = JSON.parse(cleanText);
+
+    // Validate required structure
+    if (
+      typeof parsed.percentage !== 'number'
+      || !parsed.feedback
+      || !parsed.categoryScores
+    ) {
+      return null;
+    }
+
+    return {
+      result: parsed as GradeOutput,
+      issue: issues.length > 0 ? issues.join('+') : 'format',
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Determines the failure reason for logging
+ */
+function categorizeFailure(error: unknown): FailureReason {
+  const errorObj = error as {
+    name?: string;
+    message?: string;
+    text?: string;
+    cause?: { text?: string };
+  };
+
+  const errorName = errorObj.name ?? 'Unknown';
+  const rawText = errorObj.text ?? errorObj.cause?.text ?? '';
+
+  // Check for truncated response (incomplete JSON)
+  if (rawText && !rawText.trim().endsWith('}')) {
+    return { type: 'truncated' };
+  }
+
+  // Categorize by error type
+  if (errorName === 'AI_NoObjectGeneratedError' || errorName === 'AI_JSONParseError') {
+    return { type: 'parse_error', issue: errorName };
+  }
+
+  if (errorName.includes('API') || errorName.includes('Network')) {
+    return { type: 'api_error', issue: errorObj.message ?? errorName };
+  }
+
+  return { type: 'unknown', issue: errorObj.message ?? errorName };
+}
 
 /**
  * Runs AI grading using the configured ensemble approach
@@ -88,7 +182,7 @@ export async function runAIGrading(
           prompt,
           temperature,
           maxOutputTokens: maxTokens,
-          system: 'You are an expert academic essay grader. You MUST respond with valid JSON only. Do NOT include any text before or after the JSON. Do NOT wrap the JSON in markdown code blocks (no ```json ... ```). Return raw, parseable JSON data.',
+          system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
         });
 
         return {
@@ -106,19 +200,41 @@ export async function runAIGrading(
   // Wait for all calls to complete (or fail)
   const results = await Promise.allSettled(gradingPromises);
 
-  // Extract successful results
+  // Extract successful results (includes recovery from JSON parse errors)
   const successfulResults = results
     .map((r, i) => {
+      const model = runs[i]?.model ?? 'unknown';
+
       if (r.status === 'fulfilled') {
         return r.value;
       }
-      // Failed - log concise error but continue with other results
+
+      // Failed - attempt recovery from JSON parse errors
       const error = r.reason;
-      const errorName = error?.name ?? 'Unknown';
-      const errorMessage = error?.message ?? String(error);
-      console.error(
-        `Grading failed for model ${runs[i]?.model}: [${errorName}] ${errorMessage.slice(0, 200)}`,
-      );
+      const recovered = tryParseFromError(error);
+
+      if (recovered) {
+        // Successfully recovered - log concisely
+        console.error(`[GRADING] ${model}: recovered (${recovered.issue})`);
+        return {
+          model,
+          index: i,
+          result: recovered.result,
+          usage: undefined,
+        };
+      }
+
+      // Recovery failed - log failure with category
+      const failure = categorizeFailure(error);
+      const failureMsg = failure.type === 'truncated'
+        ? 'response truncated (increase maxTokens?)'
+        : failure.type === 'api_error'
+          ? `API error: ${failure.issue}`
+          : failure.type === 'parse_error'
+            ? `parse failed: ${failure.issue}`
+            : `failed: ${failure.issue}`;
+
+      console.error(`[GRADING] ${model}: ${failureMsg}`);
       return null;
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -171,40 +287,19 @@ export async function runAIGrading(
 
   // Aggregate category scores from all included models (average)
   const categoryScoresArray = includedResults.map(r => r.result.categoryScores);
+  const avgScore = (getter: (cs: (typeof categoryScoresArray)[0]) => number) =>
+    clampPercentage(
+      categoryScoresArray.reduce((sum, cs) => sum + getter(cs), 0) / categoryScoresArray.length,
+    );
+
   const categoryScores: CategoryScores = {
-    contentUnderstanding: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.contentUnderstanding,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    structureOrganization: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.structureOrganization,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    criticalAnalysis: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.criticalAnalysis,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    languageStyle: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.languageStyle,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    citationsReferences:
-      categoryScoresArray.every(cs => cs.citationsReferences !== undefined)
-        ? clampPercentage(
-          categoryScoresArray.reduce(
-            (sum, cs) => sum + (cs.citationsReferences ?? 0),
-            0,
-          ) / categoryScoresArray.length,
-        )
-        : undefined,
+    contentUnderstanding: avgScore(cs => cs.contentUnderstanding),
+    structureOrganization: avgScore(cs => cs.structureOrganization),
+    criticalAnalysis: avgScore(cs => cs.criticalAnalysis),
+    languageStyle: avgScore(cs => cs.languageStyle),
+    citationsReferences: categoryScoresArray.every(cs => cs.citationsReferences !== undefined)
+      ? avgScore(cs => cs.citationsReferences ?? 0)
+      : undefined,
   };
 
   // Build model results with outlier information

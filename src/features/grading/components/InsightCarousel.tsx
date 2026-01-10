@@ -1,97 +1,141 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { BookOpen, FileText, Lightbulb, Quote, Sparkles, Users, Zap } from 'lucide-react';
+import { FileText, ScanSearch } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { getQuotes } from '@/data/waitingTips';
 import type { EssayStats } from '@/utils/essayStats';
+import { cn } from '@/utils/Helpers';
 
-import type { TopicInsights } from '../../../../convex/schema';
+import type { EssayObservations } from '../../../../convex/schema';
 
-type InsightItem = {
-  icon: React.ReactNode;
-  label: string;
-  text: string;
+// Stage labels for pre-LLM scanning effect
+const SCANNING_STAGES = [
+  'Scanning your introduction',
+  'Reading your arguments',
+  'Examining your evidence',
+  'Analyzing your structure',
+  'Understanding your conclusion',
+  'Processing your ideas',
+];
+
+type ObservationItem = {
+  stage: string;
+  quote: string;
+  note?: string; // Only present for LLM observations
+  isLLM: boolean;
 };
 
 type InsightCarouselProps = {
   essayStats?: EssayStats | null;
-  topicInsights?: TopicInsights;
-  hasTopicInsights: boolean;
+  essayContent?: string;
+  observations?: EssayObservations;
+  hasObservations: boolean;
   intervalMs?: number;
 };
 
 /**
- * Unified carousel combining essay stats, tips, and LLM insights
- * Single source of rotating information during grading wait
+ * Extract interesting sentences from essay for pre-LLM display
+ * Shows the user their own content being "scanned"
+ */
+function extractSentences(content: string, count: number = 5): string[] {
+  if (!content || content.trim().length === 0) {
+    return [];
+  }
+
+  // Split into sentences
+  const sentences = content
+    .split(/[.!?]+/)
+    .map(s => s.trim())
+    .filter((s) => {
+      // Filter for meaningful sentences (4-25 words)
+      const wordCount = s.split(/\s+/).length;
+      return wordCount >= 4 && wordCount <= 25;
+    });
+
+  if (sentences.length === 0) {
+    return [];
+  }
+
+  // Pick sentences from different parts of the essay
+  const selected: string[] = [];
+  const step = Math.max(1, Math.floor(sentences.length / count));
+
+  for (let i = 0; i < sentences.length && selected.length < count; i += step) {
+    const sentence = sentences[i];
+    if (sentence) {
+      // Truncate if too long (keep first ~15 words)
+      const words = sentence.split(/\s+/);
+      const truncated = words.length > 15
+        ? `${words.slice(0, 15).join(' ')}...`
+        : sentence;
+      selected.push(truncated);
+    }
+  }
+
+  return selected;
+}
+
+/**
+ * Carousel showing essay understanding during grading wait
+ * Pre-LLM: Shows essay sentences being "scanned"
+ * Post-LLM: Shows observations with stage/quote/note
  */
 export function InsightCarousel({
   essayStats,
-  topicInsights,
-  hasTopicInsights,
-  intervalMs = 6000,
+  essayContent,
+  observations,
+  hasObservations,
+  intervalMs = 5000,
 }: InsightCarouselProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
   // Build unified list of items
-  const items: InsightItem[] = useMemo(() => {
-    const allItems: InsightItem[] = [];
+  const items: ObservationItem[] = useMemo(() => {
+    const allItems: ObservationItem[] = [];
 
-    // Essay stats (single item)
-    if (essayStats) {
-      allItems.push({
-        icon: <FileText className="size-4" />,
-        label: 'Your essay',
-        text: `${essayStats.wordCount.toLocaleString()} words · ${essayStats.sentenceCount} sentences · ${essayStats.readingLevel} level`,
-      });
-    }
-
-    // If we have LLM-generated insights, add those
-    if (hasTopicInsights && topicInsights) {
-      const insightGroups: Array<{
-        items: string[] | undefined;
-        icon: React.ReactNode;
-        label: string;
-      }> = [
-        { items: topicInsights.hooks, icon: <Sparkles className="size-4" />, label: 'About this topic' },
-        { items: topicInsights.thinkers, icon: <Users className="size-4" />, label: 'Key thinker' },
-        { items: topicInsights.concepts, icon: <Zap className="size-4" />, label: 'Key concept' },
-        { items: topicInsights.reads, icon: <BookOpen className="size-4" />, label: 'Worth reading' },
-      ];
-
-      for (const { items: groupItems, icon, label } of insightGroups) {
-        if (groupItems) {
-          allItems.push(...groupItems.map(text => ({ icon, label, text })));
-        }
-      }
-
-      if (topicInsights.funFact) {
+    if (hasObservations && observations?.observations) {
+      // Post-LLM: Show the actual observations
+      for (const obs of observations.observations) {
         allItems.push({
-          icon: <Lightbulb className="size-4" />,
-          label: 'Did you know?',
-          text: topicInsights.funFact,
+          stage: obs.stage,
+          quote: obs.quote,
+          note: obs.note,
+          isLLM: true,
         });
       }
     } else {
-      // Tier 1: Famous quotes while waiting for LLM
-      allItems.push(
-        ...getQuotes().map(quote => ({
-          icon: <Quote className="size-4" />,
-          label: quote.author,
-          text: `"${quote.text}"`,
-        })),
-      );
+      // Pre-LLM: Show essay sentences being "scanned"
+      const sentences = extractSentences(essayContent ?? '', 5);
+
+      if (sentences.length > 0) {
+        sentences.forEach((sentence, index) => {
+          allItems.push({
+            stage: SCANNING_STAGES[index % SCANNING_STAGES.length] ?? 'Analyzing',
+            quote: sentence,
+            isLLM: false,
+          });
+        });
+      } else {
+        // Fallback if no sentences extracted
+        allItems.push({
+          stage: 'Analyzing your essay',
+          quote: essayStats
+            ? `${essayStats.wordCount.toLocaleString()} words · ${essayStats.sentenceCount} sentences`
+            : 'Processing...',
+          isLLM: false,
+        });
+      }
     }
 
     return allItems;
-  }, [essayStats, hasTopicInsights, topicInsights]);
+  }, [essayContent, essayStats, hasObservations, observations]);
 
   // Reset index when content changes significantly
   useEffect(() => {
     setCurrentIndex(0);
-  }, [hasTopicInsights]);
+  }, [hasObservations]);
 
   // Auto-rotate
   const nextItem = useCallback(() => {
@@ -123,29 +167,37 @@ export function InsightCarousel({
       onFocus={() => setIsPaused(true)}
       onBlur={() => setIsPaused(false)}
     >
-      {/* Label with icon */}
+      {/* Stage label with icon */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={`label-${currentIndex}`}
-          className="mb-2 flex items-center gap-2"
+          key={`stage-${currentIndex}`}
+          className="mb-3 flex items-center gap-2"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
         >
-          <span className="text-primary">{currentItem.icon}</span>
+          <span className="text-primary">
+            {currentItem.isLLM
+              ? (
+                  <FileText className="size-4" />
+                )
+              : (
+                  <ScanSearch className="size-4" />
+                )}
+          </span>
           <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            {currentItem.label}
+            {currentItem.stage}
           </span>
         </motion.div>
       </AnimatePresence>
 
-      {/* Main text */}
-      <div className="relative min-h-[48px]">
+      {/* Quote from essay */}
+      <div className="relative min-h-[52px]">
         <AnimatePresence mode="wait">
           <motion.p
-            key={currentIndex}
-            className="text-lg font-medium leading-snug text-foreground"
+            key={`quote-${currentIndex}`}
+            className="text-base italic leading-relaxed text-foreground/90"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
@@ -154,10 +206,28 @@ export function InsightCarousel({
               ease: [0.25, 0.1, 0.25, 1],
             }}
           >
-            {currentItem.text}
+            &ldquo;
+            {currentItem.quote}
+            &rdquo;
           </motion.p>
         </AnimatePresence>
       </div>
+
+      {/* Note (only for LLM observations) */}
+      {currentItem.isLLM && currentItem.note && (
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={`note-${currentIndex}`}
+            className="mt-2 text-sm text-muted-foreground"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
+          >
+            {currentItem.note}
+          </motion.p>
+        </AnimatePresence>
+      )}
 
       {/* Progress dots */}
       <div className="mt-4 flex items-center justify-between">
@@ -167,16 +237,17 @@ export function InsightCarousel({
               type="button"
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`h-1 rounded-full transition-all duration-200 ${
+              className={cn(
+                'h-1 rounded-full transition-all duration-200',
                 index === currentIndex
                   ? 'w-5 bg-primary/50'
-                  : 'w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/30'
-              }`}
+                  : 'w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/30',
+              )}
               aria-label={`Go to item ${index + 1}`}
             />
           ))}
         </div>
-        {hasTopicInsights && (
+        {hasObservations && (
           <span className="text-[10px] text-muted-foreground/40">AI</span>
         )}
       </div>
