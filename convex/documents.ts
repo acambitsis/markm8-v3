@@ -1,6 +1,7 @@
 // Document parsing for essay uploads
-// Supports PDF, DOCX, and TXT files with Convex file storage
-// Uses Gemini Flash for document parsing (handles PDF and DOCX natively)
+// Supports PDF and TXT files with Convex file storage
+// DOCX files are handled by Next.js API route (mammoth can't run in Convex)
+// Uses Gemini Flash for PDF parsing
 
 import { generateText } from 'ai';
 import { v } from 'convex/values';
@@ -342,42 +343,12 @@ export const cleanupOldRequests = internalMutation({
 // =============================================================================
 
 /**
- * Parse DOCX using Gemini Flash native document support
- * Gemini can process DOCX files directly via multimodal input
+ * DOCX parsing is not supported in Convex actions (mammoth uses eval).
+ * DOCX files should be routed to the Next.js API route /api/parse-docx instead.
+ * This function throws to prevent accidental usage.
  */
-async function parseDocx(data: Uint8Array): Promise<string> {
-  const provider = getOpenRouterProvider();
-  const model = provider('google/gemini-3-flash-preview');
-
-  const response = await generateText({
-    model,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: `Extract all text content from this Word document and convert it to clean markdown format.
-
-Rules:
-- Preserve the document structure (headings, paragraphs, lists)
-- Convert tables to markdown table format
-- Remove any headers, footers, or page numbers
-- Do not add any commentary or analysis
-- Output ONLY the extracted markdown content`,
-          },
-          {
-            type: 'file',
-            data,
-            mediaType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          },
-        ],
-      },
-    ],
-    temperature: 0.1,
-  });
-
-  return response.text;
+async function parseDocx(_data: Uint8Array): Promise<string> {
+  throw new Error('DOCX parsing must be handled by Next.js API route, not Convex action');
 }
 
 /**
