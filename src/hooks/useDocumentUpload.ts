@@ -110,6 +110,10 @@ export function useDocumentUpload() {
         body: formData,
       });
 
+      if (!response.ok) {
+        throw new Error('Failed to parse document');
+      }
+
       setState('processing');
 
       const parseResult = await response.json();

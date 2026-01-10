@@ -76,6 +76,11 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     // Convert HTML to markdown using Gemini Flash
+    if (!Env.OPENROUTER_API_KEY) {
+      logger.error('OPENROUTER_API_KEY not configured');
+      return errorResponse('CONFIG_ERROR', 'Service temporarily unavailable.', 503);
+    }
+
     const openrouter = createOpenRouter({ apiKey: Env.OPENROUTER_API_KEY });
     const model = openrouter('google/gemini-3-flash-preview');
 
