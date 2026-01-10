@@ -1,5 +1,6 @@
 ---
 name: pr-check-security
+model: opus
 description: Validates authentication, authorization, user-scoping, input validation, and secrets handling in PR changes
 tools: Read, Grep, Glob, Bash
 ---

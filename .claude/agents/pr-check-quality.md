@@ -1,5 +1,6 @@
 ---
 name: pr-check-quality
+model: opus
 description: Validates React, Next.js, TypeScript, Tailwind, Convex, and code quality patterns in PR changes
 tools: Read, Grep, Glob, Bash
 ---

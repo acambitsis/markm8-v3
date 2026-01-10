@@ -1,5 +1,6 @@
 ---
 name: pr-check-structure
+model: opus
 description: Validates file structure, organization, naming conventions, import patterns, and orphaned/redundant files in PR changes
 tools: Read, Grep, Glob, Bash
 ---

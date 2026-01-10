@@ -1,5 +1,6 @@
 ---
 name: pr-check-data
+model: opus
 description: Validates Convex schema, queries, mutations, indexes, and data handling patterns in PR changes
 tools: Read, Grep, Glob, Bash
 ---
