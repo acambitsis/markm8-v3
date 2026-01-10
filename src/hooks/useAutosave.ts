@@ -50,6 +50,16 @@ export function useAutosave<T>({
     save();
   }, [save]);
 
+  // Cancel pending save (for clear/reset operations)
+  const cancel = useCallback(() => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    // Update ref so next data change is seen as "no change" initially
+    previousDataRef.current = '';
+  }, []);
+
   // Debounced save
   useEffect(() => {
     // Skip if data hasn't changed
@@ -98,5 +108,6 @@ export function useAutosave<T>({
   return {
     status,
     saveNow,
+    cancel,
   };
 }
