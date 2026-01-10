@@ -1,7 +1,6 @@
 // Document parsing for essay uploads
 // Supports PDF and TXT files with Convex file storage
 // DOCX files are handled by Next.js API route (mammoth can't run in Convex)
-// Uses Gemini Flash for PDF parsing
 
 import { generateText } from 'ai';
 import { v } from 'convex/values';
@@ -18,21 +17,15 @@ import { requireAuth } from './lib/auth';
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10; // 10 documents per minute
+const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46]; // %PDF
 
-// Supported MIME types
+// Supported MIME types (DOCX handled by Next.js API route)
 const SUPPORTED_MIME_TYPES = {
   'application/pdf': 'pdf',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
   'text/plain': 'txt',
 } as const;
 
 type FileType = (typeof SUPPORTED_MIME_TYPES)[keyof typeof SUPPORTED_MIME_TYPES];
-
-// Magic bytes for file validation
-const MAGIC_BYTES: Record<string, number[]> = {
-  pdf: [0x25, 0x50, 0x44, 0x46], // %PDF
-  docx: [0x50, 0x4B, 0x03, 0x04], // PK (ZIP signature)
-};
 
 // =============================================================================
 // Error types
@@ -155,8 +148,6 @@ export const parseDocument = action({
       const ext = fileName.split('.').pop()?.toLowerCase();
       if (ext === 'pdf') {
         fileType = 'pdf';
-      } else if (ext === 'docx') {
-        fileType = 'docx';
       } else if (ext === 'txt') {
         fileType = 'txt';
       }
@@ -167,7 +158,7 @@ export const parseDocument = action({
       return {
         success: false,
         error: 'UNSUPPORTED_FORMAT',
-        message: 'We support Word (.docx), PDF, and text files.',
+        message: 'PDF and text files only. For Word documents, please use DOCX format.',
       };
     }
 
@@ -175,20 +166,17 @@ export const parseDocument = action({
     const arrayBuffer = await blob.arrayBuffer();
     const uint8Array = new Uint8Array(arrayBuffer);
 
-    // 7. Validate magic bytes for binary formats
-    if (fileType === 'pdf' || fileType === 'docx') {
-      const magicBytes = MAGIC_BYTES[fileType];
-      if (magicBytes) {
-        const fileHeader = Array.from(uint8Array.slice(0, magicBytes.length));
-        const isValid = magicBytes.every((b, i) => b === fileHeader[i]);
-        if (!isValid) {
-          await ctx.storage.delete(storageId);
-          return {
-            success: false,
-            error: 'INVALID_FILE',
-            message: 'File appears to be corrupted or invalid.',
-          };
-        }
+    // 7. Validate magic bytes for PDF
+    if (fileType === 'pdf') {
+      const fileHeader = Array.from(uint8Array.slice(0, PDF_MAGIC_BYTES.length));
+      const isValid = PDF_MAGIC_BYTES.every((b, i) => b === fileHeader[i]);
+      if (!isValid) {
+        await ctx.storage.delete(storageId);
+        return {
+          success: false,
+          error: 'INVALID_FILE',
+          message: 'File appears to be corrupted or invalid.',
+        };
       }
     }
 
@@ -199,22 +187,10 @@ export const parseDocument = action({
     try {
       let markdown: string;
 
-      switch (fileType) {
-        case 'txt':
-          // Use blob.text() for TXT files (avoids Buffer dependency)
-          markdown = await blob.text();
-          break;
-
-        case 'docx':
-          markdown = await parseDocx(uint8Array);
-          break;
-
-        case 'pdf':
-          markdown = await parsePdf(uint8Array);
-          break;
-
-        default:
-          throw new Error('Unexpected file type');
+      if (fileType === 'txt') {
+        markdown = await blob.text();
+      } else {
+        markdown = await parsePdf(uint8Array);
       }
 
       // 10. Clean up the uploaded file
@@ -343,17 +319,7 @@ export const cleanupOldRequests = internalMutation({
 // =============================================================================
 
 /**
- * DOCX parsing is not supported in Convex actions (mammoth uses eval).
- * DOCX files should be routed to the Next.js API route /api/parse-docx instead.
- * This function throws to prevent accidental usage.
- */
-async function parseDocx(_data: Uint8Array): Promise<string> {
-  throw new Error('DOCX parsing must be handled by Next.js API route, not Convex action');
-}
-
-/**
  * Parse PDF using OpenRouter with Gemini native PDF support
- * Uses AI SDK's file content part for multimodal input
  */
 async function parsePdf(data: Uint8Array): Promise<string> {
   const provider = getOpenRouterProvider();

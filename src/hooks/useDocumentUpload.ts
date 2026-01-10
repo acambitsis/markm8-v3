@@ -48,6 +48,17 @@ const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt'];
 // Hook
 // =============================================================================
 
+type ParseResponse = {
+  success: boolean;
+  error?: string;
+  message?: string;
+  markdown?: string;
+  wordCount?: number;
+  preview?: string;
+  fileName?: string;
+  fileType?: 'pdf' | 'docx' | 'txt';
+};
+
 export function useDocumentUpload() {
   const [state, setState] = useState<UploadState>('idle');
   const [error, setError] = useState<UploadError | null>(null);
@@ -55,6 +66,33 @@ export function useDocumentUpload() {
 
   const generateUploadUrl = useMutation(api.documents.generateUploadUrl);
   const parseDocument = useAction(api.documents.parseDocument);
+
+  /**
+   * Process parse response and update state
+   * Returns the upload result on success, null on failure
+   */
+  const handleParseResponse = useCallback(
+    (parseResult: ParseResponse): UploadResult | null => {
+      if (!parseResult.success) {
+        setError({ code: parseResult.error ?? 'UNKNOWN', message: parseResult.message ?? 'Unknown error' });
+        setState('error');
+        return null;
+      }
+
+      const uploadResult: UploadResult = {
+        markdown: parseResult.markdown!,
+        wordCount: parseResult.wordCount!,
+        preview: parseResult.preview!,
+        fileName: parseResult.fileName!,
+        fileType: parseResult.fileType!,
+      };
+
+      setResult(uploadResult);
+      setState('success');
+      return uploadResult;
+    },
+    [],
+  );
 
   /**
    * Upload and parse a DOCX file via Next.js API route
@@ -75,30 +113,9 @@ export function useDocumentUpload() {
       setState('processing');
 
       const parseResult = await response.json();
-
-      if (!parseResult.success) {
-        const err: UploadError = {
-          code: parseResult.error,
-          message: parseResult.message,
-        };
-        setError(err);
-        setState('error');
-        return null;
-      }
-
-      const uploadResult: UploadResult = {
-        markdown: parseResult.markdown,
-        wordCount: parseResult.wordCount,
-        preview: parseResult.preview,
-        fileName: parseResult.fileName,
-        fileType: parseResult.fileType,
-      };
-
-      setResult(uploadResult);
-      setState('success');
-      return uploadResult;
+      return handleParseResponse(parseResult);
     },
-    [],
+    [handleParseResponse],
   );
 
   /**
@@ -108,10 +125,8 @@ export function useDocumentUpload() {
     async (file: File): Promise<UploadResult | null> => {
       setState('uploading');
 
-      // Get upload URL from Convex
       const uploadUrl = await generateUploadUrl();
 
-      // Upload file directly to Convex storage
       const uploadResponse = await fetch(uploadUrl, {
         method: 'POST',
         headers: { 'Content-Type': file.type || 'application/octet-stream' },
@@ -124,38 +139,16 @@ export function useDocumentUpload() {
 
       const { storageId } = await uploadResponse.json();
 
-      // Start processing
       setState('processing');
 
-      // Parse the document
       const parseResult = await parseDocument({
         storageId,
         fileName: file.name,
       });
 
-      if (!parseResult.success) {
-        const err: UploadError = {
-          code: parseResult.error,
-          message: parseResult.message,
-        };
-        setError(err);
-        setState('error');
-        return null;
-      }
-
-      const uploadResult: UploadResult = {
-        markdown: parseResult.markdown,
-        wordCount: parseResult.wordCount,
-        preview: parseResult.preview,
-        fileName: parseResult.fileName,
-        fileType: parseResult.fileType,
-      };
-
-      setResult(uploadResult);
-      setState('success');
-      return uploadResult;
+      return handleParseResponse(parseResult);
     },
-    [generateUploadUrl, parseDocument],
+    [generateUploadUrl, parseDocument, handleParseResponse],
   );
 
   /**

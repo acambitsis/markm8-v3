@@ -13,86 +13,70 @@ import { logger } from '@/libs/Logger';
  * POST /api/parse-docx
  *
  * Parses a DOCX file and returns markdown content.
- * Uses mammoth.js for HTML extraction, then Gemini Flash for HTML→Markdown conversion.
- *
- * Request: FormData with 'file' field containing the DOCX file
- * Response: { success: true, markdown, wordCount, preview } on success
- *           { success: false, error, message } on failure
+ * Uses mammoth.js for HTML extraction, then Gemini Flash for HTML-to-Markdown conversion.
  */
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const DOCX_MAGIC_BYTES = [0x50, 0x4B, 0x03, 0x04]; // PK (ZIP signature)
 
-export async function POST(request: Request) {
+function errorResponse(error: string, message: string, status: number): NextResponse {
+  return NextResponse.json({ success: false, error, message }, { status });
+}
+
+function isValidDocxFile(buffer: Buffer): boolean {
+  const fileHeader = Array.from(new Uint8Array(buffer.slice(0, 4)));
+  return DOCX_MAGIC_BYTES.every((b, i) => b === fileHeader[i]);
+}
+
+function calculateWordStats(text: string): { wordCount: number; preview: string } {
+  const words = text.split(/\s+/).filter(Boolean);
+  const preview = words.slice(0, 100).join(' ') + (words.length > 100 ? '...' : '');
+  return { wordCount: words.length, preview };
+}
+
+export async function POST(request: Request): Promise<NextResponse> {
   try {
-    // 1. Authenticate user via Clerk
+    // Authenticate user via Clerk
     const { userId: clerkUserId } = await auth();
-
     if (!clerkUserId) {
-      return NextResponse.json(
-        { success: false, error: 'UNAUTHORIZED', message: 'Please sign in to upload documents.' },
-        { status: 401 },
-      );
+      return errorResponse('UNAUTHORIZED', 'Please sign in to upload documents.', 401);
     }
 
-    // 2. Parse form data
+    // Parse and validate file
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
 
     if (!file) {
-      return NextResponse.json(
-        { success: false, error: 'NO_FILE', message: 'No file provided.' },
-        { status: 400 },
-      );
+      return errorResponse('NO_FILE', 'No file provided.', 400);
     }
 
-    // 3. Validate file size
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { success: false, error: 'FILE_TOO_LARGE', message: 'This file is over 10 MB. Try a shorter document or paste text directly.' },
-        { status: 400 },
-      );
+      return errorResponse('FILE_TOO_LARGE', 'This file is over 10 MB. Try a shorter document or paste text directly.', 400);
     }
 
-    // 4. Validate file type
     const ext = file.name.split('.').pop()?.toLowerCase();
     if (ext !== 'docx') {
-      return NextResponse.json(
-        { success: false, error: 'INVALID_FORMAT', message: 'This endpoint only accepts DOCX files.' },
-        { status: 400 },
-      );
+      return errorResponse('INVALID_FORMAT', 'This endpoint only accepts DOCX files.', 400);
     }
 
-    // 5. Read file as ArrayBuffer
+    // Read and validate file content
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 6. Validate magic bytes (PK signature for ZIP/DOCX)
-    const magicBytes = [0x50, 0x4B, 0x03, 0x04];
-    const fileHeader = Array.from(new Uint8Array(buffer.slice(0, 4)));
-    const isValidDocx = magicBytes.every((b, i) => b === fileHeader[i]);
-
-    if (!isValidDocx) {
-      return NextResponse.json(
-        { success: false, error: 'INVALID_FILE', message: 'File appears to be corrupted or invalid.' },
-        { status: 400 },
-      );
+    if (!isValidDocxFile(buffer)) {
+      return errorResponse('INVALID_FILE', 'File appears to be corrupted or invalid.', 400);
     }
 
-    // 7. Extract HTML using mammoth
+    // Extract HTML using mammoth
     const mammothResult = await mammoth.convertToHtml({ buffer });
     const html = mammothResult.value;
 
     if (!html || html.trim().length < 10) {
-      return NextResponse.json(
-        { success: false, error: 'NO_TEXT_EXTRACTED', message: 'This document appears to be empty. Please paste your text.' },
-        { status: 400 },
-      );
+      return errorResponse('NO_TEXT_EXTRACTED', 'This document appears to be empty. Please paste your text.', 400);
     }
 
-    // 8. Convert HTML to markdown using Gemini Flash
-    const openrouter = createOpenRouter({
-      apiKey: Env.OPENROUTER_API_KEY,
-    });
+    // Convert HTML to markdown using Gemini Flash
+    const openrouter = createOpenRouter({ apiKey: Env.OPENROUTER_API_KEY });
     const model = openrouter('google/gemini-3-flash-preview');
 
     const response = await generateText({
@@ -119,16 +103,10 @@ ${html}`,
     const markdown = response.text.trim();
 
     if (!markdown) {
-      return NextResponse.json(
-        { success: false, error: 'CONVERSION_FAILED', message: 'Failed to convert document. Please try again or paste text directly.' },
-        { status: 500 },
-      );
+      return errorResponse('CONVERSION_FAILED', 'Failed to convert document. Please try again or paste text directly.', 500);
     }
 
-    // 9. Calculate word count and preview
-    const words = markdown.split(/\s+/).filter(Boolean);
-    const wordCount = words.length;
-    const preview = words.slice(0, 100).join(' ') + (words.length > 100 ? '...' : '');
+    const { wordCount, preview } = calculateWordStats(markdown);
 
     return NextResponse.json({
       success: true,
@@ -140,9 +118,6 @@ ${html}`,
     });
   } catch (error) {
     logger.error(error, 'DOCX parsing error');
-    return NextResponse.json(
-      { success: false, error: 'PARSE_FAILED', message: 'We couldn\'t read this file. Try uploading again or paste your text directly.' },
-      { status: 500 },
-    );
+    return errorResponse('PARSE_FAILED', 'We couldn\'t read this file. Try uploading again or paste your text directly.', 500);
   }
 }
