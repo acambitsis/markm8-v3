@@ -110,12 +110,10 @@ export function useDocumentUpload() {
         body: formData,
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to parse document');
-      }
-
       setState('processing');
 
+      // API always returns JSON with { success, error?, message? }
+      // Let handleParseResponse handle both success and error cases
       const parseResult = await response.json();
       return handleParseResponse(parseResult);
     },
