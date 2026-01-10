@@ -21,16 +21,21 @@ import {
 } from './utils';
 
 /**
- * Attempts to extract and parse JSON from an AI SDK error response.
- * Some models (like Grok via OpenRouter) return valid JSON with leading whitespace,
- * which causes AI_JSONParseError. This helper extracts the raw text, trims it,
- * and validates against the schema.
+ * Categorizes why a grading run failed for clear logging
  */
-function tryParseFromError(error: unknown): GradeOutput | null {
-  // Check if this is an AI SDK error with a text property
-  const errorObj = error as { name?: string; text?: string; cause?: { text?: string } };
+type FailureReason =
+  | { type: 'recovered'; issue: string }
+  | { type: 'parse_error'; issue: string }
+  | { type: 'truncated' }
+  | { type: 'api_error'; issue: string }
+  | { type: 'unknown'; issue: string };
 
-  // Get the raw text from the error (could be in text or cause.text)
+/**
+ * Attempts to extract and parse JSON from an AI SDK error response.
+ * Handles: leading/trailing whitespace, markdown code fences, minor formatting issues.
+ */
+function tryParseFromError(error: unknown): { result: GradeOutput; issue: string } | null {
+  const errorObj = error as { name?: string; text?: string; cause?: { text?: string } };
   const rawText = errorObj.text ?? errorObj.cause?.text;
   if (!rawText) {
     return null;
@@ -43,19 +48,24 @@ function tryParseFromError(error: unknown): GradeOutput | null {
   }
 
   try {
-    // Trim whitespace and remove any markdown code fence wrappers
     let cleanText = rawText.trim();
 
-    // Remove markdown code fences if present (```json ... ```)
+    // Track what we're fixing for logging
+    const issues: string[] = [];
+    if (rawText !== cleanText) {
+      issues.push('whitespace');
+    }
+
+    // Remove markdown code fences if present
     if (cleanText.startsWith('```')) {
       cleanText = cleanText.replace(/^```(?:json)?\s*/, '').replace(/\n?```\s*$/, '');
+      issues.push('markdown');
     }
 
     // Parse the cleaned JSON
     const parsed = JSON.parse(cleanText);
 
-    // Basic structure validation (the schema validation happens in generateObject,
-    // so we do a minimal check here)
+    // Validate required structure
     if (
       typeof parsed.percentage !== 'number'
       || !parsed.feedback
@@ -64,10 +74,44 @@ function tryParseFromError(error: unknown): GradeOutput | null {
       return null;
     }
 
-    return parsed as GradeOutput;
+    return {
+      result: parsed as GradeOutput,
+      issue: issues.length > 0 ? issues.join('+') : 'format',
+    };
   } catch {
     return null;
   }
+}
+
+/**
+ * Determines the failure reason for logging
+ */
+function categorizeFailure(error: unknown): FailureReason {
+  const errorObj = error as {
+    name?: string;
+    message?: string;
+    text?: string;
+    cause?: { text?: string };
+  };
+
+  const errorName = errorObj.name ?? 'Unknown';
+  const rawText = errorObj.text ?? errorObj.cause?.text ?? '';
+
+  // Check for truncated response (incomplete JSON)
+  if (rawText && !rawText.trim().endsWith('}')) {
+    return { type: 'truncated' };
+  }
+
+  // Categorize by error type
+  if (errorName === 'AI_NoObjectGeneratedError' || errorName === 'AI_JSONParseError') {
+    return { type: 'parse_error', issue: errorName };
+  }
+
+  if (errorName.includes('API') || errorName.includes('Network')) {
+    return { type: 'api_error', issue: errorObj.message ?? errorName };
+  }
+
+  return { type: 'unknown', issue: errorObj.message ?? errorName };
 }
 
 /**
@@ -159,44 +203,38 @@ export async function runAIGrading(
   // Extract successful results (includes recovery from JSON parse errors)
   const successfulResults = results
     .map((r, i) => {
+      const model = runs[i]?.model ?? 'unknown';
+
       if (r.status === 'fulfilled') {
         return r.value;
       }
 
       // Failed - attempt recovery from JSON parse errors
       const error = r.reason;
-      const errorName = error?.name ?? 'Unknown';
-      const errorMessage = error?.message ?? String(error);
+      const recovered = tryParseFromError(error);
 
-      // Try to recover from JSON parse errors (e.g., leading whitespace)
-      const recoveredResult = tryParseFromError(error);
-      if (recoveredResult) {
-        // Log recovery success (using console.error as it's the only console method allowed)
-        console.error(
-          `[RECOVERED] JSON parse error for model ${runs[i]?.model} (had whitespace/formatting issues)`,
-        );
+      if (recovered) {
+        // Successfully recovered - log concisely
+        console.error(`[GRADING] ${model}: recovered (${recovered.issue})`);
         return {
-          model: runs[i]!.model,
+          model,
           index: i,
-          result: recoveredResult,
-          usage: undefined, // Usage data not available from error recovery
+          result: recovered.result,
+          usage: undefined,
         };
       }
 
-      // Recovery failed - log detailed error for debugging
-      console.error(
-        `Grading failed for model ${runs[i]?.model}: [${errorName}] ${errorMessage}`,
-      );
-      // Log additional error properties if available (AI SDK errors often have 'text' or 'response')
-      if (error?.text) {
-        console.error(`Response text: ${String(error.text).slice(0, 500)}`);
-      }
-      if (error?.response) {
-        console.error(`Response: ${JSON.stringify(error.response).slice(0, 500)}`);
-      }
-      if (error?.cause) {
-        console.error(`Cause: ${JSON.stringify(error.cause).slice(0, 500)}`);
-      }
+      // Recovery failed - log failure with category
+      const failure = categorizeFailure(error);
+      const failureMsg = failure.type === 'truncated'
+        ? 'response truncated (increase maxTokens?)'
+        : failure.type === 'api_error'
+          ? `API error: ${failure.issue}`
+          : failure.type === 'parse_error'
+            ? `parse failed: ${failure.issue}`
+            : `failed: ${failure.issue}`;
+
+      console.error(`[GRADING] ${model}: ${failureMsg}`);
       return null;
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
