@@ -109,14 +109,14 @@ export const modelResultValidator = v.object({
 // Non-evaluative content returned by action (not persisted)
 // =============================================================================
 
-export const topicInsightsValidator = v.object({
-  // All fields should be SHORT phrases (max 12 words each)
-  // Designed for casual scanning, not reading
-  hooks: v.array(v.string()), // 3 punchy one-liners about the topic (max 12 words each)
-  thinkers: v.array(v.string()), // 3 names with tiny descriptor "Freud — psychoanalysis pioneer"
-  concepts: v.array(v.string()), // 3 key terms/ideas (5-8 words each)
-  funFact: v.string(), // One surprising fact (max 15 words)
-  reads: v.array(v.string()), // 2 book titles only (no descriptions)
+export const essayObservationValidator = v.object({
+  stage: v.string(), // Process label: "Identifying your thesis", "Analyzing your structure"
+  quote: v.string(), // Exact excerpt from their essay (10-15 words)
+  note: v.string(), // What we observe (non-evaluative, 8-12 words)
+});
+
+export const essayObservationsValidator = v.object({
+  observations: v.array(essayObservationValidator), // 5-6 observations showing essay understanding
 });
 
 export const categoryScoresValidator = v.object({
@@ -363,5 +363,6 @@ export type GradingConfig = Infer<typeof gradingConfigValidator>;
 export type TitleGenerationConfig = Infer<typeof titleGenerationConfigValidator>;
 export type AiConfig = Infer<typeof aiConfigValidator>;
 
-// Topic Insights Types
-export type TopicInsights = Infer<typeof topicInsightsValidator>;
+// Essay Observation Types (for waiting experience)
+export type EssayObservation = Infer<typeof essayObservationValidator>;
+export type EssayObservations = Infer<typeof essayObservationsValidator>;

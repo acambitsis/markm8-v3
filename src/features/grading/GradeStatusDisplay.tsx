@@ -15,7 +15,7 @@ import { calculateEssayStats } from '@/utils/essayStats';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
-import type { TopicInsights } from '../../../convex/schema';
+import type { EssayObservations } from '../../../convex/schema';
 import { InsightCarousel, MatrixRain } from './components';
 import { GradeResults } from './GradeResults';
 
@@ -196,39 +196,39 @@ function ProcessingExperience({
   essayContent,
   essaySubject,
 }: ProcessingExperienceProps) {
-  // Topic insights state (fetched via action, not persisted)
-  const [topicInsights, setTopicInsights] = useState<TopicInsights | null>(null);
-  const [insightsLoading, setInsightsLoading] = useState(false);
-  const generateTopicInsights = useAction(api.topicInsights.generate);
+  // Essay observations state (fetched via action, not persisted)
+  const [observations, setObservations] = useState<EssayObservations | null>(null);
+  const [observationsLoading, setObservationsLoading] = useState(false);
+  const generateObservations = useAction(api.topicInsights.generate);
 
-  // Fetch topic insights on mount
+  // Fetch essay observations on mount
   useEffect(() => {
     let cancelled = false;
 
-    async function fetchInsights() {
-      setInsightsLoading(true);
+    async function fetchObservations() {
+      setObservationsLoading(true);
       try {
-        const insights = await generateTopicInsights({ gradeId });
+        const result = await generateObservations({ gradeId });
         if (!cancelled) {
-          setTopicInsights(insights);
+          setObservations(result);
         }
       } catch {
-        // Silent failure - topic insights are non-critical
+        // Silent failure - observations are non-critical
       } finally {
         if (!cancelled) {
-          setInsightsLoading(false);
+          setObservationsLoading(false);
         }
       }
     }
 
-    fetchInsights();
+    fetchObservations();
 
     return () => {
       cancelled = true;
     };
-  }, [gradeId, generateTopicInsights]);
+  }, [gradeId, generateObservations]);
 
-  // Calculate essay stats client-side
+  // Calculate essay stats client-side (for fallback display)
   const essayStats = useMemo(() => {
     if (!essayContent) {
       return null;
@@ -237,7 +237,7 @@ function ProcessingExperience({
   }, [essayContent]);
 
   const subject = essaySubject ?? 'General';
-  const hasTopicInsights = topicInsights !== null && !insightsLoading;
+  const hasObservations = observations !== null && !observationsLoading;
 
   return (
     <PageTransition>
@@ -281,11 +281,12 @@ function ProcessingExperience({
               <MatrixRain height={50} />
             </motion.div>
 
-            {/* Unified carousel (stats + tips/insights) */}
+            {/* Carousel showing essay understanding */}
             <InsightCarousel
               essayStats={essayStats}
-              topicInsights={topicInsights ?? undefined}
-              hasTopicInsights={hasTopicInsights}
+              essayContent={essayContent}
+              observations={observations ?? undefined}
+              hasObservations={hasObservations}
             />
           </div>
         </CardContent>
