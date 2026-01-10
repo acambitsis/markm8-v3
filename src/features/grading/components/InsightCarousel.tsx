@@ -44,7 +44,7 @@ export function InsightCarousel({
       allItems.push({
         icon: <FileText className="size-4" />,
         label: 'Your essay',
-        text: `${essayStats.wordCount.toLocaleString()} words · ${essayStats.sentenceCount} sentences · ${essayStats.readingLevel} level`,
+        text: `${essayStats.wordCount.toLocaleString()} words · ${essayStats.sentenceCount} sentences`,
       });
     }
 
