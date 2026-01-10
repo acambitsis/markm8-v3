@@ -1,4 +1,4 @@
-'use client';
+import { cn } from '@/utils/Helpers';
 
 import type { PercentageRange } from '../../convex/schema';
 
@@ -28,7 +28,7 @@ function getGradeHex(percentage: number): string {
  * Feathered grade badge - edges fade out to communicate uncertainty
  * The visual treatment suggests "this is a range, not a precise value"
  */
-export function GradeBadge({ percentageRange, className = '' }: Props) {
+export function GradeBadge({ percentageRange, className }: Props) {
   const { lower, upper } = percentageRange;
   const mid = (lower + upper) / 2;
   const hex = getGradeHex(mid);
@@ -39,7 +39,10 @@ export function GradeBadge({ percentageRange, className = '' }: Props) {
 
   return (
     <span
-      className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-white ${className}`}
+      className={cn(
+        'inline-flex items-center rounded-full px-3 py-1 text-sm font-semibold text-white',
+        className,
+      )}
       style={{
         background: `linear-gradient(90deg,
           transparent 0%,

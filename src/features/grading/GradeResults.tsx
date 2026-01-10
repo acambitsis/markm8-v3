@@ -11,11 +11,11 @@ import {
   Target,
 } from 'lucide-react';
 
-import { ScoreRangeBar } from '@/components/ScoreRangeBar';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
+import { ScoreRangeBar } from './components/ScoreRangeBar';
 
 type Props = {
   percentageRange: PercentageRange;

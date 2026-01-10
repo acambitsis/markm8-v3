@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/collapsible';
 import { cn } from '@/utils/Helpers';
 
-import type { PercentageRange } from '../../convex/schema';
+import type { PercentageRange } from '../../../../convex/schema';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -149,8 +149,8 @@ function AnimatedRangeDisplay({
   };
 
   // Show range or single value based on whether they've diverged
-  const hasdiverged = Math.abs(displayedLower - displayedUpper) > 0.1;
-  const showRange = isRange && hasdiverged;
+  const hasDiverged = Math.abs(displayedLower - displayedUpper) > 0.1;
+  const showRange = isRange && hasDiverged;
 
   return (
     <span className={className}>
