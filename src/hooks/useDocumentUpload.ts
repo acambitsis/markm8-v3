@@ -193,9 +193,8 @@ export function useDocumentUpload() {
         // Route PDF/TXT files to Convex action
         if (ext === 'docx') {
           return await uploadDocxViaApi(file);
-        } else {
-          return await uploadViaConvex(file);
         }
+        return await uploadViaConvex(file);
       } catch {
         // Error is handled and shown to user - no logging needed in client code
         const uploadError: UploadError = {
