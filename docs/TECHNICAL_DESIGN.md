@@ -528,7 +528,8 @@ Use: `await generateObject({ model, schema: gradeOutputSchema, prompt })`
 
 ### File Size Limits
 
-- **Maximum file size:** 10 MB per file
+- **DOCX:** 4 MB (Vercel API route body limit)
+- **PDF/TXT:** 10 MB (Convex storage, no Vercel limit)
 - **Maximum word count:** 50,000 words (enforced after parsing)
 - **Minimum word count:** 50 words
 
@@ -559,7 +560,7 @@ Use: `await generateObject({ model, schema: gradeOutputSchema, prompt })`
 **Security Considerations:**
 - Validate MIME type server-side (don't trust client `file.type`)
 - Validate file size before processing (prevent DoS)
-- Limit file size (10 MB) before sending to API
+- Limit file size (4 MB for DOCX, 10 MB for PDF/TXT) before processing
 - Sanitize extracted markdown (remove potential XSS if displaying)
 - Rate limit per user (prevent abuse)
 
@@ -569,7 +570,7 @@ Use: `await generateObject({ model, schema: gradeOutputSchema, prompt })`
 - If user wants to re-upload, they must upload again
 
 **Error Handling:**
-- File too large → Show error: "File exceeds 10 MB limit. Please use a smaller document."
+- File too large → Show error with format-specific limit (4 MB for DOCX, 10 MB for PDF/TXT)
 - Invalid format → Show error: "Unsupported file type. Please use PDF, DOCX, or TXT."
 - Document processing failed → Show error: "Failed to process document. Please try again or paste text directly."
 - No text extracted → Show error: "No text could be extracted from this document. Please ensure the document contains readable text."
@@ -590,7 +591,7 @@ Users can upload documents (PDF, DOCX, TXT) for **Instructions** and **Custom Ru
 - **PDF:** Text-based and scanned PDFs (parsed via Gemini Flash)
 - **DOCX:** Microsoft Word documents (parsed via mammoth.js)
 - **TXT:** Plain text files (passed through directly)
-- **Maximum file size:** 10 MB per document
+- **Maximum file size:** 4 MB for DOCX, 10 MB for PDF/TXT
 
 ### Setup
 
@@ -610,7 +611,7 @@ OPENROUTER_API_KEY=sk-or-...
 **Convex Action `internal.documents.parse`** (shared for essay documents, instructions, and rubric):
 
 1. Validate file type (PDF, DOCX)
-2. Validate file size (max 10 MB)
+2. Validate file size (format-specific limits)
 3. Route to appropriate parser:
    - DOCX → mammoth.js → HTML → Gemini (markdown conversion)
    - PDF → Gemini Flash (native vision)
@@ -646,7 +647,7 @@ OPENROUTER_API_KEY=sk-or-...
 
 | Error | User Message | Action |
 |-------|-------------|---------|
-| File too large | "File exceeds 10 MB limit. Please use a smaller document." | Allow retry |
+| File too large | Format-specific message (4 MB for DOCX, 10 MB for PDF/TXT) | Allow retry |
 | Unsupported format | "Unsupported file type. Please use PDF, DOCX, or TXT." | Allow retry |
 | Document processing failed | "Failed to process document. Please try again or paste text directly." | Allow retry or paste text |
 | No text extracted | "No text could be extracted from this document. Please ensure the document contains readable text." | Allow retry or paste text |
@@ -666,7 +667,7 @@ OPENROUTER_API_KEY=sk-or-...
 ### Security Considerations
 
 - ✅ Validate file type server-side (MIME type check)
-- ✅ Validate file size (10 MB limit)
+- ✅ Validate file size (format-specific limits)
 - ✅ Authenticate requests (require auth)
 - ✅ Sanitize extracted markdown (remove potential XSS)
 - ✅ Rate limit per user (prevent abuse)
@@ -958,12 +959,6 @@ Environment variables are set in:
 - `.env.local` for local development
 - Convex Dashboard for backend functions
 - Vercel Dashboard for production deployment
-
----
-
-## Implementation Status
-
-See `STATUS.md` for detailed phase status, section status, and remaining work.
 
 ---
 

@@ -14,7 +14,7 @@ import { requireAuth } from './lib/auth';
 // Constants
 // =============================================================================
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (consistent with client-side limit)
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB for PDF/TXT (DOCX uses separate 4 MB limit via API route)
 const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 10; // 10 documents per minute
 const PDF_MAGIC_BYTES = [0x25, 0x50, 0x44, 0x46]; // %PDF
@@ -135,7 +135,7 @@ export const parseDocument = action({
       return {
         success: false,
         error: 'FILE_TOO_LARGE',
-        message: 'This file is over 4 MB. Try a shorter document or paste text directly.',
+        message: 'This file is over 10 MB. Try a shorter document or paste text directly.',
       };
     }
 

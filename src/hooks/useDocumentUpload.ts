@@ -34,7 +34,13 @@ export type UploadResult = {
 // Constants
 // =============================================================================
 
-const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (aligned with Vercel Pro body limit)
+// Format-specific file size limits
+// DOCX: 4 MB (Vercel API route body limit)
+// PDF/TXT: 10 MB (Convex storage, no Vercel limit)
+const FILE_SIZE_LIMITS = {
+  docx: { bytes: 4 * 1024 * 1024, label: '4 MB' },
+  default: { bytes: 10 * 1024 * 1024, label: '10 MB' },
+} as const;
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -43,6 +49,10 @@ const ALLOWED_TYPES = [
 ];
 
 const ALLOWED_EXTENSIONS = ['pdf', 'docx', 'txt'];
+
+function getFileSizeLimit(ext: string | undefined): { bytes: number; label: string } {
+  return ext === 'docx' ? FILE_SIZE_LIMITS.docx : FILE_SIZE_LIMITS.default;
+}
 
 // =============================================================================
 // Hook
@@ -162,27 +172,28 @@ export function useDocumentUpload() {
       setResult(null);
 
       try {
-        // Client-side validation
-        if (file.size > MAX_FILE_SIZE) {
-          const err: UploadError = {
-            code: 'FILE_TOO_LARGE',
-            message: 'This file is over 4 MB. Try a shorter document or paste text directly.',
-          };
-          setError(err);
+        // Get file extension for format-specific validation
+        const ext = file.name.split('.').pop()?.toLowerCase();
+
+        // Check MIME type AND extension (defense in depth)
+        const hasValidMimeType = ALLOWED_TYPES.includes(file.type);
+        const hasValidExtension = ext && ALLOWED_EXTENSIONS.includes(ext);
+        if (!hasValidMimeType && !hasValidExtension) {
+          setError({
+            code: 'UNSUPPORTED_FORMAT',
+            message: 'We support Word (.docx), PDF, and text files.',
+          });
           setState('error');
           return null;
         }
 
-        // Check MIME type AND extension (defense in depth)
-        const ext = file.name.split('.').pop()?.toLowerCase();
-        const hasValidMimeType = ALLOWED_TYPES.includes(file.type);
-        const hasValidExtension = ext && ALLOWED_EXTENSIONS.includes(ext);
-        if (!hasValidMimeType && !hasValidExtension) {
-          const err: UploadError = {
-            code: 'UNSUPPORTED_FORMAT',
-            message: 'We support Word (.docx), PDF, and text files.',
-          };
-          setError(err);
+        // Format-specific file size validation
+        const sizeLimit = getFileSizeLimit(ext);
+        if (file.size > sizeLimit.bytes) {
+          setError({
+            code: 'FILE_TOO_LARGE',
+            message: `This file is over ${sizeLimit.label}. Try a shorter document or paste text directly.`,
+          });
           setState('error');
           return null;
         }
@@ -195,11 +206,10 @@ export function useDocumentUpload() {
         return await uploadViaConvex(file);
       } catch {
         // Error is handled and shown to user - no logging needed in client code
-        const uploadError: UploadError = {
+        setError({
           code: 'UPLOAD_FAILED',
           message: 'We couldn\'t upload this file. Please try again.',
-        };
-        setError(uploadError);
+        });
         setState('error');
         return null;
       }

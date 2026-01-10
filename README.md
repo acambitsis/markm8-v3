@@ -21,8 +21,7 @@ Bun is recommended but npm/pnpm work equally well.
 
 | Doc | Purpose |
 |-----|---------|
-| [claude.md](claude.md) | Development context, tech stack, patterns |
-| [docs/STATUS.md](docs/STATUS.md) | Implementation status and remaining work |
+| [CLAUDE.md](CLAUDE.md) | Development context, tech stack, patterns |
 | [docs/FUNCTIONAL_REQUIREMENTS.md](docs/FUNCTIONAL_REQUIREMENTS.md) | Features and user journeys |
 | [docs/TECHNICAL_DESIGN.md](docs/TECHNICAL_DESIGN.md) | Architecture and schema |
 

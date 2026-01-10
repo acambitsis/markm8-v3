@@ -322,12 +322,6 @@ Locations:
 
 ---
 
-## Implementation Status
-
-See `docs/STATUS.md` for detailed phase status, section status, and remaining work.
-
----
-
 ## Deployment & DevOps
 
 **Environments:**

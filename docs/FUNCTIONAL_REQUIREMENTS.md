@@ -680,7 +680,7 @@ MarkM8 provides AI-powered essay grading for students. Users submit essays throu
 | File upload failed | "Failed to upload file. Please try again or paste text directly." | Allow retry or paste text |
 | Document processing failed | "Failed to process document. Please try again or paste text directly." | Allow retry or paste text |
 | No text extracted | "No text could be extracted from this document. Please ensure the document contains readable text." | Show error, allow retry or paste text |
-| File too large | "File exceeds 10 MB limit. Please use a smaller file." | Allow retry |
+| File too large | Format-specific message (4 MB for DOCX, 10 MB for PDF/TXT) | Allow retry |
 | Unsupported file format | "Unsupported file type. Please use PDF, DOCX, or TXT." | Allow retry |
 | Rate limit exceeded | "Rate limit exceeded - Please wait 30 seconds between submissions" | Disable submit button temporarily |
 | Title generation failed | "Could not generate title. Please enter a title manually." | Allow manual entry, no blocking |
