@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   calculatePricePerEssay,
+  validatePricing,
   validatePricingValue,
 } from './pricing';
 
@@ -20,6 +21,24 @@ describe('pricing', () => {
     it('throws for zero or negative values', () => {
       expect(() => validatePricingValue('0', 'Test')).toThrow();
       expect(() => validatePricingValue('-1.00', 'Test')).toThrow();
+    });
+  });
+
+  describe('validatePricing', () => {
+    it('returns parsed values for valid inputs', () => {
+      const result = validatePricing('1.50', '2.00');
+
+      expect(result).toEqual({ gradingCost: 1.5, creditsPerDollar: 2 });
+    });
+
+    it('throws for invalid grading cost', () => {
+      expect(() => validatePricing('invalid', '1.00')).toThrow('Grading cost');
+      expect(() => validatePricing('0', '1.00')).toThrow('Grading cost');
+    });
+
+    it('throws for invalid credits per dollar', () => {
+      expect(() => validatePricing('1.00', 'invalid')).toThrow('Credits per dollar');
+      expect(() => validatePricing('1.00', '-1')).toThrow('Credits per dollar');
     });
   });
 

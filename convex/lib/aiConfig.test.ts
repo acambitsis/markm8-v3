@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { AiConfig, GradingConfig, TitleGenerationConfig } from '../schema';
 import {
   validateAiConfig,
+  validateAiConfigAgainstCatalog,
   validateGradingConfig,
   validateTitleGenerationConfig,
 } from './aiConfig';
@@ -208,6 +209,84 @@ describe('AI config validation', () => {
       expect(result.valid).toBe(true);
       expect(result.warnings.some(w => w.includes('[grading]'))).toBe(true);
       expect(result.warnings.some(w => w.includes('[titleGeneration]'))).toBe(true);
+    });
+  });
+
+  describe('validateAiConfigAgainstCatalog', () => {
+    const config: AiConfig = {
+      grading: validGradingConfig,
+      titleGeneration: validTitleConfig,
+    };
+
+    const catalogWithAllModels = {
+      gradingSlugs: ['x-ai/grok-4'],
+      titleSlugs: ['anthropic/claude-haiku'],
+    };
+
+    it('returns valid when all models are in catalog', () => {
+      const result = validateAiConfigAgainstCatalog(config, catalogWithAllModels);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+      expect(result.warnings).toHaveLength(0);
+    });
+
+    it('warns for missing grading models in non-strict mode', () => {
+      const result = validateAiConfigAgainstCatalog(config, {
+        gradingSlugs: [], // no grading models in catalog
+        titleSlugs: ['anthropic/claude-haiku'],
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings.some(w => w.includes('x-ai/grok-4'))).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('warns for missing title model in non-strict mode', () => {
+      const result = validateAiConfigAgainstCatalog(config, {
+        gradingSlugs: ['x-ai/grok-4'],
+        titleSlugs: [], // no title models in catalog
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings.some(w => w.includes('claude-haiku'))).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('errors for missing models in strict mode', () => {
+      const result = validateAiConfigAgainstCatalog(config, {
+        gradingSlugs: [],
+        titleSlugs: [],
+        strict: true,
+      });
+
+      expect(result.valid).toBe(false);
+      expect(result.errors.some(e => e.includes('x-ai/grok-4'))).toBe(true);
+      expect(result.errors.some(e => e.includes('claude-haiku'))).toBe(true);
+    });
+
+    it('validates all grading runs against catalog', () => {
+      const multiModelConfig: AiConfig = {
+        grading: {
+          ...validGradingConfig,
+          runs: [
+            { model: 'x-ai/grok-4' },
+            { model: 'openai/gpt-4o' },
+            { model: 'anthropic/claude-3' },
+          ],
+        },
+        titleGeneration: validTitleConfig,
+      };
+
+      const result = validateAiConfigAgainstCatalog(multiModelConfig, {
+        gradingSlugs: ['x-ai/grok-4'], // only grok-4 in catalog
+        titleSlugs: ['anthropic/claude-haiku'],
+      });
+
+      expect(result.valid).toBe(true);
+      expect(result.warnings).toHaveLength(2); // gpt-4o and claude-3 missing
+      expect(result.warnings.some(w => w.includes('gpt-4o'))).toBe(true);
+      expect(result.warnings.some(w => w.includes('claude-3'))).toBe(true);
     });
   });
 });
