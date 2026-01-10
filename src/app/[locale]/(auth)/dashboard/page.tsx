@@ -142,6 +142,6 @@ function DashboardIndexPage() {
       </motion.section>
     </PageTransition>
   );
-};
+}
 
 export default DashboardIndexPage;
