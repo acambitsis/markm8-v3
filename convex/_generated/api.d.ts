@@ -20,6 +20,7 @@ import type * as http from "../http.js";
 import type * as lib_ai from "../lib/ai.js";
 import type * as lib_aiConfig from "../lib/aiConfig.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_creditStateMachine from "../lib/creditStateMachine.js";
 import type * as lib_decimal from "../lib/decimal.js";
 import type * as lib_gradeSchema from "../lib/gradeSchema.js";
 import type * as lib_grading_ai from "../lib/grading/ai.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   "lib/ai": typeof lib_ai;
   "lib/aiConfig": typeof lib_aiConfig;
   "lib/auth": typeof lib_auth;
+  "lib/creditStateMachine": typeof lib_creditStateMachine;
   "lib/decimal": typeof lib_decimal;
   "lib/gradeSchema": typeof lib_gradeSchema;
   "lib/grading/ai": typeof lib_grading_ai;

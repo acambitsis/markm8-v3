@@ -8,7 +8,13 @@ import type { Id } from './_generated/dataModel';
 import type { MutationCtx } from './_generated/server';
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
-import { addDecimal, isGreaterOrEqual, isPositive, subtractDecimal } from './lib/decimal';
+import {
+  applyPurchase,
+  clearReservation as clearReservationState,
+  refundReservation as refundReservationState,
+  reserveCredit as reserveCreditState,
+} from './lib/creditStateMachine';
+import { isPositive } from './lib/decimal';
 
 // =============================================================================
 // Helper functions (for use in mutations - single source of truth)
@@ -34,17 +40,20 @@ export async function reserveCreditForUser(
     throw new Error('No credits found for user');
   }
 
-  // Balance is the spendable amount
-  if (!isGreaterOrEqual(credits.balance, amount)) {
-    throw new Error(
-      `Insufficient credits. Need ${amount} but only have ${credits.balance} available.`,
-    );
+  // Use pure state function for transition logic
+  const result = reserveCreditState(
+    { balance: credits.balance, reserved: credits.reserved },
+    amount,
+  );
+
+  if (!result.success) {
+    throw new Error(result.error);
   }
 
-  // Deduct from balance, track in reserved
+  // Apply the computed state
   await ctx.db.patch(credits._id, {
-    balance: subtractDecimal(credits.balance, amount),
-    reserved: addDecimal(credits.reserved, amount),
+    balance: result.state.balance,
+    reserved: result.state.reserved,
   });
 
   return credits._id;
@@ -213,9 +222,16 @@ export const clearReservation = internalMutation({
       throw new Error('No credits found for user');
     }
 
-    // Clear reservation only (balance was already deducted)
+    // Use pure state function for transition logic
+    const newState = clearReservationState(
+      { balance: credits.balance, reserved: credits.reserved },
+      amount,
+    );
+
+    // Apply the computed state
     await ctx.db.patch(credits._id, {
-      reserved: subtractDecimal(credits.reserved, amount),
+      balance: newState.balance,
+      reserved: newState.reserved,
     });
 
     // Record the transaction
@@ -250,16 +266,22 @@ export const refundReservation = internalMutation({
       throw new Error('No credits found for user');
     }
 
-    // Refund: balance + amount, reserved - amount
+    // Use pure state function for transition logic
+    const newState = refundReservationState(
+      { balance: credits.balance, reserved: credits.reserved },
+      amount,
+    );
+
+    // Apply the computed state
     await ctx.db.patch(credits._id, {
-      balance: addDecimal(credits.balance, amount),
-      reserved: subtractDecimal(credits.reserved, amount),
+      balance: newState.balance,
+      reserved: newState.reserved,
     });
 
     // Record the refund transaction
     await ctx.db.insert('creditTransactions', {
       userId,
-      amount, // Positive amount for refund
+      amount,
       transactionType: 'refund',
       description: reason ?? 'Grading failed - credit refunded',
       gradeId,
@@ -296,9 +318,15 @@ export const addFromPurchase = internalMutation({
       }
     }
 
-    // Add to balance
+    // Use pure state function for transition logic
+    const newState = applyPurchase(
+      { balance: credits.balance, reserved: credits.reserved },
+      amount,
+    );
+
+    // Apply the computed state
     await ctx.db.patch(credits._id, {
-      balance: addDecimal(credits.balance, amount),
+      balance: newState.balance,
     });
 
     // Record the transaction
