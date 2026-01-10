@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { RecentEssaysV2 } from '@/features/dashboard/RecentEssaysV2';
 import { StatsBar } from '@/features/dashboard/StatsBar';
 
-const DashboardIndexPage = () => {
+function DashboardIndexPage() {
   return (
     <PageTransition>
       {/* Hero Section - Primary CTA */}
@@ -142,6 +142,6 @@ const DashboardIndexPage = () => {
       </motion.section>
     </PageTransition>
   );
-};
+}
 
 export default DashboardIndexPage;

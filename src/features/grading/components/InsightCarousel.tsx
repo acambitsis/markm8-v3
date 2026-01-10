@@ -50,29 +50,22 @@ export function InsightCarousel({
 
     // If we have LLM-generated insights, add those
     if (hasTopicInsights && topicInsights) {
-      topicInsights.hooks?.forEach((hook) => {
-        allItems.push({
-          icon: <Sparkles className="size-4" />,
-          label: 'About this topic',
-          text: hook,
-        });
-      });
+      const insightGroups: Array<{
+        items: string[] | undefined;
+        icon: React.ReactNode;
+        label: string;
+      }> = [
+        { items: topicInsights.hooks, icon: <Sparkles className="size-4" />, label: 'About this topic' },
+        { items: topicInsights.thinkers, icon: <Users className="size-4" />, label: 'Key thinker' },
+        { items: topicInsights.concepts, icon: <Zap className="size-4" />, label: 'Key concept' },
+        { items: topicInsights.reads, icon: <BookOpen className="size-4" />, label: 'Worth reading' },
+      ];
 
-      topicInsights.thinkers?.forEach((thinker) => {
-        allItems.push({
-          icon: <Users className="size-4" />,
-          label: 'Key thinker',
-          text: thinker,
-        });
-      });
-
-      topicInsights.concepts?.forEach((concept) => {
-        allItems.push({
-          icon: <Zap className="size-4" />,
-          label: 'Key concept',
-          text: concept,
-        });
-      });
+      for (const { items: groupItems, icon, label } of insightGroups) {
+        if (groupItems) {
+          allItems.push(...groupItems.map(text => ({ icon, label, text })));
+        }
+      }
 
       if (topicInsights.funFact) {
         allItems.push({
@@ -81,24 +74,15 @@ export function InsightCarousel({
           text: topicInsights.funFact,
         });
       }
-
-      topicInsights.reads?.forEach((book) => {
-        allItems.push({
-          icon: <BookOpen className="size-4" />,
-          label: 'Worth reading',
-          text: book,
-        });
-      });
     } else {
       // Tier 1: Famous quotes while waiting for LLM
-      const quotes = getQuotes();
-      quotes.forEach((quote) => {
-        allItems.push({
+      allItems.push(
+        ...getQuotes().map(quote => ({
           icon: <Quote className="size-4" />,
           label: quote.author,
           text: `"${quote.text}"`,
-        });
-      });
+        })),
+      );
     }
 
     return allItems;

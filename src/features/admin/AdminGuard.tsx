@@ -36,7 +36,7 @@ export function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  // Don't render anything if not admin (will redirect)
+  // Don't render children if not admin (will redirect)
   if (!isAdmin) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -45,5 +45,5 @@ export function AdminGuard({ children }: AdminGuardProps) {
     );
   }
 
-  return <>{children}</>;
+  return children;
 }

@@ -314,28 +314,13 @@ export function EssaySubmitCanvas() {
   const hasEnoughCredits = availableCredits >= gradingCost;
 
   // Quality score for meter (0-100)
-  const qualityScore = (() => {
-    let score = 0;
-    if (hasContent) {
-      score += 30;
-    } // Base for having content
-    if (hasTitle) {
-      score += 10;
-    }
-    if (hasSubject) {
-      score += 10;
-    }
-    if (hasInstructions) {
-      score += 20;
-    }
-    if (hasRubric) {
-      score += 20;
-    }
-    if (hasFocusAreas) {
-      score += 10;
-    }
-    return score;
-  })();
+  const qualityScore
+    = (hasContent ? 30 : 0)
+    + (hasTitle ? 10 : 0)
+    + (hasSubject ? 10 : 0)
+    + (hasInstructions ? 20 : 0)
+    + (hasRubric ? 20 : 0)
+    + (hasFocusAreas ? 10 : 0);
 
   // ---------------------------------------------------------------------------
   // Submit Handler

@@ -3,7 +3,6 @@
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 
 import { api } from '../../convex/_generated/api';
-import type { AcademicLevel } from '../../convex/schema';
 
 /**
  * Hook to get and update the current user's profile
@@ -16,17 +15,9 @@ export function useProfile() {
     api.users.getProfile,
     isAuthenticated ? {} : 'skip',
   );
-  const updateProfileMutation = useMutation(api.users.updateProfile);
+  const updateProfile = useMutation(api.users.updateProfile);
 
   const isQueryLoading = isAuthenticated && profile === undefined;
-
-  const updateProfile = async (updates: {
-    institution?: string;
-    course?: string;
-    academicLevel?: AcademicLevel;
-  }) => {
-    return updateProfileMutation(updates);
-  };
 
   return {
     profile,
