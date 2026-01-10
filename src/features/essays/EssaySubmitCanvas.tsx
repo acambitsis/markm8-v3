@@ -20,7 +20,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EnhancementPanel } from '@/features/essays/components/EnhancementPanel';
-import { EssayContentInput } from '@/features/essays/components/essay-content-input';
+import { EssayContentInput } from '@/features/essays/components/EssayContentInput';
 import { FeedbackQualityMeter } from '@/features/essays/components/FeedbackQualityMeter';
 import { DevSampleLoader } from '@/features/essays/DevSampleLoader';
 import { useAutosave } from '@/hooks/useAutosave';

@@ -5,6 +5,7 @@ import { FileText, ScanSearch } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import type { EssayStats } from '@/utils/essayStats';
+import { cn } from '@/utils/Helpers';
 
 import type { EssayObservations } from '../../../../convex/schema';
 
@@ -236,11 +237,12 @@ export function InsightCarousel({
               type="button"
               key={index}
               onClick={() => setCurrentIndex(index)}
-              className={`h-1 rounded-full transition-all duration-200 ${
+              className={cn(
+                'h-1 rounded-full transition-all duration-200',
                 index === currentIndex
                   ? 'w-5 bg-primary/50'
-                  : 'w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/30'
-              }`}
+                  : 'w-1.5 bg-muted-foreground/20 hover:bg-muted-foreground/30',
+              )}
               aria-label={`Go to item ${index + 1}`}
             />
           ))}
