@@ -4,7 +4,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-export function DashboardSection({ title, description, children }: Props): React.ReactNode {
+export function DashboardSection({ title, description, children }: Props) {
   return (
     <div className="rounded-md bg-card p-5">
       <div className="max-w-3xl">

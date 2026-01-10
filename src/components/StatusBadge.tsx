@@ -11,7 +11,7 @@ const STATUS_CONFIG: Record<string, { variant: BadgeProps['variant']; label: str
   failed: { variant: 'destructive', label: 'Failed' },
 };
 
-export function StatusBadge({ status }: Props): React.ReactNode {
+export function StatusBadge({ status }: Props) {
   const config = STATUS_CONFIG[status];
   if (!config) {
     return null;

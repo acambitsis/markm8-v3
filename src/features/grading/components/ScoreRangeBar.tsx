@@ -9,6 +9,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
+import { getGradeThreshold } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import type { PercentageRange } from '../../../../convex/schema';
@@ -31,19 +32,6 @@ type Props = {
 // ─────────────────────────────────────────────────────────────────────────────
 // Pure Functions
 // ─────────────────────────────────────────────────────────────────────────────
-
-/** Map percentage to color. Thresholds: 90+ green, 80+ blue, 70+ yellow, 60+ orange, else red */
-const gradeColor = (pct: number): { hex: string; text: string } => {
-  const colors: Array<[number, string, string]> = [
-    [90, '#22c55e', 'text-green-600'],
-    [80, '#3b82f6', 'text-blue-600'],
-    [70, '#eab308', 'text-yellow-600'],
-    [60, '#f97316', 'text-orange-600'],
-    [0, '#ef4444', 'text-red-600'],
-  ];
-  const [, hex, text] = colors.find(([threshold]) => pct >= threshold)!;
-  return { hex, text };
-};
 
 /** Compute target window: clamp to deciles containing the range */
 const computeTargetWindow = (lower: number, upper: number) => ({
@@ -360,7 +348,7 @@ export function ScoreRangeBar({ percentageRange, gradingRuns, stats, delay = 0 }
   // Derived values
   const { lower, upper } = percentageRange;
   const midScore = (lower + upper) / 2;
-  const { hex, text: textColor } = gradeColor(midScore);
+  const { hex, text: textColor } = getGradeThreshold(midScore);
   const target = computeTargetWindow(lower, upper);
 
   // Trigger band reveal exactly when zoom completes
