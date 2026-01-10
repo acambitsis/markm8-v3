@@ -34,7 +34,7 @@ export type UploadResult = {
 // Constants
 // =============================================================================
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (aligned with Vercel Pro body limit)
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -168,7 +168,7 @@ export function useDocumentUpload() {
         if (file.size > MAX_FILE_SIZE) {
           const err: UploadError = {
             code: 'FILE_TOO_LARGE',
-            message: 'This file is over 10 MB. Try a shorter document or paste text directly.',
+            message: 'This file is over 4 MB. Try a shorter document or paste text directly.',
           };
           setError(err);
           setState('error');

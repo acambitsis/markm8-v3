@@ -16,7 +16,7 @@ import { logger } from '@/libs/Logger';
  * Uses mammoth.js for HTML extraction, then Gemini Flash for HTML-to-Markdown conversion.
  */
 
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (Vercel Pro body limit is 4.5 MB)
 const DOCX_MAGIC_BYTES = [0x50, 0x4B, 0x03, 0x04]; // PK (ZIP signature)
 
 function errorResponse(error: string, message: string, status: number): NextResponse {
@@ -51,7 +51,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      return errorResponse('FILE_TOO_LARGE', 'This file is over 10 MB. Try a shorter document or paste text directly.', 400);
+      return errorResponse('FILE_TOO_LARGE', 'This file is over 4 MB. Try a shorter document or paste text directly.', 400);
     }
 
     const ext = file.name.split('.').pop()?.toLowerCase();

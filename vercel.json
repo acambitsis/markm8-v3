@@ -7,5 +7,10 @@
       "main": true,
       "dev": true
     }
+  },
+  "functions": {
+    "src/app/api/parse-docx/route.ts": {
+      "maxDuration": 60
+    }
   }
 }
