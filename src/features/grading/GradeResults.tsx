@@ -5,27 +5,17 @@ import {
   Award,
   BookOpen,
   CheckCircle2,
-  ChevronDown,
   ExternalLink,
   Lightbulb,
   Sparkles,
   Target,
-  XCircle,
 } from 'lucide-react';
-import { useState } from 'react';
 
-import { ScoreGauge } from '@/components/ScoreGauge';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
-import { formatPercentageRange, getGradeColors } from '@/utils/gradeColors';
-import { cn } from '@/utils/Helpers';
 
 import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
+import { ScoreRangeBar } from './components/ScoreRangeBar';
 
 type Props = {
   percentageRange: PercentageRange;
@@ -54,8 +44,15 @@ const itemVariants = {
 };
 
 export function GradeResults({ percentageRange, feedback, modelResults }: Props) {
-  const [showModelDetails, setShowModelDetails] = useState(false);
-  const midScore = (percentageRange.lower + percentageRange.upper) / 2;
+  // Build grading runs for display (all runs, not just unique)
+  const gradingRuns = modelResults.map(r => ({ model: r.model }));
+
+  // Build stats for the hero section
+  const stats = [
+    { value: feedback.strengths.length, label: 'Strengths', color: 'text-green-600' },
+    { value: feedback.improvements.length, label: 'To Improve', color: 'text-amber-600' },
+    { value: feedback.languageTips.length, label: 'Tips', color: 'text-blue-600' },
+  ];
 
   return (
     <motion.div
@@ -67,112 +64,13 @@ export function GradeResults({ percentageRange, feedback, modelResults }: Props)
       {/* Grade Summary Card - Hero Section */}
       <motion.div variants={itemVariants}>
         <Card className="overflow-hidden border-0 shadow-xl">
-          <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 p-8">
-            <div className="flex flex-col items-center gap-8 md:flex-row md:justify-between">
-              {/* Score Gauge */}
-              <div className="flex flex-col items-center gap-4 md:flex-row md:gap-8">
-                <ScoreGauge
-                  score={midScore}
-                  size="lg"
-                  label="Overall Score"
-                  delay={0.5}
-                />
-
-                {/* Percentage range display */}
-                <div className="text-center md:text-left">
-                  <motion.div
-                    className={cn('text-5xl font-bold', getGradeColors(midScore).text)}
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 1.2, duration: 0.4, ease: [0.34, 1.56, 0.64, 1] }}
-                  >
-                    {formatPercentageRange(percentageRange)}
-                  </motion.div>
-                  <motion.p
-                    className="mt-1 text-muted-foreground"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 1.4 }}
-                  >
-                    Overall Score
-                  </motion.p>
-                </div>
-              </div>
-
-              {/* Quick stats */}
-              <motion.div
-                className="flex gap-4"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 1.6 }}
-              >
-                <div className="rounded-xl bg-card/80 p-4 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-green-600">{feedback.strengths.length}</div>
-                  <div className="text-xs text-muted-foreground">Strengths</div>
-                </div>
-                <div className="rounded-xl bg-card/80 p-4 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-amber-600">{feedback.improvements.length}</div>
-                  <div className="text-xs text-muted-foreground">To Improve</div>
-                </div>
-                <div className="rounded-xl bg-card/80 p-4 text-center shadow-sm">
-                  <div className="text-2xl font-bold text-blue-600">{feedback.languageTips.length}</div>
-                  <div className="text-xs text-muted-foreground">Tips</div>
-                </div>
-              </motion.div>
-            </div>
-
-            {/* Model Results Collapsible */}
-            <motion.div
-              className="mt-6"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1.8 }}
-            >
-              <Collapsible open={showModelDetails} onOpenChange={setShowModelDetails}>
-                <CollapsibleTrigger className="flex w-full items-center justify-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                  <span>
-                    {modelResults.length}
-                    {' '}
-                    AI models analyzed your essay
-                  </span>
-                  <ChevronDown className={cn('size-4 transition-transform', showModelDetails && 'rotate-180')} />
-                </CollapsibleTrigger>
-                <CollapsibleContent className="mt-4">
-                  <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                    {modelResults.map(result => (
-                      <div
-                        key={`${result.model}-${result.percentage}`}
-                        className={cn(
-                          'flex items-center justify-between rounded-lg bg-card/60 p-3',
-                          !result.included && 'opacity-60',
-                        )}
-                      >
-                        <div className="flex items-center gap-2">
-                          {result.included
-                            ? <CheckCircle2 className="size-4 text-green-500" />
-                            : <XCircle className="size-4 text-muted-foreground" />}
-                          <span className="text-sm font-medium">{result.model}</span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">
-                            {result.percentage}
-                            %
-                          </span>
-                          {!result.included && (
-                            <Badge variant="outline" className="text-xs">
-                              Outlier
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <p className="mt-3 text-center text-xs text-muted-foreground">
-                    Outlier detection excludes scores &gt;10% different from the mean for more accurate results
-                  </p>
-                </CollapsibleContent>
-              </Collapsible>
-            </motion.div>
+          <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 px-6 py-5">
+            <ScoreRangeBar
+              percentageRange={percentageRange}
+              gradingRuns={gradingRuns}
+              stats={stats}
+              delay={0.3}
+            />
           </div>
         </Card>
       </motion.div>

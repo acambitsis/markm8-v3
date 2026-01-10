@@ -7,9 +7,10 @@ import { ArrowRight, Clock, FileText } from 'lucide-react';
 import Link from 'next/link';
 
 import { EmptyState } from '@/components/EmptyState';
+import { GradeBadge } from '@/components/GradeBadge';
 import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
-import { formatPercentageRange, getGradeColors } from '@/utils/gradeColors';
+import { getGradeColors } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
@@ -130,16 +131,8 @@ export function RecentEssaysV2() {
 
               {/* Grade badge and arrow */}
               <div className="flex items-center gap-3">
-                {essay.grade?.status === 'complete' && essay.grade.percentageRange && gradeColors && (
-                  <Badge
-                    className={cn(
-                      'px-3 py-1 text-sm font-semibold',
-                      gradeColors.bg,
-                      'text-white',
-                    )}
-                  >
-                    {formatPercentageRange(essay.grade.percentageRange)}
-                  </Badge>
+                {essay.grade?.status === 'complete' && essay.grade.percentageRange && (
+                  <GradeBadge percentageRange={essay.grade.percentageRange} />
                 )}
                 {essay.grade?.status === 'processing' && (
                   <Badge variant="secondary" className="px-3 py-1">
