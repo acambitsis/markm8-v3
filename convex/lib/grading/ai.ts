@@ -88,7 +88,7 @@ export async function runAIGrading(
           prompt,
           temperature,
           maxOutputTokens: maxTokens,
-          system: 'You are an expert academic essay grader. You MUST respond with valid JSON only. Do NOT include any text before or after the JSON. Do NOT wrap the JSON in markdown code blocks (no ```json ... ```). Return raw, parseable JSON data.',
+          system: 'You are an expert academic essay grader. Provide thorough, constructive feedback.',
         });
 
         return {
@@ -112,13 +112,24 @@ export async function runAIGrading(
       if (r.status === 'fulfilled') {
         return r.value;
       }
-      // Failed - log concise error but continue with other results
+      // Failed - log detailed error for debugging
       const error = r.reason;
       const errorName = error?.name ?? 'Unknown';
       const errorMessage = error?.message ?? String(error);
+      // Log full error details including any response text
       console.error(
-        `Grading failed for model ${runs[i]?.model}: [${errorName}] ${errorMessage.slice(0, 200)}`,
+        `Grading failed for model ${runs[i]?.model}: [${errorName}] ${errorMessage}`,
       );
+      // Log additional error properties if available (AI SDK errors often have 'text' or 'response')
+      if (error?.text) {
+        console.error(`Response text: ${String(error.text).slice(0, 500)}`);
+      }
+      if (error?.response) {
+        console.error(`Response: ${JSON.stringify(error.response).slice(0, 500)}`);
+      }
+      if (error?.cause) {
+        console.error(`Cause: ${JSON.stringify(error.cause).slice(0, 500)}`);
+      }
       return null;
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);

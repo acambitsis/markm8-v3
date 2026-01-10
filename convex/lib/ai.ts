@@ -1,12 +1,12 @@
 // AI Client Library
-// OpenRouter integration via Vercel AI SDK
+// OpenRouter integration via official OpenRouter AI SDK provider
 // Used in Convex actions (serverless environment)
 
-import { createOpenAI } from '@ai-sdk/openai';
+import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
 /**
  * Get OpenRouter provider configured for AI grading
- * Uses OpenAI-compatible API via @ai-sdk/openai with OpenRouter base URL
+ * Uses the official @openrouter/ai-sdk-provider for proper model support
  *
  * Note: This runs in Convex actions, so we use process.env directly
  */
@@ -19,24 +19,25 @@ export function getOpenRouterProvider() {
     );
   }
 
-  // Configure OpenAI provider to use OpenRouter
-  // OpenRouter is OpenAI-compatible, so we can use @ai-sdk/openai
-  return createOpenAI({
-    baseURL: 'https://openrouter.ai/api/v1',
+  // Use the official OpenRouter provider
+  // This properly handles different model providers (Anthropic, OpenAI, X.AI, etc.)
+  return createOpenRouter({
     apiKey,
-    // OpenRouter-specific headers (optional, for analytics)
     headers: {
       'HTTP-Referer': process.env.NEXT_PUBLIC_APP_URL || 'https://markm8.com',
       'X-Title': 'MarkM8 AI Grading',
+      // Enable Anthropic structured outputs beta (required for Claude models)
+      // This header is ignored by non-Anthropic models
+      'x-anthropic-beta': 'structured-outputs-2025-11-13',
     },
   });
 }
 
 /**
  * Get a model instance for grading
- * @param modelId - OpenRouter model ID (e.g., "x-ai/grok-4.1-fast", "anthropic/claude-opus-4.5")
+ * @param modelId - OpenRouter model ID (e.g., "x-ai/grok-4.1-fast", "anthropic/claude-haiku-4.5")
  */
 export function getGradingModel(modelId: string) {
   const provider = getOpenRouterProvider();
-  return provider(modelId);
+  return provider.chat(modelId);
 }
