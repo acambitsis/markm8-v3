@@ -296,12 +296,6 @@ export function EssayContentInput({
                     ref={textareaRef}
                     value={value}
                     onChange={e => onChange(e.target.value)}
-                    onBlur={() => {
-                      // Return to empty state if user leaves without typing
-                      if (value.length === 0) {
-                        setIsTypingMode(false);
-                      }
-                    }}
                     disabled={disabled || isProcessing}
                     placeholder={placeholder}
                     className={cn(

@@ -104,6 +104,14 @@ export function detectOutliers(
     return [];
   }
 
+  // Threshold of 100% means outlier detection is disabled - include all scores
+  if (thresholdPercent >= 100) {
+    return scores.map(score => ({
+      ...score,
+      included: true,
+    }));
+  }
+
   // Calculate mean
   const sum = scores.reduce((acc, s) => acc + s.percentage, 0);
   const mean = sum / scores.length;

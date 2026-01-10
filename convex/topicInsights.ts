@@ -134,7 +134,7 @@ Generate 6 observations that show you're actively understanding this essay. Each
 2. Have a process-oriented stage label ("Identifying...", "Analyzing...", etc.)
 3. Include a brief, non-evaluative note about what you observe
 
-Spread observations across different parts of the essay - don't cluster them all at the beginning.`;
+Spread observations across the provided excerpt - don't cluster them all in one section.`;
 
     // 7. Call LLM for structured output
     const model = getGradingModel(OBSERVATIONS_MODEL);

@@ -47,9 +47,9 @@ function extractSentences(content: string, count: number = 5): string[] {
     .split(/[.!?]+/)
     .map(s => s.trim())
     .filter((s) => {
-      // Filter for meaningful sentences (not too short, not too long)
+      // Filter for meaningful sentences (4-25 words)
       const wordCount = s.split(/\s+/).length;
-      return wordCount >= 6 && wordCount <= 25;
+      return wordCount >= 4 && wordCount <= 25;
     });
 
   if (sentences.length === 0) {
