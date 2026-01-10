@@ -1,20 +1,20 @@
-import { Badge } from '@/components/ui/badge';
+import { Badge, type BadgeProps } from '@/components/ui/badge';
 
-type StatusBadgeProps = {
+type Props = {
   status: 'queued' | 'processing' | 'complete' | 'failed' | string;
 };
 
-export function StatusBadge({ status }: StatusBadgeProps) {
-  switch (status) {
-    case 'complete':
-      return <Badge variant="default">Complete</Badge>;
-    case 'processing':
-      return <Badge variant="secondary">Processing</Badge>;
-    case 'queued':
-      return <Badge variant="outline">Queued</Badge>;
-    case 'failed':
-      return <Badge variant="destructive">Failed</Badge>;
-    default:
-      return null;
+const STATUS_CONFIG: Record<string, { variant: BadgeProps['variant']; label: string }> = {
+  complete: { variant: 'default', label: 'Complete' },
+  processing: { variant: 'secondary', label: 'Processing' },
+  queued: { variant: 'outline', label: 'Queued' },
+  failed: { variant: 'destructive', label: 'Failed' },
+};
+
+export function StatusBadge({ status }: Props): React.ReactNode {
+  const config = STATUS_CONFIG[status];
+  if (!config) {
+    return null;
   }
+  return <Badge variant={config.variant}>{config.label}</Badge>;
 }

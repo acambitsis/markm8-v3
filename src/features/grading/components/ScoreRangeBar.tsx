@@ -291,6 +291,65 @@ function AnimatedScale({
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Score Display Component - Positioned above the confidence band
+// ─────────────────────────────────────────────────────────────────────────────
+
+function ScoreDisplay({
+  lower,
+  upper,
+  target,
+  textColor,
+  delay,
+}: {
+  lower: number;
+  upper: number;
+  target: { start: number; end: number };
+  textColor: string;
+  delay: number;
+}) {
+  const windowSize = target.end - target.start;
+  const bandCenter = (lower + upper) / 2;
+  const bandCenterPos = ((bandCenter - target.start) / windowSize) * 100;
+
+  return (
+    <div className="relative mb-3 h-14">
+      <motion.div
+        className="absolute flex -translate-x-1/2 flex-col items-center"
+        initial={{ opacity: 0, y: -10, left: '50%' }}
+        animate={{ opacity: 1, y: 0, left: `${bandCenterPos}%` }}
+        transition={{
+          opacity: { delay: delay + TIMING.scoreStart, duration: 0.5 },
+          y: { delay: delay + TIMING.scoreStart, duration: 0.5, ease: EASING.smooth },
+          left: { delay: delay + TIMING.zoomStart, duration: TIMING.zoomDuration, ease: EASING.zoom },
+        }}
+      >
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: delay + TIMING.scoreStart + 0.1, duration: 0.5, ease: EASING.springy }}
+        >
+          <AnimatedRangeDisplay
+            lower={lower}
+            upper={upper}
+            delay={delay + TIMING.bandStart}
+            duration={TIMING.bandDuration}
+            className={cn('text-3xl font-bold tabular-nums tracking-tight sm:text-4xl', textColor)}
+          />
+        </motion.div>
+        <motion.p
+          className="text-[11px] font-medium tracking-wide text-muted-foreground/80"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: delay + TIMING.scoreStart + 0.2, duration: 0.3 }}
+        >
+          ESTIMATED RANGE
+        </motion.p>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -320,49 +379,13 @@ export function ScoreRangeBar({ percentageRange, gradingRuns, stats, delay = 0 }
         {/* Left: Bar with score centered above the confidence band */}
         <div className="relative min-w-0 flex-1">
           {/* Score display positioned above the band's center */}
-          {(() => {
-            // Calculate band center position as percentage of scale
-            const windowSize = target.end - target.start;
-            const bandCenter = (lower + upper) / 2;
-            const bandCenterPos = ((bandCenter - target.start) / windowSize) * 100;
-
-            return (
-              <div className="relative mb-3 h-14">
-                <motion.div
-                  className="absolute flex -translate-x-1/2 flex-col items-center"
-                  initial={{ opacity: 0, y: -10, left: '50%' }}
-                  animate={{ opacity: 1, y: 0, left: `${bandCenterPos}%` }}
-                  transition={{
-                    opacity: { delay: delay + TIMING.scoreStart, duration: 0.5 },
-                    y: { delay: delay + TIMING.scoreStart, duration: 0.5, ease: EASING.smooth },
-                    left: { delay: delay + TIMING.zoomStart, duration: TIMING.zoomDuration, ease: EASING.zoom },
-                  }}
-                >
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: delay + TIMING.scoreStart + 0.1, duration: 0.5, ease: EASING.springy }}
-                  >
-                    <AnimatedRangeDisplay
-                      lower={lower}
-                      upper={upper}
-                      delay={delay + TIMING.bandStart}
-                      duration={TIMING.bandDuration}
-                      className={cn('text-3xl font-bold tabular-nums tracking-tight sm:text-4xl', textColor)}
-                    />
-                  </motion.div>
-                  <motion.p
-                    className="text-[11px] font-medium tracking-wide text-muted-foreground/80"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: delay + TIMING.scoreStart + 0.2, duration: 0.3 }}
-                  >
-                    ESTIMATED RANGE
-                  </motion.p>
-                </motion.div>
-              </div>
-            );
-          })()}
+          <ScoreDisplay
+            lower={lower}
+            upper={upper}
+            target={target}
+            textColor={textColor}
+            delay={delay}
+          />
 
           {/* Animated scale with smooth zoom */}
           <motion.div

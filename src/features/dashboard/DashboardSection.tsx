@@ -1,17 +1,19 @@
-export const DashboardSection = (props: {
+type Props = {
   title: string;
   description: string;
   children: React.ReactNode;
-}) => (
-  <div className="rounded-md bg-card p-5">
-    <div className="max-w-3xl">
-      <div className="text-lg font-semibold">{props.title}</div>
+};
 
-      <div className="mb-4 text-sm font-medium text-muted-foreground">
-        {props.description}
+export function DashboardSection({ title, description, children }: Props): React.ReactNode {
+  return (
+    <div className="rounded-md bg-card p-5">
+      <div className="max-w-3xl">
+        <div className="text-lg font-semibold">{title}</div>
+        <div className="mb-4 text-sm font-medium text-muted-foreground">
+          {description}
+        </div>
+        {children}
       </div>
-
-      {props.children}
     </div>
-  </div>
-);
+  );
+}

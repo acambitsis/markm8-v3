@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { RecentEssaysV2 } from '@/features/dashboard/RecentEssaysV2';
 import { StatsBar } from '@/features/dashboard/StatsBar';
 
-const DashboardIndexPage = () => {
+function DashboardIndexPage(): React.ReactNode {
   return (
     <PageTransition>
       {/* Hero Section - Primary CTA */}
