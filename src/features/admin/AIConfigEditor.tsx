@@ -445,17 +445,18 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Strict (5%)</span>
               <span className="text-sm font-medium">
-                {localConfig.grading.outlierThresholdPercent}
-                %
+                {localConfig.grading.outlierThresholdPercent >= 100
+                  ? 'Off'
+                  : `${localConfig.grading.outlierThresholdPercent}%`}
               </span>
-              <span className="text-sm text-muted-foreground">Lenient (20%)</span>
+              <span className="text-sm text-muted-foreground">Off (100%)</span>
             </div>
             <Slider
               value={[localConfig.grading.outlierThresholdPercent]}
               onValueChange={([value]: number[]) => updateGrading({ outlierThresholdPercent: value })}
               min={5}
-              max={20}
-              step={1}
+              max={100}
+              step={5}
               className="py-2"
             />
           </div>
