@@ -11,12 +11,24 @@ import {
   RefreshCw,
   Send,
   Sparkles,
+  Trash2,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { SaveIndicator } from '@/components/SaveIndicator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { EnhancementPanel } from '@/features/essays/components/EnhancementPanel';
@@ -90,6 +102,7 @@ export function EssaySubmitCanvas() {
   // Convex
   const saveDraft = useMutation(api.essays.saveDraft);
   const submitEssay = useMutation(api.essays.submit);
+  const deleteDraftMutation = useMutation(api.essays.deleteDraft);
   const generateSuggestions = useAction(api.suggestions.generateSuggestions);
 
   // Load existing draft
@@ -170,7 +183,7 @@ export function EssaySubmitCanvas() {
     };
   }, []);
 
-  const { status: saveStatus } = useAutosave({
+  const { status: saveStatus, cancel: cancelAutosave } = useAutosave({
     data: draft,
     onSave: async (data) => {
       await saveDraft(transformDraftForSave(data));
@@ -294,6 +307,30 @@ export function EssaySubmitCanvas() {
     [],
   );
 
+  const handleClearDraft = useCallback(async () => {
+    // Cancel any pending autosave to prevent race condition
+    cancelAutosave();
+
+    try {
+      await deleteDraftMutation();
+
+      // Only reset local state after successful deletion
+      setDraft({
+        assignmentBrief: profile?.academicLevel
+          ? { academicLevel: profile.academicLevel }
+          : null,
+        rubric: null,
+        content: null,
+        focusAreas: null,
+      });
+      setHasGeneratedSuggestions(false);
+      setSubmitError(null);
+      previousContentRef.current = '';
+    } catch {
+      setSubmitError('Failed to clear draft. Please try again.');
+    }
+  }, [deleteDraftMutation, cancelAutosave, profile?.academicLevel]);
+
   // ---------------------------------------------------------------------------
   // Computed Values
   // ---------------------------------------------------------------------------
@@ -363,9 +400,40 @@ export function EssaySubmitCanvas() {
       {/* Dev Tools */}
       <DevSampleLoader onLoad={handleLoadSample} />
 
-      {/* Save Status */}
-      <div className="mb-6 flex justify-end">
+      {/* Save Status & Clear Button */}
+      <div className="mb-6 flex items-center justify-end gap-3">
         <SaveIndicator status={saveStatus} />
+        {hasContent && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1.5 text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="size-3.5" />
+                Clear
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear draft?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will remove all content from your current draft. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleClearDraft}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Clear draft
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       <motion.div

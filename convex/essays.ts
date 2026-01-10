@@ -410,6 +410,30 @@ export const archive = mutation({
 });
 
 /**
+ * Delete the current draft (hard delete)
+ * Idempotent - succeeds even if no draft exists
+ */
+export const deleteDraft = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireAuth(ctx);
+
+    const draft = await ctx.db
+      .query('essays')
+      .withIndex('by_user_status', q =>
+        q.eq('userId', userId).eq('status', 'draft'))
+      .filter(q => q.eq(q.field('deletedAt'), undefined))
+      .first();
+
+    if (!draft) {
+      return;
+    }
+
+    await ctx.db.delete(draft._id);
+  },
+});
+
+/**
  * Internal query to get essay (for use in grading action)
  */
 export const getInternal = internalQuery({
