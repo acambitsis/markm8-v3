@@ -287,40 +287,19 @@ export async function runAIGrading(
 
   // Aggregate category scores from all included models (average)
   const categoryScoresArray = includedResults.map(r => r.result.categoryScores);
+  const avgScore = (getter: (cs: (typeof categoryScoresArray)[0]) => number) =>
+    clampPercentage(
+      categoryScoresArray.reduce((sum, cs) => sum + getter(cs), 0) / categoryScoresArray.length,
+    );
+
   const categoryScores: CategoryScores = {
-    contentUnderstanding: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.contentUnderstanding,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    structureOrganization: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.structureOrganization,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    criticalAnalysis: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.criticalAnalysis,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    languageStyle: clampPercentage(
-      categoryScoresArray.reduce(
-        (sum, cs) => sum + cs.languageStyle,
-        0,
-      ) / categoryScoresArray.length,
-    ),
-    citationsReferences:
-      categoryScoresArray.every(cs => cs.citationsReferences !== undefined)
-        ? clampPercentage(
-          categoryScoresArray.reduce(
-            (sum, cs) => sum + (cs.citationsReferences ?? 0),
-            0,
-          ) / categoryScoresArray.length,
-        )
-        : undefined,
+    contentUnderstanding: avgScore(cs => cs.contentUnderstanding),
+    structureOrganization: avgScore(cs => cs.structureOrganization),
+    criticalAnalysis: avgScore(cs => cs.criticalAnalysis),
+    languageStyle: avgScore(cs => cs.languageStyle),
+    citationsReferences: categoryScoresArray.every(cs => cs.citationsReferences !== undefined)
+      ? avgScore(cs => cs.citationsReferences ?? 0)
+      : undefined,
   };
 
   // Build model results with outlier information

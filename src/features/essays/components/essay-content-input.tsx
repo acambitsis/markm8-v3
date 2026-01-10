@@ -72,6 +72,19 @@ export function EssayContentInput({
     setIsDragging(false);
   }, []);
 
+  // Process uploaded file and update state
+  const processFile = useCallback(
+    async (file: File) => {
+      const result = await upload.upload(file);
+      if (result) {
+        onChange(result.markdown);
+        setUploadedFileName(result.fileName);
+        upload.reset();
+      }
+    },
+    [upload, onChange],
+  );
+
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault();
@@ -84,15 +97,10 @@ export function EssayContentInput({
 
       const file = e.dataTransfer.files[0];
       if (file) {
-        const result = await upload.upload(file);
-        if (result) {
-          onChange(result.markdown);
-          setUploadedFileName(result.fileName);
-          upload.reset();
-        }
+        await processFile(file);
       }
     },
-    [disabled, isProcessing, upload, onChange],
+    [disabled, isProcessing, processFile],
   );
 
   // ---------------------------------------------------------------------------
@@ -103,19 +111,14 @@ export function EssayContentInput({
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        const result = await upload.upload(file);
-        if (result) {
-          onChange(result.markdown);
-          setUploadedFileName(result.fileName);
-          upload.reset();
-        }
+        await processFile(file);
       }
       // Reset input for re-selection
       if (inputRef.current) {
         inputRef.current.value = '';
       }
     },
-    [upload, onChange],
+    [processFile],
   );
 
   const handleBrowseClick = (e: React.MouseEvent) => {

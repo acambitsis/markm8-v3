@@ -194,19 +194,14 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
   }, [localConfig.grading.retry, updateGrading]);
 
   // Group models by provider for better UX
-  const groupedGradingModels = gradingModels?.reduce((acc, model) => {
-    const providerModels = acc[model.provider] ?? [];
-    providerModels.push(model);
-    acc[model.provider] = providerModels;
-    return acc;
-  }, {} as Record<string, NonNullable<typeof gradingModels>>);
+  const groupByProvider = <T extends { provider: string }>(models: T[] | undefined) =>
+    models?.reduce((acc, model) => {
+      (acc[model.provider] ??= []).push(model);
+      return acc;
+    }, {} as Record<string, T[]>);
 
-  const groupedTitleModels = titleModels?.reduce((acc, model) => {
-    const providerModels = acc[model.provider] ?? [];
-    providerModels.push(model);
-    acc[model.provider] = providerModels;
-    return acc;
-  }, {} as Record<string, NonNullable<typeof titleModels>>);
+  const groupedGradingModels = groupByProvider(gradingModels);
+  const groupedTitleModels = groupByProvider(titleModels);
 
   const isLiveMode = localConfig.grading.mode === 'live';
 

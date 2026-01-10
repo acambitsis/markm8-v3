@@ -100,40 +100,30 @@ export function detectOutliers(
   scores: Array<{ model: string; percentage: number }>,
   thresholdPercent = 10,
 ): Array<{ model: string; percentage: number; included: boolean; reason?: string }> {
+  // Helper to include all scores
+  const includeAll = () => scores.map(score => ({ ...score, included: true }));
+
   if (scores.length === 0) {
     return [];
   }
-
-  // Threshold of 100% means outlier detection is disabled - include all scores
   if (thresholdPercent >= 100) {
-    return scores.map(score => ({
-      ...score,
-      included: true,
-    }));
-  }
+    return includeAll();
+  } // Outlier detection disabled
 
   // Calculate mean
   const sum = scores.reduce((acc, s) => acc + s.percentage, 0);
   const mean = sum / scores.length;
 
-  // Handle edge case: if mean is 0 or very close to 0, all scores are the same
-  // No outliers possible, so return all scores as included
+  // Edge case: mean is 0 or near-zero - no outliers possible
   if (mean === 0 || Math.abs(mean) < 0.01) {
-    return scores.map(score => ({
-      ...score,
-      included: true,
-    }));
+    return includeAll();
   }
 
   // Calculate deviations from mean
   const deviations = scores.map((score) => {
     const deviation = Math.abs(score.percentage - mean);
     const deviationPercent = (deviation / mean) * 100;
-    return {
-      ...score,
-      deviation,
-      deviationPercent,
-    };
+    return { ...score, deviation, deviationPercent };
   });
 
   // Find maximum deviation
@@ -141,25 +131,17 @@ export function detectOutliers(
 
   // If max deviation exceeds threshold, exclude the furthest score
   if (maxDeviation > thresholdPercent) {
-    // Find the score with maximum deviation
-    const furthestIndex = deviations.findIndex(
-      d => d.deviationPercent === maxDeviation,
-    );
+    const furthestIndex = deviations.findIndex(d => d.deviationPercent === maxDeviation);
 
     return scores.map((score, i) => ({
       model: score.model,
       percentage: score.percentage,
       included: i !== furthestIndex,
-      reason:
-        i === furthestIndex
-          ? `Outlier detected: ${maxDeviation.toFixed(1)}% deviation from mean (${mean.toFixed(1)}%)`
-          : undefined,
+      reason: i === furthestIndex
+        ? `Outlier detected: ${maxDeviation.toFixed(1)}% deviation from mean (${mean.toFixed(1)}%)`
+        : undefined,
     }));
   }
 
-  // All scores are within threshold
-  return scores.map(score => ({
-    ...score,
-    included: true,
-  }));
+  return includeAll();
 }
