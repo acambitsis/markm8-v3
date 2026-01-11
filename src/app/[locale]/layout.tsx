@@ -67,7 +67,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: `${AppConfig.name} - AI Essay Grading`,
+        alt: `${AppConfig.name} - AI Essay Feedback`,
       },
     ],
   },

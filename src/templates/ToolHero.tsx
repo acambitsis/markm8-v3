@@ -1,7 +1,7 @@
 'use client';
 
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, ChevronDown, Lock, Sparkles, Star } from 'lucide-react';
+import { ArrowRight, ChevronDown, GraduationCap, Lock, Sparkles, Star } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
@@ -47,8 +47,8 @@ export const ToolHero = () => {
     },
   };
 
-  const stats = [
-    { value: 5000, suffix: '+', label: 'Essays Graded' },
+  // Stats: first is a feature callout (no animated number), others are animated
+  const animatedStats = [
     { value: 4.9, decimals: 1, label: 'User Rating' },
     { value: 2, suffix: ' min', label: 'Avg. Response' },
   ];
@@ -226,18 +226,40 @@ export const ToolHero = () => {
             <span>{t('privacy_note')}</span>
           </motion.div>
 
+          {/* Disclaimer */}
+          <motion.p
+            variants={itemVariants}
+            className="mt-4 text-xs text-slate-400"
+          >
+            {t('disclaimer')}
+          </motion.p>
+
           {/* Stats Section */}
           <motion.div
             variants={itemVariants}
             className="mt-16 grid grid-cols-3 gap-8 border-t border-slate-200/50 pt-12"
           >
-            {stats.map((stat, index) => (
+            {/* Feature callout (no animated number) */}
+            <motion.div
+              className="text-center"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.5 }}
+            >
+              <div className="flex items-center justify-center text-3xl font-bold text-slate-900 md:text-4xl">
+                <GraduationCap className="size-8 text-violet-600 md:size-10" />
+              </div>
+              <div className="mt-1 text-sm text-slate-500">Built by Students, for Students</div>
+            </motion.div>
+
+            {/* Animated stats */}
+            {animatedStats.map((stat, index) => (
               <motion.div
                 key={stat.label}
                 className="text-center"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1 + index * 0.15, duration: 0.5 }}
+                transition={{ delay: 1.15 + index * 0.15, duration: 0.5 }}
               >
                 <div className="text-3xl font-bold text-slate-900 md:text-4xl">
                   <AnimatedNumber
@@ -245,7 +267,7 @@ export const ToolHero = () => {
                     suffix={stat.suffix}
                     decimals={stat.decimals}
                     duration={2}
-                    delay={1.2 + index * 0.15}
+                    delay={1.35 + index * 0.15}
                   />
                 </div>
                 <div className="mt-1 text-sm text-slate-500">{stat.label}</div>
