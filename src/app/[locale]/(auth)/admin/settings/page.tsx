@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Bot, Check, Coins, DollarSign, Loader2, Settings, Shield, X } from 'lucide-react';
+import { Bot, Check, Coins, DollarSign, Loader2, Radio, Settings, Shield, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AdminAllowlistEditor } from '@/features/admin/AdminAllowlistEditor';
 import { AIConfigEditor } from '@/features/admin/AIConfigEditor';
+import { SentryTestCard } from '@/features/admin/SentryTestCard';
 import { useAdminMutations, useAdminPlatformSettings } from '@/hooks/useAdmin';
 
 import type { AiConfig } from '../../../../../../convex/schema';
@@ -318,12 +319,35 @@ export default function AdminSettingsPage() {
           </div>
         </motion.div>
 
+        {/* Monitoring */}
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-orange-500/10">
+                <Radio className="size-5 text-orange-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold">Monitoring</h2>
+                <p className="text-sm text-muted-foreground">Test error tracking and alerting</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <SentryTestCard />
+          </div>
+        </motion.div>
+
         {/* Save Button - Sticky at bottom */}
         <motion.div
           className="sticky bottom-4 flex items-center gap-4 rounded-xl border bg-card/95 p-4 shadow-lg backdrop-blur-sm"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.5 }}
+          transition={{ delay: 0.6, duration: 0.5 }}
         >
           <Button
             onClick={handleSave}
