@@ -1,4 +1,10 @@
+import path from 'node:path';
+
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env.local
+dotenv.config({ path: path.resolve(__dirname, '.env.local') });
 
 // Use process.env.PORT by default and fallback to port 3000
 const PORT = process.env.PORT || 3000;
@@ -15,6 +21,10 @@ export default defineConfig({
   testMatch: '*.@(spec|e2e).?(c|m)[jt]s?(x)',
   // Timeout per test
   timeout: 30 * 1000,
+  // Run tests serially for reliability (dev server gets slow under parallel load)
+  workers: 1,
+  // Retry flaky tests once
+  retries: process.env.CI ? 1 : 0,
   // Fail the build on CI if you accidentally left test.only in the source code.
   forbidOnly: !!process.env.CI,
   // Reporter to use. See https://playwright.dev/docs/test-reporters
@@ -48,14 +58,34 @@ export default defineConfig({
   },
 
   projects: [
+    // Global setup for Clerk authentication
+    {
+      name: 'setup',
+      testMatch: /global\.setup\.ts/,
+    },
+    // Main tests (unauthenticated)
     {
       name: 'chromium',
+      testMatch: /(?<!authenticated\.)(?:spec|e2e)\.ts$/,
+      testIgnore: /global\.setup\.ts/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    // Authenticated tests (depend on setup, use stored auth state)
+    {
+      name: 'authenticated',
+      testMatch: /\.authenticated\.(spec|e2e)\.ts$/,
+      use: {
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.clerk/user.json',
+      },
+      dependencies: ['setup'],
     },
     ...(process.env.CI
       ? [
           {
             name: 'firefox',
+            testMatch: /(?<!authenticated\.)(?:spec|e2e)\.ts$/,
+            testIgnore: /global\.setup\.ts/,
             use: { ...devices['Desktop Firefox'] },
           },
         ]
