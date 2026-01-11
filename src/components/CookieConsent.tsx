@@ -5,30 +5,25 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 const COOKIE_CONSENT_KEY = 'markm8-cookie-consent';
+const SHOW_DELAY_MS = 1000;
 
-export function CookieConsent() {
+export function CookieConsent(): React.ReactNode {
   const [showBanner, setShowBanner] = useState(false);
 
   useEffect(() => {
-    // Check if user has already consented
-    const consent = localStorage.getItem(COOKIE_CONSENT_KEY);
-    if (!consent) {
-      // Small delay to avoid layout shift on initial load
-      const timer = setTimeout(() => setShowBanner(true), 1000);
-      return () => clearTimeout(timer);
+    const hasConsent = localStorage.getItem(COOKIE_CONSENT_KEY);
+    if (hasConsent) {
+      return;
     }
-    return undefined;
+
+    const timer = setTimeout(() => setShowBanner(true), SHOW_DELAY_MS);
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleAccept = () => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, 'accepted');
+  function dismissBanner(status: 'accepted' | 'dismissed'): void {
+    localStorage.setItem(COOKIE_CONSENT_KEY, status);
     setShowBanner(false);
-  };
-
-  const handleDismiss = () => {
-    localStorage.setItem(COOKIE_CONSENT_KEY, 'dismissed');
-    setShowBanner(false);
-  };
+  }
 
   if (!showBanner) {
     return null;
@@ -47,13 +42,13 @@ export function CookieConsent() {
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
-              onClick={handleAccept}
+              onClick={() => dismissBanner('accepted')}
               className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700"
             >
               Got it
             </button>
             <button
-              onClick={handleDismiss}
+              onClick={() => dismissBanner('dismissed')}
               className="rounded-md p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
               aria-label="Dismiss"
             >
