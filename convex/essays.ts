@@ -265,11 +265,10 @@ export const submit = mutation({
       gradeId,
     });
 
-    // 10. Schedule Slack notification (mutations can't make HTTP calls directly)
-    const essayTitle = brief?.title || 'Untitled';
+    // 10. Schedule Slack notification
     await ctx.scheduler.runAfter(0, internal.notifications.sendSlackNotification, {
       channel: 'activity',
-      message: `📝 Essay submitted: ${user.name || user.email} submitted "${essayTitle}" for grading (${gradingCost} credit)`,
+      message: `📝 Essay submitted: ${user.name || user.email} submitted "${brief?.title || 'Untitled'}" for grading (${gradingCost} credit)`,
     });
 
     return { essayId: draft._id, gradeId };

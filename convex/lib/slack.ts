@@ -1,30 +1,23 @@
-// Slack notification helpers
+// Slack notification helper
 // Sends notifications to Slack webhooks for business events
-// No-op in dev when env vars are not set
+// No-op when webhook URL is not configured
 
 export type SlackChannel = 'activity' | 'signups';
 
-const WEBHOOK_ENV_VARS: Record<SlackChannel, string> = {
-  activity: 'SLACK_WEBHOOK_ACTIVITY',
-  signups: 'SLACK_WEBHOOK_SIGNUPS',
-};
-
 /**
- * Send a notification to a Slack channel
- * Silently skips if the webhook URL is not configured (dev environment)
- *
- * @param channel - Which Slack channel to send to
- * @param message - The message text to send
+ * Send a notification to a Slack channel.
+ * Silently skips if the webhook URL is not configured.
  */
 export async function notifySlack(
   channel: SlackChannel,
   message: string,
 ): Promise<void> {
-  const envVar = WEBHOOK_ENV_VARS[channel];
+  const envVar = channel === 'activity'
+    ? 'SLACK_WEBHOOK_ACTIVITY'
+    : 'SLACK_WEBHOOK_SIGNUPS';
   const webhookUrl = process.env[envVar];
 
   if (!webhookUrl) {
-    // No-op in dev - env var not set
     return;
   }
 
@@ -36,11 +29,9 @@ export async function notifySlack(
     });
 
     if (!response.ok) {
-      // Log but don't throw - notifications shouldn't break core functionality
       console.error(`Slack notification failed: ${response.status} ${response.statusText}`);
     }
   } catch (error) {
-    // Log but don't throw - notifications shouldn't break core functionality
     console.error('Slack notification error:', error);
   }
 }

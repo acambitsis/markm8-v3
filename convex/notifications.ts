@@ -5,11 +5,11 @@
 import { v } from 'convex/values';
 
 import { internalAction } from './_generated/server';
-import { notifySlack, type SlackChannel } from './lib/slack';
+import { notifySlack } from './lib/slack';
 
 /**
- * Send a Slack notification (internal action)
- * Called via ctx.scheduler.runAfter() from mutations
+ * Send a Slack notification.
+ * Called via ctx.scheduler.runAfter() from mutations.
  */
 export const sendSlackNotification = internalAction({
   args: {
@@ -17,6 +17,6 @@ export const sendSlackNotification = internalAction({
     message: v.string(),
   },
   handler: async (_ctx, { channel, message }) => {
-    await notifySlack(channel as SlackChannel, message);
+    await notifySlack(channel, message);
   },
 });
