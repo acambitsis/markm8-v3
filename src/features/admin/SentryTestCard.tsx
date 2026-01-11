@@ -51,19 +51,8 @@ export function SentryTestCard() {
           variant="outline"
           className="gap-2"
         >
-          {isSending
-            ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Sending...
-                </>
-              )
-            : (
-                <>
-                  <AlertTriangle className="size-4" />
-                  Send Test Error
-                </>
-              )}
+          {isSending ? <Loader2 className="size-4 animate-spin" /> : <AlertTriangle className="size-4" />}
+          {isSending ? 'Sending...' : 'Send Test Error'}
         </Button>
 
         {result === 'success' && (
