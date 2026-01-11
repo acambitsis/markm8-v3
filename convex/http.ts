@@ -9,6 +9,7 @@ import { Webhook } from 'svix';
 import { internal } from './_generated/api';
 import type { Id } from './_generated/dataModel';
 import { httpAction } from './_generated/server';
+import { notifySlack } from './lib/slack';
 
 const http = httpRouter();
 
@@ -116,6 +117,12 @@ http.route({
 
         console.log('User created successfully:', { userId, email });
 
+        // Send Slack notification (no-op if webhook not configured)
+        await notifySlack(
+          'signups',
+          `👤 New signup: ${name || 'Unknown'} (${email})`,
+        );
+
         return new Response(
           JSON.stringify({ success: true }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
@@ -157,6 +164,12 @@ http.route({
             signupBonus,
           });
           console.log('User created via upsert with credits:', { userId: newUserId, email });
+
+          // Send Slack notification (no-op if webhook not configured)
+          await notifySlack(
+            'signups',
+            `👤 New signup: ${name || 'Unknown'} (${email})`,
+          );
         } else {
           console.log('User updated successfully:', id);
         }
@@ -315,6 +328,12 @@ http.route({
         });
 
         console.log('Credits added:', { userId, credits, paymentIntentId });
+
+        // Send Slack notification (no-op if webhook not configured)
+        await notifySlack(
+          'activity',
+          `💰 Credit purchase: ${user.name || user.email} bought ${credits} credits`,
+        );
 
         return new Response(
           JSON.stringify({ success: true }),
