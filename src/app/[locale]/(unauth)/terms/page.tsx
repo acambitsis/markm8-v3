@@ -46,10 +46,10 @@ export default async function TermsOfService(props: { params: Promise<{ locale: 
             <section className="mb-8">
               <h2 className="mb-4 text-2xl font-semibold text-slate-900">2. Eligibility and User Accounts</h2>
               <ul className="list-disc space-y-2 pl-6 text-slate-700">
-                <li>You must be at least 16 years old to use our Platform. If you are under 18, you confirm you have the consent of a parent or legal guardian.</li>
+                <li>Our Platform is intended for students and is generally used by those aged 16 and above. Users under 18 should have the consent of a parent or legal guardian.</li>
                 <li>Users must ensure the security of their account credentials and are responsible for all activity under their account.</li>
                 <li>We may suspend or terminate accounts in the event of breach of these Terms.</li>
-                <li>We may restrict access or eligibility based on age, jurisdiction, or other criteria at our discretion.</li>
+                <li>We may restrict access or eligibility based on jurisdiction or other criteria at our discretion.</li>
               </ul>
             </section>
 
@@ -163,11 +163,6 @@ export default async function TermsOfService(props: { params: Promise<{ locale: 
                     <strong>Signup Bonus:</strong>
                     {' '}
                     New users receive a free credit upon account creation.
-                  </li>
-                  <li>
-                    <strong>Minimum Purchase:</strong>
-                    {' '}
-                    Additional credits can be purchased with a minimum order of £5.00.
                   </li>
                   <li>
                     <strong>No Refunds:</strong>

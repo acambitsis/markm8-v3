@@ -93,7 +93,7 @@ export default async function PrivacyPolicy(props: { params: Promise<{ locale: s
                 <li>
                   <strong>Personal Identification Data:</strong>
                   {' '}
-                  Name, email address, university/school, country of residence, student ID (optional), profile photo (optional).
+                  Name, email address, institution/university (optional), profile photo (optional). We may also collect country of residence where relevant.
                 </li>
                 <li>
                   <strong>Account Data:</strong>
@@ -146,7 +146,7 @@ export default async function PrivacyPolicy(props: { params: Promise<{ locale: s
                 <li>Delivering AI-generated assignment feedback and grades.</li>
                 <li>Processing payments and managing credits.</li>
                 <li>Communicating important updates, support, or service notifications.</li>
-                <li>Research, analytics, and service development (using anonymized or aggregated data).</li>
+                <li>Research, analytics, and service development (using anonymized or aggregated data). Any analytics we conduct are solely to improve the Platform and will never be used in ways that prejudice your personal data or privacy.</li>
                 <li>Complying with legal obligations (including fraud prevention and academic integrity).</li>
                 <li>Enforcing our Terms of Use and protecting the integrity of our Platform.</li>
               </ul>
@@ -371,9 +371,9 @@ export default async function PrivacyPolicy(props: { params: Promise<{ locale: s
             <section className="mb-8">
               <h2 className="mb-4 text-2xl font-semibold text-slate-900">13. Children&apos;s Data</h2>
               <p className="text-slate-700">
-                Our Platform is intended for users aged 16 and above (or as permitted by applicable law).
-                We do not knowingly collect data from children under 16 without parental consent. If you
-                believe a child&apos;s data has been provided without appropriate consent, please contact us.
+                Our Platform is intended for students and is generally used by those aged 16 and above.
+                We do not knowingly collect data from children under 13. If you believe a child&apos;s
+                data has been provided without appropriate consent, please contact us.
               </p>
             </section>
 

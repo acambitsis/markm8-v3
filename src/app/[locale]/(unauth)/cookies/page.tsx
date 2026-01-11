@@ -70,7 +70,7 @@ export default async function CookiePolicy(props: { params: Promise<{ locale: st
                 <div className="rounded-lg border border-blue-200 bg-blue-50 p-6">
                   <h3 className="mb-3 text-xl font-semibold text-blue-900">b. Analytics Cookies</h3>
                   <p className="mb-2 text-slate-700">
-                    We may use analytics services to collect information about how users interact with our Platform. This helps us improve our service and understand usage patterns.
+                    We may use analytics services to help us understand how users interact with our Platform and to improve our service. Any analytics we conduct are solely for Platform improvement and will never be used in ways that prejudice your personal data or privacy.
                   </p>
                   <div className="mt-3 rounded-lg bg-blue-100 p-3">
                     <p className="font-medium text-blue-800">These cookies will only be set with your consent.</p>

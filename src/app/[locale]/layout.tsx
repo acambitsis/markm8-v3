@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, unstable_setRequestLocale } from 'next-intl/server';
 
+import { CookieConsent } from '@/components/CookieConsent';
 import { AllLocales, AppConfig } from '@/utils/AppConfig';
 import { getBaseUrl } from '@/utils/Helpers';
 
@@ -113,6 +114,7 @@ export default async function RootLayout(props: {
           messages={messages}
         >
           {props.children}
+          <CookieConsent />
         </NextIntlClientProvider>
       </body>
     </html>
