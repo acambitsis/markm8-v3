@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "greptile@claude-plugins-official": false,
+    "stripe@claude-plugins-official": true
+  }
+}
