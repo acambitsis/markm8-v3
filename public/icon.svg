@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <!-- Background -->
+  <rect width="32" height="32" rx="6" fill="url(#grad)"/>
+
+  <!-- Figure-8 shape -->
+  <ellipse cx="16" cy="10.5" rx="6" ry="5.5" fill="white"/>
+  <ellipse cx="16" cy="22" rx="7" ry="6" fill="white"/>
+
+  <!-- Inner cutouts for 8 -->
+  <ellipse cx="16" cy="10.5" rx="3" ry="2.8" fill="url(#grad)"/>
+  <ellipse cx="16" cy="22" rx="3.8" ry="3.2" fill="url(#grad)"/>
+
+  <!-- Top face - eyes and smile -->
+  <circle cx="14" cy="10" r="0.8" fill="white"/>
+  <circle cx="18" cy="10" r="0.8" fill="white"/>
+  <path d="M14 11.5 Q16 13 18 11.5" stroke="white" stroke-width="0.8" stroke-linecap="round" fill="none"/>
+
+  <!-- Bottom face - eyes and smile -->
+  <circle cx="14" cy="21" r="0.9" fill="white"/>
+  <circle cx="18" cy="21" r="0.9" fill="white"/>
+  <path d="M13.5 23 Q16 25 18.5 23" stroke="white" stroke-width="0.9" stroke-linecap="round" fill="none"/>
+
+  <!-- Graduation cap -->
+  <polygon points="16,2 8,5.5 16,9 24,5.5" fill="#2D1B4E"/>
+  <rect x="15" y="5.5" width="2" height="2" fill="#2D1B4E"/>
+  <line x1="22" y1="5.5" x2="23" y2="8" stroke="#2D1B4E" stroke-width="1"/>
+  <circle cx="23" cy="8.5" r="0.8" fill="#FCD34D"/>
+
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A78BFA"/>
+      <stop offset="100%" stop-color="#7C3AED"/>
+    </linearGradient>
+  </defs>
+</svg>
