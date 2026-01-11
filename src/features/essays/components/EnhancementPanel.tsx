@@ -193,12 +193,14 @@ export function EnhancementPanel({
         onToggle={() => toggleCard('instructions')}
       >
         <TextareaWithUpload
-          placeholder="Paste your assignment instructions here, or upload a document..."
-          className="min-h-32 resize-y"
+          placeholder="Paste your assignment instructions here..."
           maxLength={10000}
           value={instructions}
           onChange={onUpdateInstructions}
           uploadLabel="Upload instructions"
+          dropZoneTitle="Drop instructions here"
+          dropZoneSubtitle="PDF, Word, or text files"
+          minHeight="min-h-[160px]"
         />
       </EnhancementCard>
 
@@ -212,12 +214,14 @@ export function EnhancementPanel({
         onToggle={() => toggleCard('rubric')}
       >
         <TextareaWithUpload
-          placeholder="Paste your rubric here, or upload a document..."
-          className="min-h-32 resize-y"
+          placeholder="Paste your rubric criteria here..."
           maxLength={10000}
           value={rubric}
           onChange={onUpdateRubric}
           uploadLabel="Upload rubric"
+          dropZoneTitle="Drop rubric here"
+          dropZoneSubtitle="PDF, Word, or text files"
+          minHeight="min-h-[160px]"
         />
       </EnhancementCard>
 
