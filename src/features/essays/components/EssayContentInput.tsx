@@ -29,6 +29,8 @@ type Props = {
   disabled?: boolean;
 };
 
+type Mode = 'empty' | 'upload' | 'typing';
+
 // =============================================================================
 // Component
 // =============================================================================
@@ -55,8 +57,13 @@ export function EssayContentInput({
 
   const isProcessing = upload.state === 'uploading' || upload.state === 'processing';
   const hasError = upload.state === 'error';
-  const isUploadMode = uploadedFileName !== null;
-  const showEmptyState = !isUploadMode && !isTypingMode && value.length === 0;
+
+  // Determine current mode
+  const mode: Mode = uploadedFileName !== null
+    ? 'upload'
+    : (!isTypingMode && value.length === 0)
+        ? 'empty'
+        : 'typing';
 
   const { handleDragOver, handleDragLeave } = useDragHandlers(
     disabled,
@@ -133,6 +140,115 @@ export function EssayContentInput({
   };
 
   // ---------------------------------------------------------------------------
+  // Mode-specific Content Renderers
+  // ---------------------------------------------------------------------------
+
+  const renderUploadMode = () => (
+    <div
+      className={cn(
+        'rounded-md border bg-card',
+        isDragging && 'border-primary ring-2 ring-primary/20',
+        className,
+      )}
+    >
+      {/* File header */}
+      <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
+        <div className="flex items-center gap-2 text-sm">
+          <Lock className="size-4 text-muted-foreground" />
+          <span className="font-medium">{uploadedFileName}</span>
+          <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+            Read-only
+          </span>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleBrowseClick}
+            disabled={disabled || isProcessing}
+            className="h-7 px-2 text-xs"
+          >
+            <FileUp className="mr-1 size-3" />
+            Re-upload
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleClearUpload}
+            disabled={disabled || isProcessing}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+          >
+            <X className="size-3.5" />
+            <span className="sr-only">Clear upload</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Formatted content preview - skipHtml for XSS protection */}
+      <div className="max-h-[500px] min-h-[400px] cursor-default overflow-y-auto p-6">
+        <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground/70">
+          <Markdown skipHtml>{value}</Markdown>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderEmptyState = () => (
+    <UploadDropZone
+      icon={FileUp}
+      title="Drop your essay here"
+      subtitle="PDF, Word, or text files supported"
+      buttonLabel="Choose File"
+      onBrowse={handleBrowseClick}
+      onAlternative={handleSwitchToTyping}
+      alternativeIcon={Type}
+      alternativeLabel="Paste or type"
+      alternativeDescription="Write directly in the editor"
+      isDragging={isDragging}
+      isProcessing={isProcessing}
+      disabled={disabled}
+      minHeight="min-h-[400px]"
+      className={className}
+    />
+  );
+
+  const renderTypingMode = () => (
+    <>
+      <Textarea
+        ref={textareaRef}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        disabled={disabled || isProcessing}
+        placeholder={placeholder}
+        className={cn(
+          'min-h-[400px] resize-y text-base leading-relaxed',
+          'font-sans',
+          isDragging && 'border-primary bg-primary/5 ring-2 ring-primary/20',
+          isProcessing && 'opacity-50',
+          className,
+        )}
+      />
+
+      {/* Floating toolbar */}
+      <div className="absolute bottom-3 right-3 flex items-center gap-2">
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={handleBrowseClick}
+          disabled={disabled || isProcessing}
+          className="h-8 gap-1.5 text-xs shadow-sm"
+        >
+          <FileUp className="size-3.5" />
+          Replace with file
+        </Button>
+      </div>
+    </>
+  );
+
+  // ---------------------------------------------------------------------------
   // Render
   // ---------------------------------------------------------------------------
 
@@ -156,123 +272,14 @@ export function EssayContentInput({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        {isUploadMode
-          ? (
-              // Upload mode: Read-only formatted preview
-              <div
-                className={cn(
-                  'rounded-md border bg-card',
-                  isDragging && 'border-primary ring-2 ring-primary/20',
-                  className,
-                )}
-              >
-                {/* File header */}
-                <div className="flex items-center justify-between border-b bg-muted/30 px-4 py-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Lock className="size-4 text-muted-foreground" />
-                    <span className="font-medium">{uploadedFileName}</span>
-                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
-                      Read-only
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleBrowseClick}
-                      disabled={disabled || isProcessing}
-                      className="h-7 px-2 text-xs"
-                    >
-                      <FileUp className="mr-1 size-3" />
-                      Re-upload
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleClearUpload}
-                      disabled={disabled || isProcessing}
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                    >
-                      <X className="size-3.5" />
-                      <span className="sr-only">Clear upload</span>
-                    </Button>
-                  </div>
-                </div>
+        {/* Mode-specific content */}
+        {mode === 'upload' && renderUploadMode()}
+        {mode === 'empty' && renderEmptyState()}
+        {mode === 'typing' && renderTypingMode()}
 
-                {/* Formatted content preview - skipHtml for XSS protection */}
-                <div className="max-h-[500px] min-h-[400px] cursor-default overflow-y-auto p-6">
-                  <div className="prose prose-sm prose-neutral dark:prose-invert max-w-none text-foreground/70">
-                    <Markdown skipHtml>{value}</Markdown>
-                  </div>
-                </div>
-
-                <DragOverlay isDragging={isDragging} />
-                <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
-              </div>
-            )
-          : showEmptyState
-            ? (
-                // Empty state: Prominent upload zone with paste option
-                <div className="relative">
-                  <UploadDropZone
-                    icon={FileUp}
-                    title="Drop your essay here"
-                    subtitle="PDF, Word, or text files supported"
-                    buttonLabel="Choose File"
-                    onBrowse={handleBrowseClick}
-                    onAlternative={handleSwitchToTyping}
-                    alternativeIcon={Type}
-                    alternativeLabel="Paste or type"
-                    alternativeDescription="Write directly in the editor"
-                    isDragging={isDragging}
-                    isProcessing={isProcessing}
-                    disabled={disabled}
-                    minHeight="min-h-[400px]"
-                    className={className}
-                  />
-                  <DragOverlay isDragging={isDragging} />
-                  <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
-                </div>
-              )
-            : (
-                // Typing mode: Editable textarea with upload option
-                <div className="relative">
-                  <Textarea
-                    ref={textareaRef}
-                    value={value}
-                    onChange={e => onChange(e.target.value)}
-                    disabled={disabled || isProcessing}
-                    placeholder={placeholder}
-                    className={cn(
-                      'min-h-[400px] resize-y text-base leading-relaxed',
-                      'font-sans',
-                      isDragging && 'border-primary bg-primary/5 ring-2 ring-primary/20',
-                      isProcessing && 'opacity-50',
-                      className,
-                    )}
-                  />
-
-                  {/* Floating toolbar */}
-                  <div className="absolute bottom-3 right-3 flex items-center gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={handleBrowseClick}
-                      disabled={disabled || isProcessing}
-                      className="h-8 gap-1.5 text-xs shadow-sm"
-                    >
-                      <FileUp className="size-3.5" />
-                      Replace with file
-                    </Button>
-                  </div>
-
-                  <DragOverlay isDragging={isDragging} />
-                  <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
-                </div>
-              )}
+        {/* Overlays - rendered once, AnimatePresence handles visibility */}
+        <DragOverlay isDragging={isDragging} />
+        <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
       </div>
 
       <UploadError error={hasError ? upload.error : null} onDismiss={() => upload.reset()} />

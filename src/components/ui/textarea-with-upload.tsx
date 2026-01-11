@@ -176,53 +176,46 @@ export function TextareaWithUpload({
             )
           : (
               // Has content or typing mode: Editable textarea with upload option
-              <div className="relative">
-                <Textarea
-                  ref={textareaRef}
-                  value={value}
-                  onChange={e => onChange(e.target.value)}
-                  disabled={disabled || isProcessing}
-                  placeholder={placeholder}
-                  className={cn(
-                    'resize-y transition-all duration-200',
-                    minHeight,
-                    isDragging && 'border-primary bg-primary/5 ring-2 ring-primary/20',
-                    isProcessing && 'opacity-50',
-                    className,
-                  )}
-                  {...textareaProps}
-                />
-
-                {/* Upload button in corner - more visible than before */}
-                <button
-                  type="button"
-                  onClick={handleBrowseClick}
-                  disabled={disabled || isProcessing}
-                  className={cn(
-                    'absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5',
-                    'border border-border/50 bg-background/90 text-xs font-medium text-muted-foreground',
-                    'transition-all hover:border-primary/30 hover:bg-background hover:text-foreground',
-                    'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                    'disabled:pointer-events-none disabled:opacity-50',
-                  )}
-                  aria-label={uploadLabel}
-                >
-                  <FileUp className="size-3.5" />
-                  <span className="hidden sm:inline">Upload</span>
-                </button>
-
-                <DragOverlay isDragging={isDragging} />
-                <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
-              </div>
+              <Textarea
+                ref={textareaRef}
+                value={value}
+                onChange={e => onChange(e.target.value)}
+                disabled={disabled || isProcessing}
+                placeholder={placeholder}
+                className={cn(
+                  'resize-y transition-all duration-200',
+                  minHeight,
+                  isDragging && 'border-primary bg-primary/5 ring-2 ring-primary/20',
+                  isProcessing && 'opacity-50',
+                  className,
+                )}
+                {...textareaProps}
+              />
             )}
 
-        {/* Overlays for empty state */}
-        {showEmptyState && (
-          <>
-            <DragOverlay isDragging={isDragging} />
-            <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
-          </>
+        {/* Upload button - only shown when textarea is visible */}
+        {!showEmptyState && (
+          <button
+            type="button"
+            onClick={handleBrowseClick}
+            disabled={disabled || isProcessing}
+            className={cn(
+              'absolute bottom-3 right-3 flex items-center gap-1.5 rounded-md px-2.5 py-1.5',
+              'border border-border/50 bg-background/90 text-xs font-medium text-muted-foreground',
+              'transition-all hover:border-primary/30 hover:bg-background hover:text-foreground',
+              'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+              'disabled:pointer-events-none disabled:opacity-50',
+            )}
+            aria-label={uploadLabel}
+          >
+            <FileUp className="size-3.5" />
+            <span className="hidden sm:inline">Upload</span>
+          </button>
         )}
+
+        {/* Overlays - rendered once, AnimatePresence handles visibility */}
+        <DragOverlay isDragging={isDragging} />
+        <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
       </div>
 
       <UploadError error={hasError ? upload.error : null} onDismiss={() => upload.reset()} />
