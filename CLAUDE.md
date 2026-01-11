@@ -325,10 +325,10 @@ Locations:
 ## Deployment & DevOps
 
 **Environments:**
-| Environment | Branch | Convex | Vercel | Clerk |
-|-------------|--------|--------|--------|-------|
-| Development | `dev` | brazen-buffalo-798 | Preview | dear-drum-37 (test) |
-| Production | `main` | lovely-swordfish-944 | Production | clerk.markm8.com (live) |
+| Environment | Branch | URL | Convex | Clerk |
+|-------------|--------|-----|--------|-------|
+| Development | `dev` | dev.markm8.com | brazen-buffalo-798 | dear-drum-37 (test) |
+| Production | `main` | markm8.com | lovely-swordfish-944 | clerk.markm8.com (live) |
 
 **Deployment triggers:**
 | Trigger | Convex Deploy | Vercel Deploy |
