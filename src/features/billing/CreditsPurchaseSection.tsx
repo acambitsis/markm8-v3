@@ -32,20 +32,20 @@ export function CreditsPurchaseSection() {
   return (
     <div className="space-y-6">
       {success && (
-        <Alert className="border-green-500 bg-green-50 text-green-800 dark:bg-green-950 dark:text-green-100">
-          <CheckCircle2 className="size-4 text-green-600 dark:text-green-400" />
+        <Alert className="border-primary/20 bg-primary/10">
+          <CheckCircle2 className="size-4 text-primary" />
           <AlertTitle>{t('payment_success_title')}</AlertTitle>
-          <AlertDescription className="text-green-700 dark:text-green-200">
+          <AlertDescription className="text-muted-foreground">
             {t('payment_success_description')}
           </AlertDescription>
         </Alert>
       )}
 
       {canceled && (
-        <Alert className="border-yellow-500 bg-yellow-50 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-100">
-          <XCircle className="size-4 text-yellow-600 dark:text-yellow-400" />
+        <Alert className="border-border bg-muted">
+          <XCircle className="size-4 text-muted-foreground" />
           <AlertTitle>{t('payment_canceled_title')}</AlertTitle>
-          <AlertDescription className="text-yellow-700 dark:text-yellow-200">
+          <AlertDescription className="text-muted-foreground">
             {t('payment_canceled_description')}
           </AlertDescription>
         </Alert>
