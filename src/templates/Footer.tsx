@@ -121,9 +121,19 @@ export const Footer = () => {
           </motion.div>
         </div>
 
+        {/* Disclaimer */}
+        <motion.p
+          className="mt-12 text-center text-xs text-slate-400"
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ delay: 0.25, duration: 0.5 }}
+        >
+          {t('disclaimer')}
+        </motion.p>
+
         {/* Bottom bar */}
         <motion.div
-          className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-8 md:flex-row"
+          className="mt-8 flex flex-col items-center justify-between gap-4 border-t border-slate-200 pt-8 md:flex-row"
           initial={{ opacity: 0 }}
           animate={isInView ? { opacity: 1 } : { opacity: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}

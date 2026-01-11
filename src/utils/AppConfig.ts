@@ -21,9 +21,9 @@ export const AppConfig = {
   localePrefix,
   // SEO defaults (English fallback for root layout metadata)
   seo: {
-    title: 'AI Essay Grading for Students',
-    description: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade. Just $1 per essay.',
-    descriptionShort: 'Get instant AI-powered essay feedback aligned with university grading standards. Three AI models, one comprehensive grade.',
+    title: 'AI Essay Feedback for Students',
+    description: 'Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students. Just $1 per essay.',
+    descriptionShort: 'Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students.',
   },
 };
 

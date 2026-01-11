@@ -1,7 +1,7 @@
 {
   "Index": {
-    "meta_title": "MarkM8 - Correction d'essais par IA pour étudiants universitaires",
-    "meta_description": "Obtenez des commentaires instantanés sur vos essais par IA, alignés sur les standards universitaires. Trois modèles IA. Une note complète. Seulement 1$ par essai."
+    "meta_title": "MarkM8 - Feedback IA pour essais étudiants",
+    "meta_description": "Obtenez des commentaires exploitables avec une fourchette de notes indicative et des améliorations ciblées. Conçu par des étudiants, pour des étudiants. Seulement 1$ par essai."
   },
   "Navbar": {
     "how_it_works": "Comment ça marche",
@@ -13,46 +13,47 @@
   },
   "Hero": {
     "trust_badge_rating": "4.9/5",
-    "trust_badge_count": "de plus de 2 000 étudiants",
-    "title": "Faites <gradient>corriger votre essai par IA</gradient> en moins de 5 minutes",
-    "description": "Commentaires instantanés alignés sur les standards universitaires. Trois modèles IA. Une note complète. Seulement 1$ par essai.",
+    "trust_badge_count": "des testeurs bêta",
+    "title": "Prêt à <gradient>améliorer votre note</gradient> ?",
+    "description": "Voyez où vous en êtes avant de soumettre. Obtenez une note estimée, sachez exactement quoi améliorer et rendez votre meilleur travail — à chaque fois.",
     "primary_button": "Corriger mon essai",
     "secondary_button": "Connexion",
-    "privacy_note": "Votre essai n'est jamais stocké ni partagé"
+    "privacy_note": "Vos données restent privées — utilisées uniquement pour vos commentaires",
+    "disclaimer": "Les notes sont des estimations et ne remplacent pas une correction formelle."
   },
   "TrustStrip": {
-    "university_grade": "Commentaires de niveau universitaire",
+    "university_grade": "Feedback formatif pour l'apprentissage",
     "privacy": "100% Privé et Sécurisé",
-    "speed": "Résultats en ~3 minutes",
-    "ai_models": "3 modèles IA pour plus de précision"
+    "speed": "Résultats en ~2 minutes",
+    "ai_models": "IA de pointe, conçue sur mesure"
   },
   "HowItWorks": {
     "section_subtitle": "Processus simple",
     "section_title": "Comment ça marche",
-    "section_description": "Faites corriger votre essai en trois étapes simples",
+    "section_description": "Obtenez des commentaires exploitables en trois étapes simples",
     "step1_title": "Soumettez votre essai",
-    "step1_description": "Collez votre essai avec les consignes et la grille d'évaluation. Notre système accepte tous les formats.",
+    "step1_description": "Téléchargez un fichier (DOCX, PDF, TXT) ou collez votre essai avec les consignes et la grille d'évaluation.",
     "step2_title": "Analyse IA",
-    "step2_description": "Trois modèles IA indépendants corrigent votre essai en parallèle, garantissant des commentaires équilibrés et précis.",
+    "step2_description": "Des modèles IA de pointe, optimisés pour la correction académique, analysent votre essai en parallèle.",
     "step3_title": "Obtenez vos résultats",
-    "step3_description": "Recevez une fourchette de notes détaillée, une analyse des points forts et des suggestions d'amélioration spécifiques."
+    "step3_description": "Voyez votre note estimée et exactement quoi corriger. Faites des améliorations ciblées et soumettez en toute confiance."
   },
   "Features": {
     "section_subtitle": "Pourquoi MarkM8",
-    "section_title": "Tout ce qu'il vous faut pour de meilleures notes",
-    "section_description": "Des commentaires instantanés et précis pour vous améliorer avant de soumettre",
-    "feature1_title": "Consensus Triple IA",
-    "feature1_description": "Trois modèles IA indépendants corrigent votre essai en parallèle. Les valeurs aberrantes sont détectées et exclues pour plus de précision.",
-    "feature2_title": "Commentaires détaillés",
-    "feature2_description": "Obtenez une fourchette de notes, pas un seul chiffre. Voyez exactement où votre essai excelle et où il doit être amélioré.",
+    "section_title": "Meilleurs essais. Meilleures notes.",
+    "section_description": "Voyez où vous en êtes avant de soumettre",
+    "feature1_title": "IA de pointe",
+    "feature1_description": "Les meilleurs modèles IA disponibles, conçus et optimisés spécifiquement pour la correction d'essais académiques.",
+    "feature2_title": "Commentaires exploitables",
+    "feature2_description": "Arrêtez de vous demander si votre essai est assez bon. Voyez votre note estimée et exactement quoi corriger pour l'améliorer.",
     "feature3_title": "Aligné sur la grille",
-    "feature3_description": "Téléchargez votre grille d'évaluation et notre IA corrige en fonction, comme le ferait votre professeur.",
+    "feature3_description": "Téléchargez votre grille d'évaluation et notre IA analyse en fonction, comme le ferait votre professeur.",
     "feature4_title": "Résultats rapides",
-    "feature4_description": "Plus d'attente. Obtenez des commentaires complets en moins de 5 minutes, à tout moment.",
+    "feature4_description": "Plus d'attente. Obtenez des commentaires complets en environ 2 minutes, à tout moment.",
     "feature5_title": "Paiement par essai",
-    "feature5_description": "Pas d'abonnement. Achetez des crédits quand vous en avez besoin. Un crédit = un essai corrigé.",
+    "feature5_description": "Pas d'abonnement. Achetez des crédits quand vous en avez besoin. Un crédit = un essai analysé.",
     "feature6_title": "Privé et sécurisé",
-    "feature6_description": "Vos essais ne sont jamais stockés, partagés ou utilisés pour l'entraînement. Corrigez en toute confiance."
+    "feature6_description": "Vos données restent privées et ne sont utilisées que pour vos commentaires. Jamais partagées ni utilisées pour l'entraînement IA."
   },
   "SampleFeedback": {
     "section_subtitle": "Voyez les vrais résultats",
@@ -63,8 +64,8 @@
   },
   "Testimonials": {
     "section_subtitle": "Avis des étudiants",
-    "section_title": "La confiance de milliers d'étudiants",
-    "section_description": "Découvrez ce que les étudiants disent de MarkM8",
+    "section_title": "Ce que disent les étudiants",
+    "section_description": "Retours d'étudiants qui ont utilisé MarkM8",
     "testimonial1_quote": "MarkM8 m'a aidé à comprendre exactement où mon essai était faible. Les commentaires étaient spécifiques et exploitables.",
     "testimonial1_author": "Sarah M.",
     "testimonial1_role": "Étudiante en psychologie, UCLA",
@@ -101,28 +102,28 @@
     "cta_note": "1 crédit gratuit à l'inscription",
     "trust_no_expiry": "Les crédits n'expirent jamais",
     "trust_secure": "Paiement sécurisé via Stripe",
-    "trust_fast": "Résultats en moins de 5 minutes"
+    "trust_fast": "Résultats en ~2 minutes"
   },
   "FAQ": {
     "section_subtitle": "Questions fréquentes",
     "section_title": "Foire aux questions",
     "section_description": "Tout ce que vous devez savoir sur MarkM8",
-    "question1": "Comment fonctionne la correction par IA ?",
-    "answer1": "MarkM8 utilise trois modèles IA indépendants pour corriger votre essai en parallèle. Chaque modèle évalue votre travail selon votre grille, puis nous utilisons un score de consensus pour fournir une fourchette de notes précise. Les valeurs aberrantes sont automatiquement détectées et exclues.",
-    "question2": "Mon essai est-il stocké ou partagé ?",
-    "answer2": "Non. Votre essai est traité en temps réel et immédiatement supprimé après la correction. Nous ne stockons, partageons ou utilisons jamais vos essais pour l'entraînement de l'IA. Votre travail académique reste totalement privé.",
-    "question3": "Quelle est la précision de la correction ?",
-    "answer3": "Notre approche de consensus triple IA fournit des notes qui s'alignent étroitement sur les standards universitaires. En utilisant trois modèles et en excluant les valeurs aberrantes, nous obtenons des résultats plus fiables que les systèmes à modèle unique.",
+    "question1": "Comment fonctionne le feedback IA ?",
+    "answer1": "MarkM8 utilise des modèles IA de pointe, conçus pour la correction académique, pour analyser votre essai. Chaque modèle évalue votre travail selon votre grille pour fournir des commentaires équilibrés et fiables avec une fourchette de notes estimée.",
+    "question2": "Mes données sont-elles sécurisées ?",
+    "answer2": "Oui. Votre essai est stocké de manière sécurisée et utilisé uniquement pour vos commentaires. Nous ne partageons jamais votre travail et ne l'utilisons pas pour l'entraînement IA. Vos données restent privées et ne sont utilisées que pour leur usage prévu.",
+    "question3": "Quelle est la fiabilité des commentaires ?",
+    "answer3": "Notre IA est optimisée spécifiquement pour la correction d'essais académiques — ce n'est pas une IA générique. En utilisant les meilleurs modèles disponibles, nous obtenons des résultats plus équilibrés que les outils génériques. Les notes sont des estimations pour guider votre progression.",
     "question4": "Quels types d'essais puis-je soumettre ?",
-    "answer4": "MarkM8 fonctionne avec tout type d'essai académique - argumentatif, analytique, mémoires de recherche, revues de littérature, et plus encore. Collez simplement votre essai, les consignes et la grille pour les meilleurs résultats.",
-    "question5": "Combien de temps prend la correction ?",
-    "answer5": "La plupart des essais sont corrigés en moins de 3 minutes. Les essais complexes ou plus longs peuvent prendre jusqu'à 5 minutes. Vous verrez des mises à jour en temps réel pendant l'analyse de votre essai.",
-    "question6": "Que faire si je ne suis pas d'accord avec la note ?",
-    "answer6": "Vous pouvez recorriger n'importe quel essai en utilisant un autre crédit. Chaque correction est indépendante, vous pouvez donc obtenir des commentaires légèrement différents. La fourchette de notes que nous fournissons tient compte de la variation naturelle dans l'évaluation."
+    "answer4": "MarkM8 fonctionne avec tout type d'essai académique - argumentatif, analytique, mémoires de recherche, revues de littérature, et plus encore. Téléchargez un fichier (DOCX, PDF, TXT) ou collez votre essai avec les consignes et la grille.",
+    "question5": "Combien de temps ça prend ?",
+    "answer5": "La plupart des essais sont analysés en environ 2 minutes. Vous verrez des mises à jour en temps réel pendant l'analyse de votre essai.",
+    "question6": "Et si je veux d'autres commentaires ?",
+    "answer6": "Vous pouvez soumettre à nouveau n'importe quel essai en utilisant un autre crédit. Chaque analyse est indépendante, vous pouvez donc obtenir des perspectives légèrement différentes. C'est une fonctionnalité, pas un bug — cela reflète comment différents correcteurs pourraient voir votre travail."
   },
   "CTA": {
-    "title": "Prêt à améliorer vos essais ?",
-    "description": "Rejoignez des milliers d'étudiants qui obtiennent de meilleures notes grâce aux commentaires instantanés par IA. Commencez avec un crédit gratuit.",
+    "title": "Prêt à voir votre note ?",
+    "description": "Voyez où vous en êtes avant de soumettre. Votre premier essai est gratuit.",
     "primary_button": "Commencer gratuitement",
     "secondary_button": "Connexion",
     "note": "Pas de carte de crédit requise. 1 crédit gratuit à l'inscription."
@@ -135,7 +136,8 @@
     "terms": "Conditions",
     "privacy": "Confidentialité",
     "all_rights_reserved": "Tous droits réservés.",
-    "designed_by": "Créé avec <author></author>"
+    "designed_by": "Créé avec <author></author>",
+    "disclaimer": "MarkM8 fournit un feedback formatif pour soutenir l'apprentissage. Les notes sont des estimations et ne remplacent pas une correction académique formelle."
   },
   "ProtectFallback": {
     "not_enough_permission": "Vous n'avez pas les permissions pour effectuer cette action"
