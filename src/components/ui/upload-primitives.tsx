@@ -5,6 +5,7 @@ import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, Loader2, Upload } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import type { UploadState } from '@/hooks/useDocumentUpload';
 import { cn } from '@/utils/Helpers';
 
 // =============================================================================
@@ -165,8 +166,6 @@ export function DragOverlay({ isDragging, label = 'Drop file here' }: DragOverla
 // =============================================================================
 // ProcessingOverlay - Shown during file upload/processing
 // =============================================================================
-
-type UploadState = 'idle' | 'drag-over' | 'uploading' | 'processing' | 'success' | 'error';
 
 type ProcessingOverlayProps = {
   isProcessing: boolean;
