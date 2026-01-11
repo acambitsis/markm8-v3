@@ -1,14 +1,20 @@
 'use client';
 
-import { AnimatePresence, motion } from 'framer-motion';
-import { AlertCircle, FileUp, Loader2, Lock, Type, Upload, X } from 'lucide-react';
+import { FileUp, Lock, Type, X } from 'lucide-react';
 import type React from 'react';
 import { useCallback, useRef, useState } from 'react';
 import Markdown from 'react-markdown';
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DragOverlay,
+  ProcessingOverlay,
+  UploadDropZone,
+  UploadError,
+} from '@/components/ui/upload-primitives';
 import { useDocumentUpload } from '@/hooks/useDocumentUpload';
+import { useDragHandlers } from '@/hooks/useDragHandlers';
 import { cn } from '@/utils/Helpers';
 
 // =============================================================================
@@ -28,16 +34,17 @@ type Props = {
 // =============================================================================
 
 /**
- * Essay content input with two modes:
- * - Paste mode: Editable textarea with proportional font for manual input
+ * Essay content input with three modes:
+ * - Empty state: Prominent upload zone with paste option
  * - Upload mode: Read-only formatted markdown preview for uploaded documents
+ * - Typing mode: Editable textarea with proportional font for manual input
  */
 export function EssayContentInput({
   value,
   onChange,
   placeholder,
   className,
-  disabled,
+  disabled = false,
 }: Props) {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
@@ -51,28 +58,16 @@ export function EssayContentInput({
   const isUploadMode = uploadedFileName !== null;
   const showEmptyState = !isUploadMode && !isTypingMode && value.length === 0;
 
-  // ---------------------------------------------------------------------------
-  // Drag & Drop Handlers
-  // ---------------------------------------------------------------------------
-
-  const handleDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (!disabled && !isProcessing) {
-        setIsDragging(true);
-      }
-    },
-    [disabled, isProcessing],
+  const { handleDragOver, handleDragLeave } = useDragHandlers(
+    disabled,
+    isProcessing,
+    setIsDragging,
   );
 
-  const handleDragLeave = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  }, []);
+  // ---------------------------------------------------------------------------
+  // File Handlers
+  // ---------------------------------------------------------------------------
 
-  // Process uploaded file and update state
   const processFile = useCallback(
     async (file: File) => {
       const result = await upload.upload(file);
@@ -103,10 +98,6 @@ export function EssayContentInput({
     [disabled, isProcessing, processFile],
   );
 
-  // ---------------------------------------------------------------------------
-  // File Selection Handler
-  // ---------------------------------------------------------------------------
-
   const handleFileSelect = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -136,8 +127,9 @@ export function EssayContentInput({
     onChange('');
   };
 
-  const handleClearError = () => {
-    upload.reset();
+  const handleSwitchToTyping = () => {
+    setIsTypingMode(true);
+    setTimeout(() => textareaRef.current?.focus(), 50);
   };
 
   // ---------------------------------------------------------------------------
@@ -215,85 +207,37 @@ export function EssayContentInput({
                     <Markdown skipHtml>{value}</Markdown>
                   </div>
                 </div>
+
+                <DragOverlay isDragging={isDragging} />
+                <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
               </div>
             )
           : showEmptyState
             ? (
                 // Empty state: Prominent upload zone with paste option
-                <div
-                  className={cn(
-                    'relative min-h-[400px] rounded-lg border-2 border-dashed',
-                    'flex flex-col items-center justify-center gap-6 p-8',
-                    'transition-all duration-200',
-                    isDragging
-                      ? 'border-primary bg-primary/5'
-                      : 'border-muted-foreground/25 bg-muted/30 hover:border-muted-foreground/40 hover:bg-muted/40',
-                    isProcessing && 'pointer-events-none opacity-50',
-                    className,
-                  )}
-                >
-                  {/* Upload section */}
-                  <div className="flex flex-col items-center gap-4 text-center">
-                    <div className="rounded-full bg-primary/10 p-4">
-                      <FileUp className="size-8 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-semibold text-foreground">
-                        Drop your essay here
-                      </h3>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        PDF, Word, or text files supported
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="default"
-                      size="lg"
-                      onClick={handleBrowseClick}
-                      disabled={disabled || isProcessing}
-                      className="mt-2 gap-2"
-                    >
-                      <Upload className="size-4" />
-                      Choose File
-                    </Button>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="flex w-full max-w-xs items-center gap-4">
-                    <div className="h-px flex-1 bg-border" />
-                    <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                      or
-                    </span>
-                    <div className="h-px flex-1 bg-border" />
-                  </div>
-
-                  {/* Paste option */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTypingMode(true);
-                      // Focus the textarea after it renders
-                      setTimeout(() => textareaRef.current?.focus(), 50);
-                    }}
-                    disabled={disabled || isProcessing}
-                    className={cn(
-                      'group flex items-center gap-3 rounded-lg border border-border/50 bg-background/50 px-6 py-3',
-                      'transition-all hover:border-border hover:bg-background hover:shadow-sm',
-                      'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-                    )}
-                  >
-                    <div className="rounded-md bg-muted p-2 transition-colors group-hover:bg-muted/80">
-                      <Type className="size-4 text-muted-foreground" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-sm font-medium text-foreground">Paste or type</p>
-                      <p className="text-xs text-muted-foreground">Write directly in the editor</p>
-                    </div>
-                  </button>
+                <div className="relative">
+                  <UploadDropZone
+                    icon={FileUp}
+                    title="Drop your essay here"
+                    subtitle="PDF, Word, or text files supported"
+                    buttonLabel="Choose File"
+                    onBrowse={handleBrowseClick}
+                    onAlternative={handleSwitchToTyping}
+                    alternativeIcon={Type}
+                    alternativeLabel="Paste or type"
+                    alternativeDescription="Write directly in the editor"
+                    isDragging={isDragging}
+                    isProcessing={isProcessing}
+                    disabled={disabled}
+                    minHeight="min-h-[400px]"
+                    className={className}
+                  />
+                  <DragOverlay isDragging={isDragging} />
+                  <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
                 </div>
               )
             : (
-                // Has content or typing mode: Editable textarea with upload option
+                // Typing mode: Editable textarea with upload option
                 <div className="relative">
                   <Textarea
                     ref={textareaRef}
@@ -324,74 +268,14 @@ export function EssayContentInput({
                       Replace with file
                     </Button>
                   </div>
+
+                  <DragOverlay isDragging={isDragging} />
+                  <ProcessingOverlay isProcessing={isProcessing} state={upload.state} />
                 </div>
               )}
-
-        {/* Drag overlay */}
-        <AnimatePresence>
-          {isDragging && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center rounded-md border-2 border-dashed border-primary bg-primary/10"
-            >
-              <div className="flex flex-col items-center gap-2 text-primary">
-                <Upload className="size-8" />
-                <p className="text-sm font-medium">Drop file here</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* Processing overlay */}
-        <AnimatePresence>
-          {isProcessing && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center rounded-md bg-background/80 backdrop-blur-sm"
-            >
-              <div className="flex flex-col items-center gap-3 text-center">
-                <Loader2 className="size-8 animate-spin text-primary" />
-                <div>
-                  <p className="font-medium">
-                    {upload.state === 'uploading' ? 'Uploading...' : 'Processing document...'}
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {upload.state === 'processing' ? 'Extracting text (2-5 seconds)' : 'Please wait'}
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
 
-      {/* Error message */}
-      <AnimatePresence>
-        {hasError && upload.error && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="mt-2 flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"
-          >
-            <AlertCircle className="size-4 shrink-0 text-destructive" />
-            <div className="flex-1">
-              <p className="text-sm text-destructive">{upload.error.message}</p>
-              <button
-                type="button"
-                onClick={handleClearError}
-                className="mt-1 text-xs text-muted-foreground underline hover:text-foreground"
-              >
-                Dismiss
-              </button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <UploadError error={hasError ? upload.error : null} onDismiss={() => upload.reset()} />
     </div>
   );
 }
