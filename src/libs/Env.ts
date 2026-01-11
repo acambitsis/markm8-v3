@@ -15,7 +15,7 @@ export const Env = createEnv({
     STRIPE_SECRET_KEY: z.string().min(1),
     STRIPE_WEBHOOK_SECRET: z.string().min(1),
     BILLING_PLAN_ENV: z.enum(['dev', 'test', 'prod']).optional(),
-    OPENROUTER_API_KEY: z.string().min(1).optional(), // Required for AI grading + document parsing (Gemini Flash)
+    OPENROUTER_API_KEY: z.string().min(1).optional(), // Required for AI grading (Convex) + PDF parsing (Gemini Flash)
     CLERK_WEBHOOK_SECRET: z.string().min(1).optional(), // Required for user lifecycle (Phase 3)
   },
   client: {
