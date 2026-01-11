@@ -2,5 +2,13 @@
   "enabledPlugins": {
     "greptile@claude-plugins-official": false,
     "stripe@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "mcp__convex",
+      "mcp__clerk",
+      "mcp__plugin_stripe_stripe",
+      "mcp__plugin_sentry_sentry"
+    ]
   }
 }
