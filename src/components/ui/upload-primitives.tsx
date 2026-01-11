@@ -189,7 +189,7 @@ export function ProcessingOverlay({ isProcessing, state }: ProcessingOverlayProp
                 {state === 'uploading' ? 'Uploading...' : 'Processing document...'}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {state === 'processing' ? 'Extracting text (2-5 seconds)' : 'Please wait'}
+                {state === 'processing' ? 'Preparing document for AI analysis' : 'Please wait'}
               </p>
             </div>
           </div>
