@@ -131,6 +131,36 @@ Update endpoints to production Convex URL:
 
 ---
 
+## Production Monitoring
+
+### Error Tracking (Sentry)
+
+Sentry captures frontend errors with stack traces and session replay.
+
+**Setup:**
+1. Create project at [sentry.io](https://sentry.io) → Select Next.js
+2. Add DSN to Vercel: `NEXT_PUBLIC_SENTRY_DSN`
+3. Deploy
+
+**Configuration:**
+- 100% sampling in development, 10% in production (cost control)
+- Session replay enabled on errors
+- Config files: `sentry.client.config.ts`, `src/instrumentation.ts`
+
+**Testing:**
+Admin Settings (`/admin/settings`) → Monitoring → "Send Test Error"
+
+### Uptime Monitoring (UptimeRobot)
+
+Alerts when the site is unreachable.
+
+**Setup:**
+1. Create account at [uptimerobot.com](https://uptimerobot.com)
+2. Add HTTP(s) monitor for `https://markm8.com`
+3. Set 5-minute interval, add email alerts
+
+---
+
 ## Troubleshooting
 
 **"Unauthorized: User not found in database"**
