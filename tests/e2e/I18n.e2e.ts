@@ -5,12 +5,12 @@ test.describe('I18n', () => {
     test('should switch language from English to French using dropdown and verify text on the homepage', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByRole('heading', { name: 'Get Your Essay Graded by AI' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Ready to Improve Your Grade/i })).toBeVisible();
 
       await page.getByRole('button', { name: 'lang-switcher' }).click();
       await page.getByText('Français').click();
 
-      await expect(page.getByRole('heading', { name: /corriger votre essai par IA/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Prêt à améliorer votre note/i })).toBeVisible();
     });
 
     // Skip in CI - Clerk sign-in pages depend on external resources that timeout

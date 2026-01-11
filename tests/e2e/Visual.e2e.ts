@@ -6,7 +6,7 @@ test.describe('Visual testing', () => {
     test('should take screenshot of the homepage', async ({ page }) => {
       await page.goto('/');
 
-      await expect(page.getByRole('heading', { name: 'Get Your Essay Graded by AI' })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Ready to Improve Your Grade/i })).toBeVisible();
 
       await percySnapshot(page, 'Homepage');
     });
@@ -14,7 +14,7 @@ test.describe('Visual testing', () => {
     test('should take screenshot of the French homepage', async ({ page }) => {
       await page.goto('/fr');
 
-      await expect(page.getByRole('heading', { name: /corriger votre essai par IA/i })).toBeVisible();
+      await expect(page.getByRole('heading', { name: /Prêt à améliorer votre note/i })).toBeVisible();
 
       await percySnapshot(page, 'Homepage - French');
     });
