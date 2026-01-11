@@ -150,14 +150,16 @@ Sentry captures frontend errors with stack traces and session replay.
 **Testing:**
 Admin Settings (`/admin/settings`) → Monitoring → "Send Test Error"
 
-### Uptime Monitoring (UptimeRobot)
+### Uptime Monitoring
 
-Alerts when the site is unreachable.
+Redundant uptime checks from two providers:
 
-**Setup:**
-1. Create account at [uptimerobot.com](https://uptimerobot.com)
-2. Add HTTP(s) monitor for `https://markm8.com`
-3. Set 5-minute interval, add email alerts
+| Provider | Interval | Dashboard |
+|----------|----------|-----------|
+| Sentry Uptime | 5 min | sentry.io → Alerts |
+| UptimeRobot | 5 min | uptimerobot.com |
+
+Both alert via email when `https://markm8.com` is unreachable.
 
 ---
 
