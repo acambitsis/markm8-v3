@@ -65,7 +65,7 @@ function formatPrice(pricePerMillion: number | undefined): string {
   if (pricePerMillion === undefined) {
     return '';
   }
-  return `$${pricePerMillion.toFixed(2)}/M`;
+  return `$${pricePerMillion.toFixed(2)}/M`; // OpenRouter prices are in USD
 }
 
 // Default fallback model (used only if catalog is empty)

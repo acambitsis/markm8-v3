@@ -22,7 +22,7 @@ export const AppConfig = {
   // SEO defaults (English fallback for root layout metadata)
   seo: {
     title: 'AI Essay Feedback for Students',
-    description: 'Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students. Just $1 per essay.',
+    description: 'Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students. Just £1 per essay.',
     descriptionShort: 'Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students.',
   },
 };
@@ -63,7 +63,7 @@ export const CREDIT_PACKAGE_ID = {
   MEGA: 'mega',
 } as const;
 
-// Credit packages - fixed rate: $1.00 per credit (no discounts)
+// Credit packages - fixed rate: £1.00 per credit (no discounts)
 export const CreditPackageList: Record<string, CreditPackage> = {
   [CREDIT_PACKAGE_ID.SINGLE]: {
     id: CREDIT_PACKAGE_ID.SINGLE,

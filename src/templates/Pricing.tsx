@@ -121,10 +121,10 @@ export const Pricing = () => {
                     <span className="text-6xl font-bold tracking-tight text-slate-900 md:text-7xl">
                       {isInView
                         ? (
-                            <AnimatedNumber value={DISPLAY_PRICE} prefix="$" decimals={2} duration={1.5} delay={0.3} />
+                            <AnimatedNumber value={DISPLAY_PRICE} prefix="£" decimals={2} duration={1.5} delay={0.3} />
                           )
                         : (
-                            `$${DISPLAY_PRICE.toFixed(2)}`
+                            `£${DISPLAY_PRICE.toFixed(2)}`
                           )}
                     </span>
                   </div>

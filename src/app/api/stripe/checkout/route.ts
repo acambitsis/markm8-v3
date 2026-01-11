@@ -78,12 +78,12 @@ export async function POST(request: Request) {
       line_items: [
         {
           price_data: {
-            currency: 'usd',
+            currency: 'gbp',
             product_data: {
               name: `${creditPackage.credits} MarkM8 Credits`,
               description: `Purchase ${creditPackage.credits} credits for essay grading`,
             },
-            unit_amount: Math.round(creditPackage.price * 100), // Stripe uses cents
+            unit_amount: Math.round(creditPackage.price * 100), // Stripe uses pence
           },
           quantity: 1,
         },

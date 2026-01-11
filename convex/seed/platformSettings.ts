@@ -261,11 +261,11 @@ export const setPricing = internalMutation({
       creditsPerDollar,
     });
 
-    const pricePerEssayUsd = calculatePricePerEssay(gradingCostPerEssay, creditsPerDollar);
+    const pricePerEssayGbp = calculatePricePerEssay(gradingCostPerEssay, creditsPerDollar);
     console.log('Set pricing:');
     console.log('  gradingCostPerEssay:', gradingCostPerEssay);
     console.log('  creditsPerDollar:', creditsPerDollar);
-    console.log('  pricePerEssayUsd: $%s', pricePerEssayUsd);
-    return { status: 'updated', gradingCostPerEssay, creditsPerDollar, pricePerEssayUsd };
+    console.log('  pricePerEssayGbp: £%s', pricePerEssayGbp);
+    return { status: 'updated', gradingCostPerEssay, creditsPerDollar, pricePerEssayGbp };
   },
 });

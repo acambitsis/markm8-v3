@@ -1,7 +1,7 @@
 {
   "Index": {
     "meta_title": "MarkM8 - Feedback IA pour essais étudiants",
-    "meta_description": "Obtenez des commentaires exploitables avec une fourchette de notes indicative et des améliorations ciblées. Conçu par des étudiants, pour des étudiants. Seulement 1$ par essai."
+    "meta_description": "Obtenez des commentaires exploitables avec une fourchette de notes indicative et des améliorations ciblées. Conçu par des étudiants, pour des étudiants. Seulement £1 par essai."
   },
   "Navbar": {
     "how_it_works": "Comment ça marche",
@@ -78,7 +78,7 @@
   },
   "PricingPlan": {
     "most_popular": "Le plus populaire",
-    "price_per_credit": "{price}$/essai",
+    "price_per_credit": "£{price}/essai",
     "single_package_name": "{credits} Crédit",
     "starter_package_name": "{credits} Crédits",
     "standard_package_name": "{credits} Crédits",
@@ -90,7 +90,7 @@
     "section_title": "Payez par essai, pas par mois",
     "section_description": "Pas d'abonnement. Achetez des crédits quand vous en avez besoin. Un crédit = un essai corrigé.",
     "price_label": "Par essai",
-    "price_value": "1$",
+    "price_value": "£1",
     "price_cents": ",00",
     "price_note": "Pas d'abonnement. Payez seulement quand vous en avez besoin.",
     "included_title": "Ce qui est inclus :",

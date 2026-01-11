@@ -594,7 +594,7 @@ export const updatePlatformSettings = mutation({
 
     if (args.creditsPerDollar !== undefined) {
       // Validate credits per dollar - must be positive (uses shared validation)
-      validatePricingValue(args.creditsPerDollar, 'Credits per dollar');
+      validatePricingValue(args.creditsPerDollar, 'Credits per pound');
       updates.creditsPerDollar = args.creditsPerDollar;
     }
 

@@ -1,7 +1,7 @@
 {
   "Index": {
     "meta_title": "MarkM8 - AI Essay Feedback for Students",
-    "meta_description": "Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students. Just $1 per essay."
+    "meta_description": "Get actionable essay feedback with indicative grade ranges and targeted improvements. Designed by students, for students. Just £1 per essay."
   },
   "Navbar": {
     "how_it_works": "How It Works",
@@ -78,7 +78,7 @@
   },
   "PricingPlan": {
     "most_popular": "Most Popular",
-    "price_per_credit": "${price}/essay",
+    "price_per_credit": "£{price}/essay",
     "single_package_name": "{credits} Credit",
     "starter_package_name": "{credits} Credits",
     "standard_package_name": "{credits} Credits",
@@ -90,7 +90,7 @@
     "section_title": "Pay Per Essay, Not Per Month",
     "section_description": "No subscriptions. Buy credits when you need them. One credit = one essay graded.",
     "price_label": "Per Essay",
-    "price_value": "$1",
+    "price_value": "£1",
     "price_cents": ".00",
     "price_note": "No subscription. Pay only when you need it.",
     "included_title": "What's included:",

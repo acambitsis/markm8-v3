@@ -285,7 +285,7 @@ export default defineSchema({
     key: v.literal('singleton'), // Only one row
     signupBonusAmount: v.string(), // Decimal as string (e.g., "1.00")
     gradingCostPerEssay: v.string(), // Credits charged per essay (e.g., "1.00")
-    creditsPerDollar: v.string(), // Credits received per $1 spent (e.g., "1.00")
+    creditsPerDollar: v.string(), // Credits received per £1 spent (field name kept for backwards compatibility)
     updatedBy: v.optional(v.id('users')), // Admin who made the change
 
     // Admin access control (email allowlist)

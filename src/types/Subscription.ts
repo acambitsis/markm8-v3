@@ -23,8 +23,8 @@ export type { TransactionType };
 export type CreditPackage = {
   id: CreditPackageId;
   credits: number;
-  price: number; // USD
-  pricePerCredit: number; // For display (e.g., "$1.00/credit")
+  price: number; // GBP
+  pricePerCredit: number; // For display (e.g., "£1.00/credit")
 };
 
 // User's credit balance state
