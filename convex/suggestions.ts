@@ -57,6 +57,17 @@ export const generateSuggestions = action({
     );
     const config = aiConfig.titleGeneration;
 
+    // Mock mode - return deterministic suggestions without AI call
+    if (aiConfig.grading.mode === 'mock') {
+      // Record request for rate limiting consistency
+      await ctx.runMutation(internal.documents.recordRequest, { userId: user._id });
+
+      return {
+        title: 'Mock Essay Title',
+        subject: 'General Studies',
+      };
+    }
+
     // Truncate content to ~2000 chars to keep prompt small
     const truncatedContent = content.slice(0, 2000);
 

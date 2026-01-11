@@ -56,6 +56,7 @@ export function GradeResults({ percentageRange, feedback, modelResults }: Props)
 
   return (
     <motion.div
+      data-testid="grade-results"
       className="space-y-6"
       variants={containerVariants}
       initial="hidden"
