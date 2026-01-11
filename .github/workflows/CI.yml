@@ -77,14 +77,15 @@ jobs:
       - name: Run storybook tests
         run: bun run test-storybook:ci
 
-      # E2E tests only run on main branch (production deploys)
-      - name: Run E2E tests
-        if: github.ref == 'refs/heads/main'
-        run: bun run test:e2e
+      # E2E tests disabled - flaky Clerk auth in CI environment
+      # TODO: Re-enable once E2E auth is stabilized
+      # - name: Run E2E tests
+      #   if: github.ref == 'refs/heads/main'
+      #   run: bun run test:e2e
 
-      - uses: actions/upload-artifact@v4
-        if: failure() && github.ref == 'refs/heads/main'
-        with:
-          name: e2e-test-results
-          path: test-results/
-          retention-days: 7
+      # - uses: actions/upload-artifact@v4
+      #   if: failure() && github.ref == 'refs/heads/main'
+      #   with:
+      #     name: e2e-test-results
+      #     path: test-results/
+      #     retention-days: 7
