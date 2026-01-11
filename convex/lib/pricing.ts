@@ -30,7 +30,7 @@ export function validatePricingValue(value: string, fieldName: string): number {
  * Used before division to ensure safe arithmetic
  *
  * @param gradingCostPerEssay - Credits charged per essay (e.g., "1.00")
- * @param creditsPerDollar - Credits per dollar spent (e.g., "1.00")
+ * @param creditsPerDollar - Credits per pound spent (param name kept for backwards compatibility)
  * @returns Object with parsed values ready for calculation
  * @throws Error if any validation fails
  */
@@ -45,7 +45,7 @@ export function validatePricing(
 }
 
 /**
- * Calculates price per essay in USD
+ * Calculates price per essay in GBP
  * Validates inputs before division to prevent division by zero
  *
  * @param gradingCostPerEssay - Credits charged per essay
