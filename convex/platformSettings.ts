@@ -194,7 +194,7 @@ export const getPricing = query({
     return {
       gradingCostPerEssay: settings.gradingCostPerEssay,
       creditsPerDollar: settings.creditsPerDollar,
-      pricePerEssayUsd: pricePerEssay.toFixed(2),
+      pricePerEssayGbp: pricePerEssay.toFixed(2),
       signupBonusCredits: settings.signupBonusAmount,
     };
   },

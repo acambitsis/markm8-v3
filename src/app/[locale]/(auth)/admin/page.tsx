@@ -111,7 +111,7 @@ export default function AdminDashboardPage() {
           />
           <StatsCard
             title={t('credits_purchased')}
-            value={`$${stats?.totalCreditsPurchased ?? '0.00'}`}
+            value={`£${stats?.totalCreditsPurchased ?? '0.00'}`}
             icon={<TrendingUp className="size-5" />}
             color="blue"
             isLoading={isStatsLoading}
@@ -245,7 +245,7 @@ export default function AdminDashboardPage() {
                               {item.email}
                               {item.amount && (
                                 <span className="ml-1 text-green-600">
-                                  +$
+                                  +£
                                   {item.amount}
                                 </span>
                               )}

@@ -61,7 +61,7 @@ export function StatsCard({
   // Parse numeric value for animation
   const numericValue = typeof value === 'number' ? value : Number.parseFloat(String(value).replace(/[^0-9.-]/g, ''));
   const isNumeric = !Number.isNaN(numericValue);
-  const prefix = typeof value === 'string' && value.startsWith('$') ? '$' : '';
+  const prefix = typeof value === 'string' && value.startsWith('£') ? '£' : '';
 
   const content = (
     <div className={cn('flex items-center gap-4 rounded-xl border bg-card p-4 shadow-sm transition-all duration-200 hover:shadow-md', className)}>
@@ -77,7 +77,7 @@ export function StatsCard({
             ? (
                 <>
                   {prefix}
-                  <AnimatedNumber value={numericValue} decimals={prefix === '$' || String(value).includes('.') ? 2 : 0} duration={1} delay={delay} />
+                  <AnimatedNumber value={numericValue} decimals={prefix === '£' || String(value).includes('.') ? 2 : 0} duration={1} delay={delay} />
                 </>
               )
             : value}

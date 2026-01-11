@@ -38,7 +38,7 @@ export const PricingCard = (props: {
 
       <div className="mt-3 flex items-center justify-center">
         <div className="text-5xl font-bold">
-          {`$${props.price.toFixed(2)}`}
+          {`£${props.price.toFixed(2)}`}
         </div>
       </div>
 

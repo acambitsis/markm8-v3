@@ -245,7 +245,7 @@ export default function AdminSettingsPage() {
                   className="pl-9"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Credits received per $1 spent</p>
+              <p className="text-xs text-muted-foreground">Credits received per £1 spent</p>
             </div>
             {/* Calculated price display - validate both values to prevent NaN/Infinity */}
             {(() => {
@@ -260,7 +260,7 @@ export default function AdminSettingsPage() {
                   <p className="text-sm">
                     <span className="text-muted-foreground">Price per essay: </span>
                     <span className="font-semibold">
-                      $
+                      £
                       {(cost / cpd).toFixed(2)}
                     </span>
                   </p>
