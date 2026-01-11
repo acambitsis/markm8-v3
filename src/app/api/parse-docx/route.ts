@@ -1,19 +1,20 @@
 import { Buffer } from 'node:buffer';
 
 import { auth } from '@clerk/nextjs/server';
-import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { generateText } from 'ai';
 import mammoth from 'mammoth';
 import { NextResponse } from 'next/server';
+import TurndownService from 'turndown';
+// @ts-expect-error - no types available for this plugin
+import { gfm } from 'turndown-plugin-gfm';
 
-import { Env } from '@/libs/Env';
 import { logger } from '@/libs/Logger';
 
 /**
  * POST /api/parse-docx
  *
  * Parses a DOCX file and returns markdown content.
- * Uses mammoth.js for HTML extraction, then Gemini Flash for HTML-to-Markdown conversion.
+ * Uses mammoth.js for HTML extraction, then turndown for HTML-to-Markdown conversion.
+ * No AI/API keys required - all processing is deterministic and local.
  */
 
 const MAX_FILE_SIZE = 4 * 1024 * 1024; // 4 MB (Vercel Pro body limit is 4.5 MB)
@@ -75,37 +76,14 @@ export async function POST(request: Request): Promise<NextResponse> {
       return errorResponse('NO_TEXT_EXTRACTED', 'This document appears to be empty. Please paste your text.', 400);
     }
 
-    // Convert HTML to markdown using Gemini Flash
-    if (!Env.OPENROUTER_API_KEY) {
-      logger.error('OPENROUTER_API_KEY not configured');
-      return errorResponse('CONFIG_ERROR', 'Service temporarily unavailable.', 503);
-    }
-
-    const openrouter = createOpenRouter({ apiKey: Env.OPENROUTER_API_KEY });
-    const model = openrouter('google/gemini-3-flash-preview');
-
-    const response = await generateText({
-      model,
-      messages: [
-        {
-          role: 'user',
-          content: `Convert this HTML extracted from a Word document to clean markdown format.
-
-Rules:
-- Preserve the document structure (headings, paragraphs, lists)
-- Convert HTML tables to markdown table format
-- Remove any empty elements or unnecessary whitespace
-- Do not add any commentary or analysis
-- Output ONLY the converted markdown content
-
-HTML content:
-${html}`,
-        },
-      ],
-      temperature: 0.1,
+    // Convert HTML to markdown using turndown (deterministic, no AI needed)
+    // GFM plugin adds support for tables, strikethrough, and task lists
+    const turndownService = new TurndownService({
+      headingStyle: 'atx',
+      codeBlockStyle: 'fenced',
     });
-
-    const markdown = response.text.trim();
+    turndownService.use(gfm);
+    const markdown = turndownService.turndown(html).trim();
 
     if (!markdown) {
       return errorResponse('CONVERSION_FAILED', 'Failed to convert document. Please try again or paste text directly.', 500);
