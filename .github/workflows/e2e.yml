@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to test against'
+        description: Environment to test against
         required: true
-        default: 'preview'
+        default: preview
         type: choice
         options:
           - preview
