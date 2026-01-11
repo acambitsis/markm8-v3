@@ -10,8 +10,8 @@ export async function register() {
       // Enable Spotlight in development
       spotlight: process.env.NODE_ENV === 'development',
 
-      // Adjust this value in production, or use tracesSampler for greater control
-      tracesSampleRate: 1,
+      // 100% in dev for debugging, 10% in prod for cost control
+      tracesSampleRate: process.env.NODE_ENV === 'development' ? 1.0 : 0.1,
 
       // Setting this option to true will print useful information to the console while you're setting up Sentry.
       debug: false,
@@ -27,8 +27,8 @@ export async function register() {
       // Enable Spotlight in development
       spotlight: process.env.NODE_ENV === 'development',
 
-      // Adjust this value in production, or use tracesSampler for greater control
-      tracesSampleRate: 1,
+      // 100% in dev for debugging, 10% in prod for cost control
+      tracesSampleRate: process.env.NODE_ENV === 'development' ? 1.0 : 0.1,
 
       // Setting this option to true will print useful information to the console while you're setting up Sentry.
       debug: false,
