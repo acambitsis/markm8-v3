@@ -1,5 +1,6 @@
 import '@/styles/global.css';
 
+import { Analytics } from '@vercel/analytics/next';
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { NextIntlClientProvider } from 'next-intl';
@@ -115,6 +116,7 @@ export default async function RootLayout(props: {
         >
           {props.children}
           <CookieConsent />
+          <Analytics />
         </NextIntlClientProvider>
       </body>
     </html>
