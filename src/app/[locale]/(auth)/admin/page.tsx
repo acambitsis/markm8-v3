@@ -5,6 +5,7 @@ import { Activity, ArrowRight, CreditCard, FileText, Settings, Shield, TrendingU
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 
+import { ModelTimings } from '@/components/ModelTimings';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
 import { getActivityStyle } from '@/features/admin/colors';
@@ -232,16 +233,22 @@ export default function AdminDashboardPage() {
                         className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
                         variants={staggerItemSlow}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex min-w-0 flex-1 items-center gap-4">
                           <div className={cn(
-                            'flex size-10 items-center justify-center rounded-full',
+                            'flex size-10 shrink-0 items-center justify-center rounded-full',
                             getActivityStyle(item.type).bg,
                           )}
                           >
                             {getActivityIcon(item.type)}
                           </div>
-                          <div>
-                            <p className="text-sm font-medium">{item.description}</p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium">{item.description}</p>
+                              {/* Show model timings for essay activities */}
+                              {item.type === 'essay' && item.modelResults && item.modelResults.length > 0 && (
+                                <ModelTimings modelResults={item.modelResults} compact />
+                              )}
+                            </div>
                             <p className="text-xs text-muted-foreground">
                               {item.email}
                               {item.amount && (

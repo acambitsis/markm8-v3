@@ -9,6 +9,7 @@ import { validateAiConfig } from './lib/aiConfig';
 import { isAdmin, requireAdmin } from './lib/auth';
 import { addDecimal, isNegative, isZero } from './lib/decimal';
 import { validatePricingValue } from './lib/pricing';
+import type { ModelResult } from './schema';
 import { aiConfigValidator, transactionTypeValidator } from './schema';
 
 /**
@@ -152,6 +153,24 @@ export const getRecentActivity = query({
       }),
     );
 
+    // Batch load grades for essay activities (for timing info)
+    const essayIdsToFetch = submittedEssays.map(e => e._id);
+    const gradeMap = new Map<string, { modelResults?: ModelResult[] }>();
+
+    // Fetch latest completed grade for each essay
+    await Promise.all(
+      essayIdsToFetch.map(async (essayId) => {
+        const grade = await ctx.db
+          .query('grades')
+          .withIndex('by_essay_id', q => q.eq('essayId', essayId))
+          .order('desc')
+          .first();
+        if (grade?.status === 'complete' && grade.modelResults) {
+          gradeMap.set(essayId, { modelResults: grade.modelResults });
+        }
+      }),
+    );
+
     // Combine and format activities
     const activities: Array<{
       type: 'signup' | 'purchase' | 'essay';
@@ -159,6 +178,7 @@ export const getRecentActivity = query({
       description: string;
       email?: string;
       amount?: string;
+      modelResults?: ModelResult[];
     }> = [];
 
     // Add user signups
@@ -183,14 +203,16 @@ export const getRecentActivity = query({
       });
     }
 
-    // Add essay submissions (using batched user lookups)
+    // Add essay submissions (using batched user and grade lookups)
     for (const essay of submittedEssays) {
       const user = userMap.get(essay.userId);
+      const grade = gradeMap.get(essay._id);
       activities.push({
         type: 'essay',
         timestamp: essay.submittedAt ?? essay._creationTime,
         description: `Essay submitted`,
         email: user?.email,
+        modelResults: grade?.modelResults,
       });
     }
 
