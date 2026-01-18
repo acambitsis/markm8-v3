@@ -221,9 +221,18 @@ stripe listen --forward-to https://<project>.convex.site/stripe-webhook
 
 Some releases require data migrations after Convex functions are deployed. Migration scripts live in `convex/seed/migrations/` and are idempotent (safe to run multiple times).
 
-**When merging `dev → main`, check the PR description for any required migrations.**
+**When creating a PR that adds a migration:**
+1. Add migration script to `convex/seed/migrations/` with `// Added in: PR #XX` header
+2. Include a "Post-deployment" section in PR description with the command:
+   ```
+   ## Post-deployment
+   Run migration after deploying to production:
+   \`\`\`bash
+   npx convex run seed/migrations/<script>:migrate --prod
+   \`\`\`
+   ```
 
-Each migration script includes a comment header with the PR number it was added in. Only run migrations for PRs being deployed for the first time.
+**When merging `dev → main`:** Check the PR description for any required migrations.
 
 **Run a migration:**
 ```bash
