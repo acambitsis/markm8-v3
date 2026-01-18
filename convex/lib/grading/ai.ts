@@ -14,6 +14,7 @@ import type {
 import { getGradingModel } from '../ai';
 import { type GradeOutput, gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt } from '../gradingPrompt';
+import { reportToSentry } from '../sentry';
 import {
   clampPercentage,
   detectOutliers,
@@ -235,6 +236,20 @@ export async function runAIGrading(
             : `failed: ${failure.issue}`;
 
       console.error(`[GRADING] ${model}: ${failureMsg}`);
+
+      // Report partial failure to Sentry (fire-and-forget, don't block grading)
+      void reportToSentry({
+        error: error instanceof Error ? error : new Error(failureMsg),
+        functionName: 'grading.runAIGrading',
+        functionType: 'action',
+        tags: {
+          'grading.status': 'partial_failure',
+          'grading.model': model,
+          'grading.failure_type': failure.type,
+        },
+        extra: { modelIndex: i, totalRuns: runs.length },
+      });
+
       return null;
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);

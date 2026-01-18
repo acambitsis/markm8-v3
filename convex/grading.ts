@@ -11,6 +11,7 @@ import {
   runAIGrading,
   USER_ERROR_MESSAGE,
 } from './lib/grading';
+import { reportToSentry } from './lib/sentry';
 
 /**
  * Process a grade (background action)
@@ -101,12 +102,27 @@ export const processGrade = internalAction({
         stack,
       });
 
-      // Try to get the grade to refund and record failure
+      // Try to get the grade for Sentry context and refund
+      // Single query reused for both Sentry reporting and failure handling
+      let grade: Awaited<ReturnType<typeof ctx.runQuery<typeof internal.grades.getInternal>>> | undefined;
       try {
-        const grade = await ctx.runQuery(internal.grades.getInternal, {
-          gradeId,
-        });
+        grade = await ctx.runQuery(internal.grades.getInternal, { gradeId });
+      } catch {
+        // Ignore - we'll handle missing grade below
+      }
 
+      // Report to Sentry for alerting and tracking
+      await reportToSentry({
+        error: error instanceof Error ? error : new Error(rawMessage),
+        functionName: 'grading.processGrade',
+        functionType: 'action',
+        userId: grade?.userId,
+        tags: { 'grading.status': 'full_failure', 'grade.id': gradeId },
+        extra: { gradeId },
+      });
+
+      // Handle failure: record, update status, and refund
+      try {
         if (grade) {
           // Record failure details internally (never exposed to users)
           await ctx.runMutation(internal.gradeFailures.record, {
