@@ -177,12 +177,23 @@ export async function runAIGrading(
     return retryWithBackoff(
       async () => {
         const model = getGradingModel(run.model);
+
+        // Build provider options for reasoning if configured
+        const providerOptions = run.reasoningEffort
+          ? {
+              openrouter: {
+                reasoning: { effort: run.reasoningEffort },
+              },
+            }
+          : undefined;
+
         const result = await generateObject({
           model,
           schema: gradeOutputSchema,
           prompt,
           temperature,
           maxOutputTokens: maxTokens,
+          providerOptions,
           system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
         });
 

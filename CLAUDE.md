@@ -158,6 +158,7 @@ convex/                          # Convex backend (serverless)
 ├── http.ts                      # Webhook endpoints (Clerk, Stripe)
 ├── lib/                         # Shared helpers (auth.ts, decimal.ts, aiConfig.ts)
 ├── seed/                        # Database seeding scripts (run via: npx convex run seed/...)
+│   └── migrations/              # Post-deployment migrations (check after each prod deploy)
 ├── admin.ts                     # Admin queries and mutations (uses requireAdmin guard)
 ├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig, adminEmails)
 └── [domain].ts                  # Function files: users, credits, essays, grades, grading, modelCatalog
@@ -212,6 +213,30 @@ bun run convex:deploy # Deploy Convex functions manually
 ```bash
 # Convex HTTP endpoint format: https://<project>.convex.site/stripe-webhook
 stripe listen --forward-to https://<project>.convex.site/stripe-webhook
+```
+
+---
+
+## Post-deployment Migrations
+
+Some releases require data migrations after Convex functions are deployed. Migration scripts live in `convex/seed/migrations/` and are idempotent (safe to run multiple times).
+
+**When creating a PR that adds a migration:**
+1. Add migration script to `convex/seed/migrations/` with `// Added in: PR #XX` header
+2. Include a "Post-deployment" section in PR description with the command:
+   ```
+   ## Post-deployment
+   Run migration after deploying to production:
+   \`\`\`bash
+   npx convex run seed/migrations/<script>:migrate --prod
+   \`\`\`
+   ```
+
+**When merging `dev → main`:** Check the PR description for any required migrations.
+
+**Run a migration:**
+```bash
+npx convex run seed/migrations/<script>:migrate --prod
 ```
 
 ---

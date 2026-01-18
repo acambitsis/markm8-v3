@@ -136,6 +136,24 @@ export const modelCapabilityValidator = v.union(
   v.literal('title'),
 );
 
+export const REASONING_EFFORT_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'minimal', label: 'Minimal' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'xhigh', label: 'Extra High' },
+] as const;
+
+export const reasoningEffortValidator = v.union(
+  v.literal('none'),
+  v.literal('minimal'),
+  v.literal('low'),
+  v.literal('medium'),
+  v.literal('high'),
+  v.literal('xhigh'),
+);
+
 export const modelCatalogEntryValidator = v.object({
   slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
   name: v.string(), // Display name, e.g., "Grok 4.1"
@@ -146,6 +164,10 @@ export const modelCatalogEntryValidator = v.object({
   pricingInputPer1M: v.optional(v.number()), // Cost per 1M input tokens
   pricingOutputPer1M: v.optional(v.number()), // Cost per 1M output tokens
   lastSyncedAt: v.optional(v.number()), // Last sync from OpenRouter API
+  // Reasoning support
+  supportsReasoning: v.optional(v.boolean()), // Model can use reasoning
+  reasoningRequired: v.optional(v.boolean()), // Reasoning is mandatory
+  defaultReasoningEffort: v.optional(reasoningEffortValidator), // Default effort level
 });
 
 // =============================================================================
@@ -159,6 +181,7 @@ export const gradingModeValidator = v.union(
 
 export const gradingRunValidator = v.object({
   model: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
+  reasoningEffort: v.optional(reasoningEffortValidator), // Reasoning effort for models that support it
 });
 
 export const retryConfigValidator = v.object({
@@ -309,6 +332,10 @@ export default defineSchema({
     pricingInputPer1M: v.optional(v.number()), // Cost per 1M input tokens
     pricingOutputPer1M: v.optional(v.number()), // Cost per 1M output tokens
     lastSyncedAt: v.optional(v.number()), // Last sync from OpenRouter API
+    // Reasoning support
+    supportsReasoning: v.optional(v.boolean()), // Model can use reasoning
+    reasoningRequired: v.optional(v.boolean()), // Reasoning is mandatory
+    defaultReasoningEffort: v.optional(reasoningEffortValidator), // Default effort level
   })
     .index('by_slug', ['slug'])
     .index('by_enabled', ['enabled'])
@@ -354,6 +381,7 @@ export type ModelResult = Infer<typeof modelResultValidator>;
 // Model Catalog Types
 export type ModelCapability = Infer<typeof modelCapabilityValidator>;
 export type ModelCatalogEntry = Infer<typeof modelCatalogEntryValidator>;
+export type ReasoningEffort = Infer<typeof reasoningEffortValidator>;
 
 // AI Configuration Types
 export type GradingMode = Infer<typeof gradingModeValidator>;

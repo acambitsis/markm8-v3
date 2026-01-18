@@ -7,6 +7,53 @@ on:
     branches: [dev]
 
 jobs:
+  check-migrations:
+    name: Check migration documentation
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Check if migrations were modified
+        id: migrations
+        run: |
+          # Get list of changed files in this PR
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }}...HEAD)
+
+          # Check if any migration files were added or modified
+          if echo "$CHANGED_FILES" | grep -q "^convex/seed/migrations/"; then
+            echo "modified=true" >> $GITHUB_OUTPUT
+            echo "Migration files were modified:"
+            echo "$CHANGED_FILES" | grep "^convex/seed/migrations/"
+          else
+            echo "modified=false" >> $GITHUB_OUTPUT
+            echo "No migration files modified"
+          fi
+
+      - name: Verify PR description includes post-deployment section
+        if: steps.migrations.outputs.modified == 'true'
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          if echo "$PR_BODY" | grep -qi "post-deployment"; then
+            echo "✅ PR description includes post-deployment section"
+          else
+            echo "::error::❌ Migration files were modified but PR description is missing 'Post-deployment' section."
+            echo ""
+            echo "Please add a Post-deployment section to your PR description with the migration command:"
+            echo ""
+            echo "  ## Post-deployment"
+            echo "  Run migration after deploying to production:"
+            echo "  \`\`\`bash"
+            echo "  npx convex run seed/migrations/<script>:migrate --prod"
+            echo "  \`\`\`"
+            echo ""
+            exit 1
+          fi
+
   build:
     strategy:
       matrix:

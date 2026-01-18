@@ -9,7 +9,7 @@
 /* eslint-disable no-console -- Seed scripts use console for Convex logs */
 
 import { internalMutation } from '../_generated/server';
-import type { ModelCapability } from '../schema';
+import type { ModelCapability, ReasoningEffort } from '../schema';
 
 // =============================================================================
 // Initial Model Catalog
@@ -24,57 +24,72 @@ type SeedModel = {
   contextLength?: number;
   pricingInputPer1M?: number;
   pricingOutputPer1M?: number;
+  // Reasoning support
+  supportsReasoning?: boolean;
+  reasoningRequired?: boolean;
+  defaultReasoningEffort?: ReasoningEffort;
 };
 
 const INITIAL_MODELS: SeedModel[] = [
-  // xAI - Grok models
+  // xAI - Grok models (support optional reasoning)
   {
     slug: 'x-ai/grok-4',
     name: 'Grok 4',
     provider: 'xAI',
     capabilities: ['grading'],
+    supportsReasoning: true,
+    reasoningRequired: false,
+    defaultReasoningEffort: 'medium',
   },
   {
     slug: 'x-ai/grok-4.1-fast',
     name: 'Grok 4.1 Fast',
     provider: 'xAI',
     capabilities: ['grading', 'title'],
+    // No reasoning support - fast model
   },
 
-  // OpenAI
+  // OpenAI (GPT-5.2-pro has mandatory reasoning)
   {
     slug: 'openai/gpt-5.2-pro',
     name: 'GPT 5.2 Pro',
     provider: 'OpenAI',
     capabilities: ['grading'],
+    supportsReasoning: true,
+    reasoningRequired: true,
+    defaultReasoningEffort: 'medium',
   },
 
-  // Anthropic - Claude family
+  // Anthropic - Claude family (no reasoning via OpenRouter)
   {
     slug: 'anthropic/claude-opus-4.5',
     name: 'Claude Opus 4.5',
     provider: 'Anthropic',
     capabilities: ['grading'],
+    // No reasoning support via OpenRouter
   },
   {
     slug: 'anthropic/claude-haiku-4.5',
     name: 'Claude Haiku 4.5',
     provider: 'Anthropic',
     capabilities: ['grading', 'title'],
+    // No reasoning support via OpenRouter
   },
 
-  // Google - Gemini family
+  // Google - Gemini family (no reasoning support yet)
   {
     slug: 'google/gemini-3-flash-preview',
     name: 'Gemini 3 Flash Preview',
     provider: 'Google',
     capabilities: ['grading', 'title'],
+    // No reasoning support
   },
   {
     slug: 'google/gemini-3-pro-preview',
     name: 'Gemini 3 Pro Preview',
     provider: 'Google',
     capabilities: ['grading'],
+    // No reasoning support
   },
 ];
 
@@ -115,6 +130,9 @@ export const seed = internalMutation({
         pricingInputPer1M: model.pricingInputPer1M,
         pricingOutputPer1M: model.pricingOutputPer1M,
         lastSyncedAt: Date.now(),
+        supportsReasoning: model.supportsReasoning,
+        reasoningRequired: model.reasoningRequired,
+        defaultReasoningEffort: model.defaultReasoningEffort,
       });
 
       console.log(`Created model: ${model.slug}`);
@@ -153,6 +171,9 @@ export const reset = internalMutation({
         pricingInputPer1M: model.pricingInputPer1M,
         pricingOutputPer1M: model.pricingOutputPer1M,
         lastSyncedAt: Date.now(),
+        supportsReasoning: model.supportsReasoning,
+        reasoningRequired: model.reasoningRequired,
+        defaultReasoningEffort: model.defaultReasoningEffort,
       });
       created++;
     }

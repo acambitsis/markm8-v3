@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertTriangle,
   Bot,
+  Brain,
   Clock,
   Cpu,
   Hash,
@@ -42,7 +43,8 @@ import {
 } from '@/components/ui/tooltip';
 
 import { api } from '../../../convex/_generated/api';
-import type { AiConfig } from '../../../convex/schema';
+import type { AiConfig, ReasoningEffort } from '../../../convex/schema';
+import { REASONING_EFFORT_OPTIONS } from '../../../convex/schema';
 
 type AIConfigEditorProps = {
   config: AiConfig | null;
@@ -53,6 +55,7 @@ type AIConfigEditorProps = {
 type RunWithId = {
   id: string;
   model: string;
+  reasoningEffort?: ReasoningEffort;
 };
 
 // Generate a unique ID for runs
@@ -109,6 +112,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
     (config ?? defaultConfig).grading.runs.map(run => ({
       id: generateRunId(),
       model: run.model,
+      reasoningEffort: run.reasoningEffort,
     })),
   );
 
@@ -123,6 +127,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
       setRunsWithIds(config.grading.runs.map(run => ({
         id: generateRunId(),
         model: run.model,
+        reasoningEffort: run.reasoningEffort,
       })));
     }
   }, [config]);
@@ -171,15 +176,50 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
     updateGrading({ runs: newRuns });
   }, [runsWithIds, localConfig.grading.runs, updateGrading]);
 
+  // Helper to check if a model supports reasoning
+  const modelSupportsReasoning = useCallback((slug: string) => {
+    const model = gradingModels?.find(m => m.slug === slug);
+    return model?.supportsReasoning ?? false;
+  }, [gradingModels]);
+
+  // Helper to check if a model requires reasoning
+  const modelRequiresReasoning = useCallback((slug: string) => {
+    const model = gradingModels?.find(m => m.slug === slug);
+    return model?.reasoningRequired ?? false;
+  }, [gradingModels]);
+
+  // Helper to get default reasoning effort for a model
+  const getDefaultReasoningEffort = useCallback((slug: string): ReasoningEffort | undefined => {
+    const model = gradingModels?.find(m => m.slug === slug);
+    return model?.defaultReasoningEffort;
+  }, [gradingModels]);
+
   // Update a specific grading run's model by ID
   const updateGradingRunModel = useCallback((id: string, model: string) => {
     const index = runsWithIds.findIndex(r => r.id === id);
     if (index === -1) {
       return;
     }
-    setRunsWithIds(prev => prev.map(r => r.id === id ? { ...r, model } : r));
+    // When switching models, set default reasoning effort if the new model supports it
+    const newReasoningEffort = modelSupportsReasoning(model)
+      ? getDefaultReasoningEffort(model)
+      : undefined;
+    setRunsWithIds(prev => prev.map(r => r.id === id ? { ...r, model, reasoningEffort: newReasoningEffort } : r));
     const newRuns = localConfig.grading.runs.map((run, i) =>
-      i === index ? { ...run, model } : run,
+      i === index ? { ...run, model, reasoningEffort: newReasoningEffort } : run,
+    );
+    updateGrading({ runs: newRuns });
+  }, [runsWithIds, localConfig.grading.runs, updateGrading, modelSupportsReasoning, getDefaultReasoningEffort]);
+
+  // Update a specific grading run's reasoning effort by ID
+  const updateGradingRunReasoningEffort = useCallback((id: string, effort: ReasoningEffort | undefined) => {
+    const index = runsWithIds.findIndex(r => r.id === id);
+    if (index === -1) {
+      return;
+    }
+    setRunsWithIds(prev => prev.map(r => r.id === id ? { ...r, reasoningEffort: effort } : r));
+    const newRuns = localConfig.grading.runs.map((run, i) =>
+      i === index ? { ...run, reasoningEffort: effort } : run,
     );
     updateGrading({ runs: newRuns });
   }, [runsWithIds, localConfig.grading.runs, updateGrading]);
@@ -303,7 +343,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             </Button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             <AnimatePresence mode="popLayout">
               {runsWithIds.map((run, index) => (
                 <motion.div
@@ -313,54 +353,95 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="flex items-center gap-2"
+                  className="space-y-2"
                 >
-                  <span className="w-8 text-sm text-muted-foreground">
-                    #
-                    {index + 1}
-                  </span>
-                  <Select
-                    value={run.model}
-                    onValueChange={value => updateGradingRunModel(run.id, value)}
-                  >
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groupedGradingModels && Object.entries(groupedGradingModels).map(([provider, models]) => (
-                        <SelectGroup key={provider}>
-                          <SelectLabel>{provider}</SelectLabel>
-                          {models?.map(model => (
-                            <SelectItem key={model.slug} value={model.slug}>
-                              <div className="flex items-center justify-between gap-4">
-                                <span>{model.name}</span>
-                                {model.pricingInputPer1M !== undefined && (
-                                  <span className="text-xs text-muted-foreground">
-                                    {formatPrice(model.pricingInputPer1M)}
-                                  </span>
-                                )}
-                              </div>
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 text-sm text-muted-foreground">
+                      #
+                      {index + 1}
+                    </span>
+                    <Select
+                      value={run.model}
+                      onValueChange={value => updateGradingRunModel(run.id, value)}
+                    >
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {groupedGradingModels && Object.entries(groupedGradingModels).map(([provider, models]) => (
+                          <SelectGroup key={provider}>
+                            <SelectLabel>{provider}</SelectLabel>
+                            {models?.map(model => (
+                              <SelectItem key={model.slug} value={model.slug}>
+                                <div className="flex items-center justify-between gap-4">
+                                  <span>{model.name}</span>
+                                  <div className="flex items-center gap-2">
+                                    {model.supportsReasoning && (
+                                      <Brain className="size-3 text-purple-500" />
+                                    )}
+                                    {model.pricingInputPer1M !== undefined && (
+                                      <span className="text-xs text-muted-foreground">
+                                        {formatPrice(model.pricingInputPer1M)}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                        {!gradingModels?.length && (
+                          <SelectItem value={run.model} disabled>
+                            Loading models...
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => removeGradingRun(run.id)}
+                      disabled={runsWithIds.length <= 1}
+                      className="size-9 text-muted-foreground hover:text-destructive"
+                    >
+                      <Minus className="size-4" />
+                    </Button>
+                  </div>
+                  {/* Reasoning effort selector (shown when model supports reasoning) */}
+                  {modelSupportsReasoning(run.model) && (
+                    <div className="ml-8 flex items-center gap-2">
+                      <Brain className="size-4 text-purple-500" />
+                      <span className="text-sm text-muted-foreground">Reasoning:</span>
+                      <Select
+                        value={run.reasoningEffort ?? 'medium'}
+                        onValueChange={value => updateGradingRunReasoningEffort(run.id, value as ReasoningEffort)}
+                      >
+                        <SelectTrigger className="w-36">
+                          <SelectValue placeholder="Select effort" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {REASONING_EFFORT_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
                             </SelectItem>
                           ))}
-                        </SelectGroup>
-                      ))}
-                      {!gradingModels?.length && (
-                        <SelectItem value={run.model} disabled>
-                          Loading models...
-                        </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {modelRequiresReasoning(run.model) && (
+                        <Badge variant="secondary" className="text-xs">
+                          Required
+                        </Badge>
                       )}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeGradingRun(run.id)}
-                    disabled={runsWithIds.length <= 1}
-                    className="size-9 text-muted-foreground hover:text-destructive"
-                  >
-                    <Minus className="size-4" />
-                  </Button>
+                    </div>
+                  )}
+                  {/* Warning if reasoning required but not configured */}
+                  {modelRequiresReasoning(run.model) && !run.reasoningEffort && (
+                    <div className="ml-8 flex items-center gap-2 text-sm text-destructive">
+                      <AlertTriangle className="size-4" />
+                      <span>This model requires reasoning effort to be configured</span>
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </AnimatePresence>

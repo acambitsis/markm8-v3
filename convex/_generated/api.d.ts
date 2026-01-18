@@ -35,6 +35,7 @@ import type * as modelCatalog from "../modelCatalog.js";
 import type * as notifications from "../notifications.js";
 import type * as platformSettings from "../platformSettings.js";
 import type * as seed_migrations_addMaxTokensToGrading from "../seed/migrations/addMaxTokensToGrading.js";
+import type * as seed_migrations_addReasoningToModelCatalog from "../seed/migrations/addReasoningToModelCatalog.js";
 import type * as seed_modelCatalog from "../seed/modelCatalog.js";
 import type * as seed_platformSettings from "../seed/platformSettings.js";
 import type * as suggestions from "../suggestions.js";
@@ -75,6 +76,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   platformSettings: typeof platformSettings;
   "seed/migrations/addMaxTokensToGrading": typeof seed_migrations_addMaxTokensToGrading;
+  "seed/migrations/addReasoningToModelCatalog": typeof seed_migrations_addReasoningToModelCatalog;
   "seed/modelCatalog": typeof seed_modelCatalog;
   "seed/platformSettings": typeof seed_platformSettings;
   suggestions: typeof suggestions;

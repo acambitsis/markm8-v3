@@ -6,6 +6,7 @@ import type {
   GradingConfig,
   TitleGenerationConfig,
 } from '../schema';
+import { REASONING_EFFORT_OPTIONS } from '../schema';
 
 // =============================================================================
 // Default Configuration
@@ -86,6 +87,17 @@ export function validateGradingConfig(config: GradingConfig): ValidationResult {
       warnings.push(
         `Model "${run.model}" doesn't match expected format "provider/model"`,
       );
+    }
+  }
+
+  // Validate reasoning effort values
+  const validEfforts = REASONING_EFFORT_OPTIONS.map(o => o.value);
+  for (const run of config.runs) {
+    if (
+      run.reasoningEffort
+      && !validEfforts.includes(run.reasoningEffort)
+    ) {
+      errors.push(`Invalid reasoning effort: ${run.reasoningEffort}`);
     }
   }
 
@@ -186,6 +198,14 @@ export function validateAiConfig(config: AiConfig): ValidationResult {
 // =============================================================================
 
 /**
+ * Model info for catalog validation
+ */
+export type CatalogModelInfo = {
+  slug: string;
+  reasoningRequired?: boolean;
+};
+
+/**
  * Options for catalog validation
  */
 export type CatalogValidationOptions = {
@@ -193,6 +213,8 @@ export type CatalogValidationOptions = {
   gradingSlugs: string[];
   /** Enabled model slugs for title capability */
   titleSlugs: string[];
+  /** Model info for reasoning validation */
+  gradingModels?: CatalogModelInfo[];
   /** If true, validation fails for missing models; if false, only warns */
   strict?: boolean;
 };
@@ -210,12 +232,17 @@ export function validateAiConfigAgainstCatalog(
   config: AiConfig,
   options: CatalogValidationOptions,
 ): ValidationResult {
-  const { gradingSlugs, titleSlugs, strict = false } = options;
+  const { gradingSlugs, titleSlugs, gradingModels, strict = false } = options;
   const warnings: string[] = [];
   const errors: string[] = [];
 
   const gradingSet = new Set(gradingSlugs);
   const titleSet = new Set(titleSlugs);
+
+  // Build a map of model slug to model info for reasoning validation
+  const modelInfoMap = new Map(
+    gradingModels?.map(m => [m.slug, m]) ?? [],
+  );
 
   // Check grading models
   for (const run of config.grading.runs) {
@@ -226,6 +253,14 @@ export function validateAiConfigAgainstCatalog(
       } else {
         warnings.push(msg);
       }
+    }
+
+    // Check reasoning-required models have effort configured
+    const modelInfo = modelInfoMap.get(run.model);
+    if (modelInfo?.reasoningRequired && !run.reasoningEffort) {
+      errors.push(
+        `Model "${run.model}" requires reasoning effort to be configured`,
+      );
     }
   }
 
