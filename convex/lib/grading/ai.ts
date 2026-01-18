@@ -172,8 +172,12 @@ export async function runAIGrading(
     content: essay.content,
   });
 
+  // Track start times for duration calculation (including recovered results)
+  const startTimes: number[] = [];
+
   // Run parallel AI calls with retry logic
   const gradingPromises = runs.map(async (run, index) => {
+    startTimes[index] = Date.now();
     return retryWithBackoff(
       async () => {
         const model = getGradingModel(run.model);
@@ -211,14 +215,16 @@ export async function runAIGrading(
 
   // Wait for all calls to complete (or fail)
   const results = await Promise.allSettled(gradingPromises);
+  const endTime = Date.now();
 
   // Extract successful results (includes recovery from JSON parse errors)
   const successfulResults = results
     .map((r, i) => {
       const model = runs[i]?.model ?? 'unknown';
+      const durationMs = endTime - (startTimes[i] ?? endTime);
 
       if (r.status === 'fulfilled') {
-        return r.value;
+        return { ...r.value, durationMs };
       }
 
       // Failed - attempt recovery from JSON parse errors
@@ -233,6 +239,7 @@ export async function runAIGrading(
           index: i,
           result: recovered.result,
           usage: undefined,
+          durationMs,
         };
       }
 
@@ -328,7 +335,7 @@ export async function runAIGrading(
       : undefined,
   };
 
-  // Build model results with outlier information
+  // Build model results with outlier information and duration
   const modelResults: ModelResult[] = successfulResults.map((r, i) => {
     const outlierInfo = outlierResults[i];
     return {
@@ -336,6 +343,7 @@ export async function runAIGrading(
       percentage: clampPercentage(r.result.percentage),
       included: outlierInfo?.included ?? false,
       reason: outlierInfo?.reason,
+      durationMs: r.durationMs,
     };
   });
 

@@ -102,6 +102,7 @@ export const modelResultValidator = v.object({
   percentage: v.number(),
   included: v.boolean(),
   reason: v.optional(v.string()),
+  durationMs: v.optional(v.number()), // Time taken for this model's grading run
 });
 
 // =============================================================================
