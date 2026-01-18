@@ -6,7 +6,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { internalAction, internalMutation, internalQuery, query } from './_generated/server';
 import type { ModelCapability } from './schema';
-import { modelCapabilityValidator } from './schema';
+import { modelCapabilityValidator, reasoningEffortValidator } from './schema';
 
 // =============================================================================
 // Public Queries (for UI)
@@ -122,6 +122,10 @@ export const upsert = internalMutation({
     contextLength: v.optional(v.number()),
     pricingInputPer1M: v.optional(v.number()),
     pricingOutputPer1M: v.optional(v.number()),
+    // Reasoning support
+    supportsReasoning: v.optional(v.boolean()),
+    reasoningRequired: v.optional(v.boolean()),
+    defaultReasoningEffort: v.optional(reasoningEffortValidator),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -141,6 +145,9 @@ export const upsert = internalMutation({
         pricingInputPer1M: args.pricingInputPer1M,
         pricingOutputPer1M: args.pricingOutputPer1M,
         lastSyncedAt: now,
+        supportsReasoning: args.supportsReasoning,
+        reasoningRequired: args.reasoningRequired,
+        defaultReasoningEffort: args.defaultReasoningEffort,
       });
       return { status: 'updated' as const, id: existing._id };
     } else {
@@ -154,6 +161,9 @@ export const upsert = internalMutation({
         pricingInputPer1M: args.pricingInputPer1M,
         pricingOutputPer1M: args.pricingOutputPer1M,
         lastSyncedAt: now,
+        supportsReasoning: args.supportsReasoning,
+        reasoningRequired: args.reasoningRequired,
+        defaultReasoningEffort: args.defaultReasoningEffort,
       });
       return { status: 'created' as const, id };
     }
