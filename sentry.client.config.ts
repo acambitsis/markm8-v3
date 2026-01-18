@@ -5,6 +5,32 @@
 import * as Sentry from '@sentry/nextjs';
 import * as Spotlight from '@spotlightjs/spotlight';
 
+// Authenticated routes that should have Sentry Replay enabled
+const AUTHENTICATED_ROUTE_PREFIXES = [
+  '/dashboard',
+  '/submit',
+  '/grades',
+  '/history',
+  '/settings',
+  '/admin',
+];
+
+// Check if the current path is an authenticated route
+function isAuthenticatedRoute(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  const pathname = window.location.pathname;
+  // Handle locale prefix (e.g., /en/dashboard, /fr/dashboard)
+  // Remove locale prefix if present (2-letter code after first slash)
+  const pathWithoutLocale = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, '');
+
+  return AUTHENTICATED_ROUTE_PREFIXES.some(prefix => pathWithoutLocale.startsWith(prefix));
+}
+
+const shouldEnableReplay = isAuthenticatedRoute();
+
 Sentry.init({
   // Sentry DSN
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
@@ -15,20 +41,19 @@ Sentry.init({
   // Setting this option to true will print useful information to the console while you're setting up Sentry.
   debug: false,
 
-  replaysOnErrorSampleRate: 1.0,
+  // Only set replay sample rates if on authenticated routes
+  replaysOnErrorSampleRate: shouldEnableReplay ? 1.0 : 0,
+  replaysSessionSampleRate: shouldEnableReplay ? 0.1 : 0,
 
-  // This sets the sample rate to be 10%. You may want this to be 100% while
-  // in development and sample at a lower rate in production
-  replaysSessionSampleRate: 0.1,
-
-  // You can remove this option if you're not planning to use the Sentry Session Replay feature:
-  integrations: [
-    Sentry.replayIntegration({
-      // Additional Replay configuration goes in here, for example:
-      maskAllText: true,
-      blockAllMedia: true,
-    }),
-  ],
+  // Only include Replay integration on authenticated routes to reduce bundle size on landing page
+  integrations: shouldEnableReplay
+    ? [
+        Sentry.replayIntegration({
+          maskAllText: true,
+          blockAllMedia: true,
+        }),
+      ]
+    : [],
 });
 
 if (process.env.NODE_ENV === 'development') {
