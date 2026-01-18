@@ -85,6 +85,57 @@ function tryParseFromError(error: unknown): { result: GradeOutput; issue: string
 }
 
 /**
+ * Extracts detailed error information from AI SDK errors
+ * AI SDK errors often have nested cause chains with the actual API response
+ */
+function extractErrorDetails(error: unknown): {
+  message: string;
+  name: string;
+  responseBody?: unknown;
+  statusCode?: number;
+  cause?: unknown;
+} {
+  const errorObj = error as {
+    name?: string;
+    message?: string;
+    text?: string;
+    cause?: {
+      text?: string;
+      message?: string;
+      responseBody?: unknown;
+      statusCode?: number;
+      cause?: unknown;
+    };
+    data?: unknown;
+    responseBody?: unknown;
+    statusCode?: number;
+  };
+
+  // Try to extract the most detailed error information
+  // AI SDK wraps errors in cause chains
+  let responseBody = errorObj.responseBody ?? errorObj.data;
+  let statusCode = errorObj.statusCode;
+  let detailedMessage = errorObj.message ?? 'Unknown error';
+
+  // Check nested cause for more details
+  if (errorObj.cause) {
+    responseBody = responseBody ?? errorObj.cause.responseBody;
+    statusCode = statusCode ?? errorObj.cause.statusCode;
+    if (errorObj.cause.message && errorObj.cause.message !== errorObj.message) {
+      detailedMessage = `${detailedMessage} -> ${errorObj.cause.message}`;
+    }
+  }
+
+  return {
+    message: detailedMessage,
+    name: errorObj.name ?? 'Unknown',
+    responseBody,
+    statusCode,
+    cause: errorObj.cause,
+  };
+}
+
+/**
  * Determines the failure reason for logging
  */
 function categorizeFailure(error: unknown): FailureReason {
@@ -172,13 +223,15 @@ export async function runAIGrading(
     content: essay.content,
   });
 
-  // Track start times for duration calculation (including recovered results)
+  // Track start times for each model (needed for both success and failure duration)
   const startTimes: number[] = [];
 
   // Run parallel AI calls with retry logic
+  // Each call tracks its own duration for accurate per-model timing
   const gradingPromises = runs.map(async (run, index) => {
-    startTimes[index] = Date.now();
-    return retryWithBackoff(
+    const startTime = Date.now();
+    startTimes[index] = startTime; // Also store for failure recovery path
+    const result = await retryWithBackoff(
       async () => {
         const model = getGradingModel(run.model);
 
@@ -191,7 +244,7 @@ export async function runAIGrading(
             }
           : undefined;
 
-        const result = await generateObject({
+        const aiResult = await generateObject({
           model,
           schema: gradeOutputSchema,
           prompt,
@@ -204,30 +257,36 @@ export async function runAIGrading(
         return {
           model: run.model,
           index,
-          result: result.object,
-          usage: result.usage,
+          result: aiResult.object,
+          usage: aiResult.usage,
         };
       },
       retry.maxRetries,
       retry.backoffMs,
     );
+    // Capture duration when THIS model completes (success case)
+    const durationMs = Date.now() - startTime;
+    return { ...result, durationMs };
   });
 
   // Wait for all calls to complete (or fail)
   const results = await Promise.allSettled(gradingPromises);
-  const endTime = Date.now();
 
   // Extract successful results (includes recovery from JSON parse errors)
   const successfulResults = results
     .map((r, i) => {
       const model = runs[i]?.model ?? 'unknown';
-      const durationMs = endTime - (startTimes[i] ?? endTime);
 
       if (r.status === 'fulfilled') {
-        return { ...r.value, durationMs };
+        // Use the duration captured at completion time (more accurate)
+        return r.value;
       }
 
-      // Failed - attempt recovery from JSON parse errors
+      // Failed - calculate duration for failure cases
+      // (approximation: time from start until we process the failure)
+      const durationMs = Date.now() - (startTimes[i] ?? Date.now());
+
+      // Attempt recovery from JSON parse errors
       const error = r.reason;
       const recovered = tryParseFromError(error);
 
@@ -243,8 +302,9 @@ export async function runAIGrading(
         };
       }
 
-      // Recovery failed - log failure with category
+      // Recovery failed - log failure with category and full details
       const failure = categorizeFailure(error);
+      const errorDetails = extractErrorDetails(error);
       const failureMsg = failure.type === 'truncated'
         ? 'response truncated (increase maxTokens?)'
         : failure.type === 'api_error'
@@ -253,7 +313,15 @@ export async function runAIGrading(
             ? `parse failed: ${failure.issue}`
             : `failed: ${failure.issue}`;
 
+      // Log concise message for quick identification
       console.error(`[GRADING] ${model}: ${failureMsg}`);
+      // Log full error details for debugging
+      console.error(`[GRADING] ${model} full error:`, JSON.stringify({
+        name: errorDetails.name,
+        message: errorDetails.message,
+        statusCode: errorDetails.statusCode,
+        responseBody: errorDetails.responseBody,
+      }, null, 2));
 
       // Report partial failure to Sentry (fire-and-forget, don't block grading)
       void reportToSentry({
@@ -264,8 +332,16 @@ export async function runAIGrading(
           'grading.status': 'partial_failure',
           'grading.model': model,
           'grading.failure_type': failure.type,
+          'grading.status_code': errorDetails.statusCode?.toString() ?? 'unknown',
         },
-        extra: { modelIndex: i, totalRuns: runs.length },
+        extra: {
+          modelIndex: i,
+          totalRuns: runs.length,
+          errorName: errorDetails.name,
+          errorMessage: errorDetails.message,
+          statusCode: errorDetails.statusCode,
+          responseBody: errorDetails.responseBody,
+        },
       });
 
       return null;
