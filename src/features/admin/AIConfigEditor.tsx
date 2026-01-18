@@ -44,6 +44,7 @@ import {
 
 import { api } from '../../../convex/_generated/api';
 import type { AiConfig, ReasoningEffort } from '../../../convex/schema';
+import { REASONING_EFFORT_OPTIONS } from '../../../convex/schema';
 
 type AIConfigEditorProps = {
   config: AiConfig | null;
@@ -420,12 +421,11 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                           <SelectValue placeholder="Select effort" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="none">None</SelectItem>
-                          <SelectItem value="minimal">Minimal</SelectItem>
-                          <SelectItem value="low">Low</SelectItem>
-                          <SelectItem value="medium">Medium</SelectItem>
-                          <SelectItem value="high">High</SelectItem>
-                          <SelectItem value="xhigh">Extra High</SelectItem>
+                          {REASONING_EFFORT_OPTIONS.map(option => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       {modelRequiresReasoning(run.model) && (

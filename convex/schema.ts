@@ -136,6 +136,15 @@ export const modelCapabilityValidator = v.union(
   v.literal('title'),
 );
 
+export const REASONING_EFFORT_OPTIONS = [
+  { value: 'none', label: 'None' },
+  { value: 'minimal', label: 'Minimal' },
+  { value: 'low', label: 'Low' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'high', label: 'High' },
+  { value: 'xhigh', label: 'Extra High' },
+] as const;
+
 export const reasoningEffortValidator = v.union(
   v.literal('none'),
   v.literal('minimal'),

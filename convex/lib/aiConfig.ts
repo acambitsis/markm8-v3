@@ -4,19 +4,9 @@
 import type {
   AiConfig,
   GradingConfig,
-  ReasoningEffort,
   TitleGenerationConfig,
 } from '../schema';
-
-// Valid reasoning effort values
-const VALID_REASONING_EFFORTS: readonly ReasoningEffort[] = [
-  'none',
-  'minimal',
-  'low',
-  'medium',
-  'high',
-  'xhigh',
-] as const;
+import { REASONING_EFFORT_OPTIONS } from '../schema';
 
 // =============================================================================
 // Default Configuration
@@ -101,10 +91,11 @@ export function validateGradingConfig(config: GradingConfig): ValidationResult {
   }
 
   // Validate reasoning effort values
+  const validEfforts = REASONING_EFFORT_OPTIONS.map(o => o.value);
   for (const run of config.runs) {
     if (
       run.reasoningEffort
-      && !VALID_REASONING_EFFORTS.includes(run.reasoningEffort)
+      && !validEfforts.includes(run.reasoningEffort)
     ) {
       errors.push(`Invalid reasoning effort: ${run.reasoningEffort}`);
     }
