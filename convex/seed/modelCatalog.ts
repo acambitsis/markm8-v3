@@ -31,25 +31,25 @@ type SeedModel = {
 };
 
 const INITIAL_MODELS: SeedModel[] = [
-  // xAI - Grok models (support optional reasoning)
+  // xAI - Grok models
   {
     slug: 'x-ai/grok-4',
     name: 'Grok 4',
     provider: 'xAI',
     capabilities: ['grading'],
-    supportsReasoning: true,
-    reasoningRequired: false,
-    defaultReasoningEffort: 'medium',
+    // Built-in reasoning that can't be disabled or configured - don't pass reasoning params
   },
   {
     slug: 'x-ai/grok-4.1-fast',
     name: 'Grok 4.1 Fast',
     provider: 'xAI',
     capabilities: ['grading', 'title'],
-    // No reasoning support - fast model
+    supportsReasoning: true,
+    reasoningRequired: false,
+    defaultReasoningEffort: 'medium',
   },
 
-  // OpenAI (GPT-5.2-pro has mandatory reasoning)
+  // OpenAI - GPT-5.2-pro requires reasoning effort parameter
   {
     slug: 'openai/gpt-5.2-pro',
     name: 'GPT 5.2 Pro',
@@ -60,36 +60,44 @@ const INITIAL_MODELS: SeedModel[] = [
     defaultReasoningEffort: 'medium',
   },
 
-  // Anthropic - Claude family (no reasoning via OpenRouter)
+  // Anthropic - Claude models support optional reasoning
   {
     slug: 'anthropic/claude-opus-4.5',
     name: 'Claude Opus 4.5',
     provider: 'Anthropic',
     capabilities: ['grading'],
-    // No reasoning support via OpenRouter
+    supportsReasoning: true,
+    reasoningRequired: false,
+    defaultReasoningEffort: 'medium',
   },
   {
     slug: 'anthropic/claude-haiku-4.5',
     name: 'Claude Haiku 4.5',
     provider: 'Anthropic',
     capabilities: ['grading', 'title'],
-    // No reasoning support via OpenRouter
+    supportsReasoning: true,
+    reasoningRequired: false,
+    defaultReasoningEffort: 'medium',
   },
 
-  // Google - Gemini family (no reasoning support yet)
+  // Google - Gemini 3 Pro requires reasoning, Flash is optional
   {
     slug: 'google/gemini-3-flash-preview',
     name: 'Gemini 3 Flash Preview',
     provider: 'Google',
     capabilities: ['grading', 'title'],
-    // No reasoning support
+    supportsReasoning: true,
+    reasoningRequired: false,
+    defaultReasoningEffort: 'medium',
   },
   {
     slug: 'google/gemini-3-pro-preview',
     name: 'Gemini 3 Pro Preview',
     provider: 'Google',
     capabilities: ['grading'],
-    // No reasoning support
+    supportsReasoning: true,
+    reasoningRequired: true,
+    defaultReasoningEffort: 'high',
   },
 ];
 
