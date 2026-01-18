@@ -233,9 +233,10 @@ export function InsightCarousel({
       <div className="mt-4 flex items-center justify-between">
         <div className="flex gap-1">
           {items.map((_, index) => (
+
             <motion.button
               type="button"
-              key={index}
+              key={index} // eslint-disable-line react/no-array-index-key -- pagination dots, index is the identity
               onClick={() => setCurrentIndex(index)}
               className={cn(
                 'h-1 rounded-full transition-all duration-200',

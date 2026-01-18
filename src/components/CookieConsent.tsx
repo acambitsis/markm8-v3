@@ -42,12 +42,14 @@ export function CookieConsent(): React.ReactNode {
           </p>
           <div className="flex shrink-0 items-center gap-2">
             <button
+              type="button"
               onClick={() => dismissBanner('accepted')}
               className="rounded-md bg-violet-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-violet-700"
             >
               Got it
             </button>
             <button
+              type="button"
               onClick={() => dismissBanner('dismissed')}
               className="rounded-md p-2 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
               aria-label="Dismiss"

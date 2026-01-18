@@ -121,8 +121,9 @@ export const ToolHero = () => {
             >
               <div className="flex" role="img" aria-label="5 out of 5 stars">
                 {[...Array(5)].map((_, i) => (
+
                   <motion.div
-                    key={`hero-star-${i}`}
+                    key={`hero-star-${i}`} // eslint-disable-line react/no-array-index-key -- static 5-star display
                     initial={{ opacity: 0, scale: 0, rotate: -180 }}
                     animate={{ opacity: 1, scale: 1, rotate: 0 }}
                     transition={{

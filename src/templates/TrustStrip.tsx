@@ -81,10 +81,8 @@ export const TrustStrip = () => {
             }}
           >
             {allItems.map((item, index) => (
-              <div
-                key={`mobile-${item.textKey}-${index}`}
-                className="flex shrink-0 items-center gap-2.5"
-              >
+              // eslint-disable-next-line react/no-array-index-key -- static list, textKey may not be unique
+              <div key={`mobile-${item.textKey}-${index}`} className="flex shrink-0 items-center gap-2.5">
                 <div
                   className={cn(
                     'flex size-8 items-center justify-center rounded-lg bg-slate-100',

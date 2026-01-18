@@ -266,8 +266,9 @@ export function EnhancementPanel({
           {/* Custom focus areas */}
           <AnimatePresence mode="popLayout">
             {focusAreas.map((area, index) => (
+
               <motion.div
-                key={`focus-${index}`}
+                key={`focus-${index}`} // eslint-disable-line react/no-array-index-key -- append-only list, no reordering
                 layout
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}

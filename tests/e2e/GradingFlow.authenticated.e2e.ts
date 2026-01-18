@@ -44,7 +44,7 @@ test.describe('Grading Flow', () => {
 
     // Step 4: Wait for AI suggestions to complete (if generating)
     // The "Generating..." text disappears when done
-    // eslint-disable-next-line playwright/missing-playwright-await
+    // eslint-disable-next-line playwright/missing-playwright-await, playwright/no-conditional-expect -- intentional: element may already be hidden
     await expect(page.getByText(/generating/i)).toBeHidden({ timeout: 15000 }).catch(() => {
       // Ignore if not found - suggestions may have already completed
     });

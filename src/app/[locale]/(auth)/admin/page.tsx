@@ -226,8 +226,9 @@ export default function AdminDashboardPage() {
                     animate="visible"
                   >
                     {activity.map((item, index) => (
+
                       <motion.div
-                        key={`${item.type}-${item.timestamp}-${index}`}
+                        key={`${item.type}-${item.timestamp}-${index}`} // eslint-disable-line react/no-array-index-key -- fallback for non-unique timestamps
                         className="flex items-center justify-between p-4 transition-colors hover:bg-muted/50"
                         variants={staggerItemSlow}
                       >

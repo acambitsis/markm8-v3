@@ -503,8 +503,9 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               </Label>
               <div className="flex gap-2">
                 {localConfig.grading.retry.backoffMs.map((ms, index) => (
+
                   <Input
-                    key={`backoff-${index}`}
+                    key={`backoff-${index}`} // eslint-disable-line react/no-array-index-key -- position-based array, values can duplicate
                     type="number"
                     min={1000}
                     max={120000}

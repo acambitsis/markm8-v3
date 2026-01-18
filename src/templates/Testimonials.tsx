@@ -85,8 +85,9 @@ export const Testimonials = () => {
               {/* Stars */}
               <div className="relative flex gap-0.5" role="img" aria-label={`${testimonial.rating} out of 5 stars`}>
                 {[...Array(testimonial.rating)].map((_, i) => (
+
                   <motion.div
-                    key={`star-${testimonial.authorKey}-${i}`}
+                    key={`star-${testimonial.authorKey}-${i}`} // eslint-disable-line react/no-array-index-key -- static stars, parent key + index is unique
                     initial={{ opacity: 0, scale: 0 }}
                     animate={isInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0 }}
                     transition={{

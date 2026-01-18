@@ -439,8 +439,9 @@ export function ScoreRangeBar({ percentageRange, gradingRuns, stats, delay = 0 }
             <CollapsibleContent className="mt-1.5">
               <div className="flex flex-col gap-1">
                 {gradingRuns.map((run, index) => (
+
                   <span
-                    key={index}
+                    key={index} // eslint-disable-line react/no-array-index-key -- display-only, no reordering
                     className="rounded bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground"
                   >
                     <span className="font-medium">

@@ -59,8 +59,9 @@ export function TextReveal({
       variants={containerVariants}
     >
       {words.map((word, index) => (
+
         <motion.span
-          key={`${word}-${index}`}
+          key={`${word}-${index}`} // eslint-disable-line react/no-array-index-key -- words can repeat, index ensures uniqueness
           variants={wordVariants}
           className="inline-block"
         >
@@ -129,8 +130,9 @@ export function CharacterReveal({
       style={{ perspective: 1000 }}
     >
       {characters.map((char, index) => (
+
         <motion.span
-          key={`${char}-${index}`}
+          key={`${char}-${index}`} // eslint-disable-line react/no-array-index-key -- chars repeat, index ensures uniqueness
           variants={charVariants}
           className="inline-block"
           style={{ transformOrigin: 'bottom' }}
