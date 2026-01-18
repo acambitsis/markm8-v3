@@ -69,7 +69,7 @@ export const Navbar = () => {
           ))}
         </nav>
 
-        {/* Right Menu */}
+        {/* Right Menu - Auth links use prefetch={false} to avoid Clerk cold start delays */}
         <div className="flex items-center gap-3">
           <div className="hidden sm:block">
             <LocaleSwitcher />
