@@ -188,10 +188,10 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
     return model?.reasoningRequired ?? false;
   }, [gradingModels]);
 
-  // Helper to get default reasoning effort for a model
-  const getDefaultReasoningEffort = useCallback((slug: string): ReasoningEffort | undefined => {
+  // Helper to get default reasoning effort for a model (fallback to 'medium' if not specified)
+  const getDefaultReasoningEffort = useCallback((slug: string): ReasoningEffort => {
     const model = gradingModels?.find(m => m.slug === slug);
-    return model?.defaultReasoningEffort;
+    return model?.defaultReasoningEffort ?? 'medium';
   }, [gradingModels]);
 
   // Update a specific grading run's model by ID
@@ -353,10 +353,9 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
                   transition={{ duration: 0.2 }}
-                  className="space-y-2"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="w-8 text-sm text-muted-foreground">
+                    <span className="w-8 shrink-0 text-sm text-muted-foreground">
                       #
                       {index + 1}
                     </span>
@@ -364,7 +363,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                       value={run.model}
                       onValueChange={value => updateGradingRunModel(run.id, value)}
                     >
-                      <SelectTrigger className="flex-1">
+                      <SelectTrigger className="min-w-[180px] flex-1">
                         <SelectValue placeholder="Select model" />
                       </SelectTrigger>
                       <SelectContent>
@@ -397,47 +396,50 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                         )}
                       </SelectContent>
                     </Select>
+                    {/* Reasoning effort selector inline (shown when model supports reasoning) */}
+                    {modelSupportsReasoning(run.model) && (
+                      <>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Brain className={`size-4 shrink-0 ${modelRequiresReasoning(run.model) ? 'text-purple-600' : 'text-purple-400'}`} />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {modelRequiresReasoning(run.model)
+                              ? 'This model requires reasoning to function'
+                              : 'This model supports optional reasoning'}
+                          </TooltipContent>
+                        </Tooltip>
+                        <Select
+                          value={run.reasoningEffort ?? 'medium'}
+                          onValueChange={value => updateGradingRunReasoningEffort(run.id, value as ReasoningEffort)}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {REASONING_EFFORT_OPTIONS.map(option => (
+                              <SelectItem key={option.value} value={option.value}>
+                                {option.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </>
+                    )}
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
                       onClick={() => removeGradingRun(run.id)}
                       disabled={runsWithIds.length <= 1}
-                      className="size-9 text-muted-foreground hover:text-destructive"
+                      className="size-9 shrink-0 text-muted-foreground hover:text-destructive"
                     >
                       <Minus className="size-4" />
                     </Button>
                   </div>
-                  {/* Reasoning effort selector (shown when model supports reasoning) */}
-                  {modelSupportsReasoning(run.model) && (
-                    <div className="ml-8 flex items-center gap-2">
-                      <Brain className="size-4 text-purple-500" />
-                      <span className="text-sm text-muted-foreground">Reasoning:</span>
-                      <Select
-                        value={run.reasoningEffort ?? 'medium'}
-                        onValueChange={value => updateGradingRunReasoningEffort(run.id, value as ReasoningEffort)}
-                      >
-                        <SelectTrigger className="w-36">
-                          <SelectValue placeholder="Select effort" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {REASONING_EFFORT_OPTIONS.map(option => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {modelRequiresReasoning(run.model) && (
-                        <Badge variant="secondary" className="text-xs">
-                          Required
-                        </Badge>
-                      )}
-                    </div>
-                  )}
                   {/* Warning if reasoning required but not configured */}
                   {modelRequiresReasoning(run.model) && !run.reasoningEffort && (
-                    <div className="ml-8 flex items-center gap-2 text-sm text-destructive">
+                    <div className="ml-8 mt-2 flex items-center gap-2 text-sm text-destructive">
                       <AlertTriangle className="size-4" />
                       <span>This model requires reasoning effort to be configured</span>
                     </div>
