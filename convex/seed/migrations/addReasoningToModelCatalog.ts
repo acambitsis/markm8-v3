@@ -1,13 +1,14 @@
 // Migration: Add reasoning fields to existing modelCatalog entries
+// Added in: PR #85
 //
 // This migration adds supportsReasoning, reasoningRequired, and defaultReasoningEffort
-// fields to existing model catalog entries that were created before PR #85.
+// fields to existing model catalog entries.
 //
 // Usage:
 //   npx convex run seed/migrations/addReasoningToModelCatalog:migrate
 //   npx convex run seed/migrations/addReasoningToModelCatalog:migrate --prod
 //
-// This is idempotent - safe to run multiple times.
+// Idempotent - safe to run multiple times (checks if fields already exist).
 
 /* eslint-disable no-console -- Migration scripts use console for Convex logs */
 

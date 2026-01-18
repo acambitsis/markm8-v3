@@ -1,13 +1,13 @@
 // Migration: Add maxTokens to existing platformSettings.aiConfig.grading
+// Added in: PR #69
 //
-// This migration adds the maxTokens field to existing platformSettings records
-// that were created before this field was added to the schema.
+// This migration adds the maxTokens field to existing platformSettings records.
 //
 // Usage:
 //   npx convex run seed/migrations/addMaxTokensToGrading:migrate
 //   npx convex run seed/migrations/addMaxTokensToGrading:migrate --prod
 //
-// This is idempotent - safe to run multiple times.
+// Idempotent - safe to run multiple times (checks if field already exists).
 
 /* eslint-disable no-console -- Migration scripts use console for Convex logs */
 

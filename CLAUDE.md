@@ -221,21 +221,14 @@ stripe listen --forward-to https://<project>.convex.site/stripe-webhook
 
 Some releases require data migrations after Convex functions are deployed. Migration scripts live in `convex/seed/migrations/` and are idempotent (safe to run multiple times).
 
-**After deploying to production, check for pending migrations:**
-```bash
-ls convex/seed/migrations/
-```
+**When merging `dev → main`, check the PR description for any required migrations.**
+
+Each migration script includes a comment header with the PR number it was added in. Only run migrations for PRs being deployed for the first time.
 
 **Run a migration:**
 ```bash
 npx convex run seed/migrations/<script>:migrate --prod
 ```
-
-**Current migrations:**
-| Script | Description | Added In |
-|--------|-------------|----------|
-| `addMaxTokensToGrading` | Add maxTokens field to platformSettings | PR #69 |
-| `addReasoningToModelCatalog` | Add reasoning fields to model catalog | PR #85 |
 
 ---
 
