@@ -41,6 +41,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
 import type { AiConfig, ReasoningEffort } from '../../../convex/schema';
@@ -401,7 +402,15 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                       <>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <Brain className={`size-4 shrink-0 ${modelRequiresReasoning(run.model) ? 'text-purple-600' : 'text-purple-400'}`} />
+                            <Brain
+                              className={cn(
+                                'size-4 shrink-0',
+                                modelRequiresReasoning(run.model) ? 'text-purple-600' : 'text-purple-400',
+                              )}
+                              aria-label={modelRequiresReasoning(run.model)
+                                ? 'Reasoning required'
+                                : 'Reasoning supported'}
+                            />
                           </TooltipTrigger>
                           <TooltipContent>
                             {modelRequiresReasoning(run.model)
