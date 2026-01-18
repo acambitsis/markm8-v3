@@ -179,6 +179,7 @@ export const Pricing = () => {
                     <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-violet-600 opacity-70 blur transition-opacity group-hover:opacity-100" />
                     <Link
                       href="/sign-up"
+                      prefetch={false}
                       className={cn(
                         buttonVariants({ size: 'lg' }),
                         'relative w-full gap-2 rounded-xl bg-violet-600 py-6 text-lg font-semibold text-white shadow-lg transition-all hover:bg-violet-700',

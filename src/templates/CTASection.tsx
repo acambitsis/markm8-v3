@@ -135,6 +135,7 @@ export const CTASection = () => {
                 />
                 <Link
                   href="/sign-up"
+                  prefetch={false}
                   className={cn(
                     buttonVariants({ size: 'lg' }),
                     'relative h-14 gap-2 rounded-xl bg-white px-8 text-lg font-semibold text-violet-900 shadow-xl transition-all hover:bg-violet-50',
@@ -154,6 +155,7 @@ export const CTASection = () => {
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                 <Link
                   href="/sign-in"
+                  prefetch={false}
                   className={cn(
                     buttonVariants({ variant: 'ghost', size: 'lg' }),
                     'h-14 rounded-xl border border-white/20 bg-white/5 px-8 text-lg font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/10 hover:text-white',

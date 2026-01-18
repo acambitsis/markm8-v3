@@ -190,6 +190,7 @@ export const ToolHero = () => {
               <div className="absolute -inset-1 rounded-xl bg-gradient-to-r from-violet-600 via-purple-500 to-violet-600 opacity-70 blur-lg transition-opacity group-hover:opacity-100" />
               <Link
                 href="/sign-up"
+                prefetch={false}
                 className={cn(
                   buttonVariants({ size: 'lg' }),
                   'relative h-14 gap-2 rounded-xl bg-violet-600 px-8 text-lg font-semibold text-white shadow-lg shadow-violet-500/30 transition-all hover:bg-violet-700 hover:shadow-xl hover:shadow-violet-500/40',
@@ -208,6 +209,7 @@ export const ToolHero = () => {
             <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
               <Link
                 href="/sign-in"
+                prefetch={false}
                 className={cn(
                   buttonVariants({ variant: 'outline', size: 'lg' }),
                   'h-14 rounded-xl border-2 border-slate-200 bg-white/80 px-8 text-lg font-semibold text-slate-700 backdrop-blur-sm transition-all hover:border-violet-300 hover:bg-white hover:text-violet-700',
