@@ -158,6 +158,7 @@ convex/                          # Convex backend (serverless)
 ├── http.ts                      # Webhook endpoints (Clerk, Stripe)
 ├── lib/                         # Shared helpers (auth.ts, decimal.ts, aiConfig.ts)
 ├── seed/                        # Database seeding scripts (run via: npx convex run seed/...)
+│   └── migrations/              # Post-deployment migrations (check after each prod deploy)
 ├── admin.ts                     # Admin queries and mutations (uses requireAdmin guard)
 ├── platformSettings.ts          # Admin-configurable settings (signup bonus, aiConfig, adminEmails)
 └── [domain].ts                  # Function files: users, credits, essays, grades, grading, modelCatalog
@@ -213,6 +214,28 @@ bun run convex:deploy # Deploy Convex functions manually
 # Convex HTTP endpoint format: https://<project>.convex.site/stripe-webhook
 stripe listen --forward-to https://<project>.convex.site/stripe-webhook
 ```
+
+---
+
+## Post-deployment Migrations
+
+Some releases require data migrations after Convex functions are deployed. Migration scripts live in `convex/seed/migrations/` and are idempotent (safe to run multiple times).
+
+**After deploying to production, check for pending migrations:**
+```bash
+ls convex/seed/migrations/
+```
+
+**Run a migration:**
+```bash
+npx convex run seed/migrations/<script>:migrate --prod
+```
+
+**Current migrations:**
+| Script | Description | Added In |
+|--------|-------------|----------|
+| `addMaxTokensToGrading` | Add maxTokens field to platformSettings | PR #69 |
+| `addReasoningToModelCatalog` | Add reasoning fields to model catalog | PR #85 |
 
 ---
 
