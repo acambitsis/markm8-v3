@@ -9,6 +9,7 @@ import { validateAiConfig } from './lib/aiConfig';
 import { isAdmin, requireAdmin } from './lib/auth';
 import { addDecimal, isNegative, isZero } from './lib/decimal';
 import { validatePricingValue } from './lib/pricing';
+import type { ModelResult } from './schema';
 import { aiConfigValidator, transactionTypeValidator } from './schema';
 
 /**
@@ -154,7 +155,7 @@ export const getRecentActivity = query({
 
     // Batch load grades for essay activities (for timing info)
     const essayIdsToFetch = submittedEssays.map(e => e._id);
-    const gradeMap = new Map<string, { modelResults?: Array<{ model: string; percentage: number; included: boolean; reason?: string; durationMs?: number }> }>();
+    const gradeMap = new Map<string, { modelResults?: ModelResult[] }>();
 
     // Fetch latest completed grade for each essay
     await Promise.all(
@@ -177,7 +178,7 @@ export const getRecentActivity = query({
       description: string;
       email?: string;
       amount?: string;
-      modelResults?: Array<{ model: string; percentage: number; included: boolean; reason?: string; durationMs?: number }>;
+      modelResults?: ModelResult[];
     }> = [];
 
     // Add user signups
