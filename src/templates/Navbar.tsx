@@ -82,6 +82,7 @@ export const Navbar = () => {
           >
             <Link
               href="/sign-in"
+              prefetch={false}
               className="hidden px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:text-slate-900 sm:inline"
             >
               {t('sign_in')}
@@ -97,6 +98,7 @@ export const Navbar = () => {
           >
             <Link
               href="/sign-up"
+              prefetch={false}
               className={cn(
                 buttonVariants(),
                 'rounded-lg bg-violet-600 px-5 font-semibold shadow-md shadow-violet-500/20 transition-all hover:bg-violet-700 hover:shadow-lg hover:shadow-violet-500/30',
@@ -149,6 +151,7 @@ export const Navbar = () => {
           <div className="mt-2 border-t border-slate-200 pt-4">
             <Link
               href="/sign-in"
+              prefetch={false}
               className="block rounded-lg px-4 py-3 text-center text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100"
               onClick={() => setIsMobileMenuOpen(false)}
             >
