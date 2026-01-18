@@ -152,6 +152,24 @@ export const getRecentActivity = query({
       }),
     );
 
+    // Batch load grades for essay activities (for timing info)
+    const essayIdsToFetch = submittedEssays.map(e => e._id);
+    const gradeMap = new Map<string, { modelResults?: Array<{ model: string; percentage: number; included: boolean; reason?: string; durationMs?: number }> }>();
+
+    // Fetch latest completed grade for each essay
+    await Promise.all(
+      essayIdsToFetch.map(async (essayId) => {
+        const grade = await ctx.db
+          .query('grades')
+          .withIndex('by_essay_id', q => q.eq('essayId', essayId))
+          .order('desc')
+          .first();
+        if (grade?.status === 'complete' && grade.modelResults) {
+          gradeMap.set(essayId, { modelResults: grade.modelResults });
+        }
+      }),
+    );
+
     // Combine and format activities
     const activities: Array<{
       type: 'signup' | 'purchase' | 'essay';
@@ -159,6 +177,7 @@ export const getRecentActivity = query({
       description: string;
       email?: string;
       amount?: string;
+      modelResults?: Array<{ model: string; percentage: number; included: boolean; reason?: string; durationMs?: number }>;
     }> = [];
 
     // Add user signups
@@ -183,14 +202,16 @@ export const getRecentActivity = query({
       });
     }
 
-    // Add essay submissions (using batched user lookups)
+    // Add essay submissions (using batched user and grade lookups)
     for (const essay of submittedEssays) {
       const user = userMap.get(essay.userId);
+      const grade = gradeMap.get(essay._id);
       activities.push({
         type: 'essay',
         timestamp: essay.submittedAt ?? essay._creationTime,
         description: `Essay submitted`,
         email: user?.email,
+        modelResults: grade?.modelResults,
       });
     }
 
