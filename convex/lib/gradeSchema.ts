@@ -62,18 +62,19 @@ function convexToJsonSchema(convexJson: ConvexValidatorJSON): JSONSchema {
 
       for (const [key, field] of Object.entries(convexJson.value)) {
         properties[key] = convexToJsonSchema(field.fieldType);
-        if (!field.optional) {
-          required.push(key);
-        }
+        // OpenAI strict mode requires ALL properties in 'required' array
+        // So we include all properties, not just non-optional ones
+        required.push(key);
       }
 
       const result: JSONSchema = {
         type: 'object',
         properties,
+        // Required for OpenAI strict mode structured outputs
+        additionalProperties: false,
+        // Must include all properties - OpenAI strict mode doesn't support optional fields
+        required,
       };
-      if (required.length > 0) {
-        result.required = required;
-      }
       return result;
     }
 
