@@ -44,9 +44,6 @@ const itemVariants = {
 };
 
 export function GradeResults({ percentageRange, feedback, modelResults }: Props) {
-  // Build grading runs for display (all runs, not just unique)
-  const gradingRuns = modelResults.map(r => ({ model: r.model }));
-
   // Build stats for the hero section
   const stats = [
     { value: feedback.strengths.length, label: 'Strengths', color: 'text-green-600' },
@@ -68,7 +65,7 @@ export function GradeResults({ percentageRange, feedback, modelResults }: Props)
           <div className="bg-gradient-to-br from-primary/5 via-primary/10 to-primary/5 px-6 py-5">
             <ScoreRangeBar
               percentageRange={percentageRange}
-              gradingRuns={gradingRuns}
+              modelResults={modelResults}
               stats={stats}
               delay={0.3}
             />

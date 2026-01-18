@@ -5,6 +5,7 @@ import { CreditCard, Filter } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import { ModelTimings } from '@/components/ModelTimings';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
 import { Badge } from '@/components/ui/badge';
@@ -142,7 +143,7 @@ export default function AdminTransactionsPage() {
                         </div>
 
                         {/* Details */}
-                        <div className="min-w-0">
+                        <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <Badge
                               variant="secondary"
@@ -157,6 +158,10 @@ export default function AdminTransactionsPage() {
                             <span className="text-sm text-muted-foreground">
                               {tx.userEmail}
                             </span>
+                            {/* Show model timings for grading transactions */}
+                            {tx.type === 'grading' && tx.modelResults && tx.modelResults.length > 0 && (
+                              <ModelTimings modelResults={tx.modelResults} compact />
+                            )}
                           </div>
                           <p className="mt-1 text-sm text-muted-foreground">
                             {tx.description ?? '-'}

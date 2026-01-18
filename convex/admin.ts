@@ -405,12 +405,31 @@ export const getTransactions = query({
       }),
     );
 
-    // Map transactions with user data from batch lookup
+    // Batch load grades for grading transactions (for model timings)
+    const gradeIdsToFetch = new Set<Id<'grades'>>();
+    for (const tx of limitedTransactions) {
+      if (tx.transactionType === 'grading' && tx.gradeId) {
+        gradeIdsToFetch.add(tx.gradeId);
+      }
+    }
+
+    const gradeMap = new Map<string, { modelResults?: Array<{ model: string; percentage: number; included: boolean; reason?: string; durationMs?: number }> }>();
+    await Promise.all(
+      Array.from(gradeIdsToFetch).map(async (id) => {
+        const grade = await ctx.db.get(id);
+        if (grade) {
+          gradeMap.set(id, { modelResults: grade.modelResults });
+        }
+      }),
+    );
+
+    // Map transactions with user data and grade data from batch lookup
     const transactionsWithUsers = limitedTransactions.map((tx) => {
       const user = userMap.get(tx.userId);
       const performedByUser = tx.performedBy
         ? userMap.get(tx.performedBy)
         : null;
+      const grade = tx.gradeId ? gradeMap.get(tx.gradeId) : null;
 
       return {
         _id: tx._id,
@@ -422,6 +441,8 @@ export const getTransactions = query({
         adminNote: tx.adminNote,
         performedBy: performedByUser?.email,
         createdAt: tx._creationTime,
+        // Include model results for grading transactions (for duration analysis)
+        modelResults: grade?.modelResults,
       };
     });
 

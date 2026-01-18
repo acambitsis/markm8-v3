@@ -1,18 +1,13 @@
 'use client';
 
 import { animate, motion, useMotionValue } from 'framer-motion';
-import { ChevronDown, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { ModelTimings } from '@/components/ModelTimings';
 import { getGradeThreshold } from '@/utils/gradeColors';
 import { cn } from '@/utils/Helpers';
 
-import type { PercentageRange } from '../../../../convex/schema';
+import type { ModelResult, PercentageRange } from '../../../../convex/schema';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -20,11 +15,9 @@ import type { PercentageRange } from '../../../../convex/schema';
 
 type StatItem = { value: number; label: string; color: string };
 
-type GradingRun = { model: string };
-
 type Props = {
   percentageRange: PercentageRange;
-  gradingRuns: GradingRun[];
+  modelResults: ModelResult[];
   stats: StatItem[];
   delay?: number;
 };
@@ -341,8 +334,7 @@ function ScoreDisplay({
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ScoreRangeBar({ percentageRange, gradingRuns, stats, delay = 0 }: Props) {
-  const [showDetails, setShowDetails] = useState(false);
+export function ScoreRangeBar({ percentageRange, modelResults, stats, delay = 0 }: Props) {
   const [showBand, setShowBand] = useState(false);
 
   // Derived values
@@ -425,37 +417,9 @@ export function ScoreRangeBar({ percentageRange, gradingRuns, stats, delay = 0 }
           </div>
 
           {/* AI Grading Runs - subtle, expandable */}
-          <Collapsible open={showDetails} onOpenChange={setShowDetails}>
-            <CollapsibleTrigger className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-md bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground/70 transition-colors hover:bg-muted/50 hover:text-muted-foreground">
-              <Sparkles className="size-3" />
-              <span className="font-medium">
-                {gradingRuns.length}
-                {' '}
-                grading run
-                {gradingRuns.length !== 1 ? 's' : ''}
-              </span>
-              <ChevronDown className={cn('size-3 transition-transform', showDetails && 'rotate-180')} />
-            </CollapsibleTrigger>
-            <CollapsibleContent className="mt-1.5">
-              <div className="flex flex-col gap-1">
-                {gradingRuns.map((run, index) => (
-
-                  <span
-                    key={index} // eslint-disable-line react/no-array-index-key -- display-only, no reordering
-                    className="rounded bg-muted/40 px-2 py-0.5 text-[10px] text-muted-foreground"
-                  >
-                    <span className="font-medium">
-                      Run
-                      {index + 1}
-                      :
-                    </span>
-                    {' '}
-                    {run.model}
-                  </span>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          <div className="mt-2">
+            <ModelTimings modelResults={modelResults} triggerClassName="w-full" />
+          </div>
         </motion.div>
       </div>
 
