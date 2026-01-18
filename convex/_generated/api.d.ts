@@ -29,6 +29,7 @@ import type * as lib_grading_mock from "../lib/grading/mock.js";
 import type * as lib_grading_utils from "../lib/grading/utils.js";
 import type * as lib_gradingPrompt from "../lib/gradingPrompt.js";
 import type * as lib_pricing from "../lib/pricing.js";
+import type * as lib_sentry from "../lib/sentry.js";
 import type * as lib_slack from "../lib/slack.js";
 import type * as modelCatalog from "../modelCatalog.js";
 import type * as notifications from "../notifications.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "lib/grading/utils": typeof lib_grading_utils;
   "lib/gradingPrompt": typeof lib_gradingPrompt;
   "lib/pricing": typeof lib_pricing;
+  "lib/sentry": typeof lib_sentry;
   "lib/slack": typeof lib_slack;
   modelCatalog: typeof modelCatalog;
   notifications: typeof notifications;
