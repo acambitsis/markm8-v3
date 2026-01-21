@@ -2,6 +2,7 @@
 
 import { UserButton } from '@clerk/nextjs';
 import {
+  ClipboardList,
   CreditCard,
   LayoutDashboard,
   Settings,
@@ -32,6 +33,11 @@ const adminNavItems = [
     href: '/admin/transactions',
     label: 'Transactions',
     icon: CreditCard,
+  },
+  {
+    href: '/admin/audit',
+    label: 'Audit Log',
+    icon: ClipboardList,
   },
   {
     href: '/admin/settings',

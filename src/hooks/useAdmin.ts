@@ -4,7 +4,7 @@ import type { Id } from 'convex/_generated/dataModel';
 import { useConvexAuth, useMutation, useQuery } from 'convex/react';
 
 import { api } from '../../convex/_generated/api';
-import type { TransactionType } from '../../convex/schema';
+import type { AuditAction, TransactionType } from '../../convex/schema';
 
 /**
  * Hook to check if the current user is an admin
@@ -129,6 +129,30 @@ export function useAdminPlatformSettings() {
   return {
     settings,
     isLoading: settings === undefined,
+  };
+}
+
+/**
+ * Hook to get admin audit log
+ */
+export function useAdminAuditLog(filters?: {
+  action?: AuditAction;
+  limit?: number;
+}) {
+  const { isAuthenticated } = useConvexAuth();
+  const auditLog = useQuery(
+    api.admin.getAuditLog,
+    isAuthenticated
+      ? {
+          action: filters?.action,
+          limit: filters?.limit ?? 50,
+        }
+      : 'skip',
+  );
+
+  return {
+    auditLog: auditLog ?? [],
+    isLoading: auditLog === undefined,
   };
 }
 

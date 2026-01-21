@@ -9,8 +9,8 @@ import { validateAiConfig } from './lib/aiConfig';
 import { isAdmin, requireAdmin } from './lib/auth';
 import { addDecimal, isNegative, isZero } from './lib/decimal';
 import { validatePricingValue } from './lib/pricing';
-import type { ModelResult } from './schema';
-import { aiConfigValidator, transactionTypeValidator } from './schema';
+import type { AuditAction, ModelResult } from './schema';
+import { aiConfigValidator, auditActionValidator, transactionTypeValidator } from './schema';
 
 /**
  * Simple email validation function
@@ -503,6 +503,48 @@ export const getPlatformSettings = query({
   },
 });
 
+/**
+ * Get admin audit log
+ * Returns history of admin settings changes
+ * Supports optional filtering by action type
+ */
+export const getAuditLog = query({
+  args: {
+    action: v.optional(auditActionValidator),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, { action, limit = 50 }) => {
+    await requireAdmin(ctx);
+
+    let entries;
+
+    if (action) {
+      // Filter by action type using index
+      entries = await ctx.db
+        .query('adminAuditLog')
+        .withIndex('by_action', q => q.eq('action', action))
+        .order('desc')
+        .take(limit);
+    } else {
+      // Get all entries, ordered by creation time desc
+      entries = await ctx.db
+        .query('adminAuditLog')
+        .order('desc')
+        .take(limit);
+    }
+
+    return entries.map(entry => ({
+      _id: entry._id,
+      action: entry.action,
+      performedBy: entry.performedBy,
+      performedByEmail: entry.performedByEmail,
+      changes: entry.changes,
+      metadata: entry.metadata,
+      createdAt: entry._creationTime,
+    }));
+  },
+});
+
 // =============================================================================
 // Mutations
 // =============================================================================
@@ -599,6 +641,10 @@ export const updatePlatformSettings = mutation({
       .withIndex('by_key', q => q.eq('key', 'singleton'))
       .unique();
 
+    if (!settings) {
+      throw new Error('Platform settings not found. Run seed script first.');
+    }
+
     // Normalize and validate admin emails
     let normalizedEmails: string[] | undefined;
     if (args.adminEmails) {
@@ -620,11 +666,28 @@ export const updatePlatformSettings = mutation({
       updatedBy: admin.userId,
     };
 
+    // Track audit entries to create after successful update
+    const auditEntries: Array<{
+      action: AuditAction;
+      field: string;
+      previousValue: unknown;
+      newValue: unknown;
+    }> = [];
+
     if (args.signupBonusAmount !== undefined) {
       // Validate bonus amount
       const bonus = Number.parseFloat(args.signupBonusAmount);
       if (Number.isNaN(bonus) || bonus < 0) {
         throw new Error('Invalid signup bonus amount');
+      }
+      // Only log if value changed
+      if (args.signupBonusAmount !== settings.signupBonusAmount) {
+        auditEntries.push({
+          action: 'signup_bonus_update',
+          field: 'signupBonusAmount',
+          previousValue: settings.signupBonusAmount,
+          newValue: args.signupBonusAmount,
+        });
       }
       updates.signupBonusAmount = args.signupBonusAmount;
     }
@@ -632,17 +695,37 @@ export const updatePlatformSettings = mutation({
     if (args.gradingCostPerEssay !== undefined) {
       // Validate grading cost - must be positive (uses shared validation)
       validatePricingValue(args.gradingCostPerEssay, 'Grading cost');
+      // Only log if value changed
+      if (args.gradingCostPerEssay !== settings.gradingCostPerEssay) {
+        auditEntries.push({
+          action: 'pricing_update',
+          field: 'gradingCostPerEssay',
+          previousValue: settings.gradingCostPerEssay,
+          newValue: args.gradingCostPerEssay,
+        });
+      }
       updates.gradingCostPerEssay = args.gradingCostPerEssay;
     }
 
     if (args.creditsPerDollar !== undefined) {
       // Validate credits per dollar - must be positive (uses shared validation)
       validatePricingValue(args.creditsPerDollar, 'Credits per pound');
+      // Only log if value changed
+      if (args.creditsPerDollar !== settings.creditsPerDollar) {
+        auditEntries.push({
+          action: 'pricing_update',
+          field: 'creditsPerDollar',
+          previousValue: settings.creditsPerDollar,
+          newValue: args.creditsPerDollar,
+        });
+      }
       updates.creditsPerDollar = args.creditsPerDollar;
     }
 
     if (normalizedEmails !== undefined) {
       updates.adminEmails = normalizedEmails;
+      // Note: individual email changes are tracked via addAdminEmail/removeAdminEmail
+      // This bulk update path is for direct array replacement (less common)
     }
 
     if (args.aiConfig !== undefined) {
@@ -655,14 +738,33 @@ export const updatePlatformSettings = mutation({
       for (const warning of validation.warnings) {
         console.warn(`[updatePlatformSettings] ${warning}`);
       }
-
+      // Only log if value changed (compare as JSON strings)
+      if (JSON.stringify(args.aiConfig) !== JSON.stringify(settings.aiConfig)) {
+        auditEntries.push({
+          action: 'ai_config_update',
+          field: 'aiConfig',
+          previousValue: settings.aiConfig,
+          newValue: args.aiConfig,
+        });
+      }
       updates.aiConfig = args.aiConfig;
     }
 
-    if (settings) {
-      await ctx.db.patch(settings._id, updates);
-    } else {
-      throw new Error('Platform settings not found. Run seed script first.');
+    // Apply the update
+    await ctx.db.patch(settings._id, updates);
+
+    // Create audit log entries for each changed field
+    for (const entry of auditEntries) {
+      await ctx.db.insert('adminAuditLog', {
+        action: entry.action,
+        performedBy: admin.userId,
+        performedByEmail: admin.email,
+        changes: {
+          field: entry.field,
+          previousValue: entry.previousValue,
+          newValue: entry.newValue,
+        },
+      });
     }
 
     return { success: true };
@@ -677,7 +779,7 @@ export const addAdminEmail = mutation({
     email: v.string(),
   },
   handler: async (ctx, { email }) => {
-    await requireAdmin(ctx);
+    const admin = await requireAdmin(ctx);
 
     const normalizedEmail = email.toLowerCase().trim();
 
@@ -704,6 +806,21 @@ export const addAdminEmail = mutation({
 
     await ctx.db.patch(settings._id, {
       adminEmails: [...currentEmails, normalizedEmail],
+    });
+
+    // Log audit entry
+    await ctx.db.insert('adminAuditLog', {
+      action: 'admin_email_added',
+      performedBy: admin.userId,
+      performedByEmail: admin.email,
+      changes: {
+        field: 'adminEmails',
+        previousValue: currentEmails,
+        newValue: [...currentEmails, normalizedEmail],
+      },
+      metadata: {
+        targetEmail: normalizedEmail,
+      },
     });
 
     return { success: true };
@@ -748,6 +865,21 @@ export const removeAdminEmail = mutation({
 
     await ctx.db.patch(settings._id, {
       adminEmails: newEmails,
+    });
+
+    // Log audit entry
+    await ctx.db.insert('adminAuditLog', {
+      action: 'admin_email_removed',
+      performedBy: admin.userId,
+      performedByEmail: admin.email,
+      changes: {
+        field: 'adminEmails',
+        previousValue: currentEmails,
+        newValue: newEmails,
+      },
+      metadata: {
+        targetEmail: normalizedEmail,
+      },
     });
 
     return { success: true };
