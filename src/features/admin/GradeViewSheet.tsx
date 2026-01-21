@@ -2,7 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import type { Id } from 'convex/_generated/dataModel';
-import { BookOpen, Calendar, FileText, GraduationCap, Hash, Loader2, X } from 'lucide-react';
+import { BookOpen, Calendar, ClipboardList, FileText, GraduationCap, Hash, Loader2, Target, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { GradeResults } from '@/features/grading/GradeResults';
@@ -139,6 +139,47 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                     </div>
                   </div>
                 </div>
+
+                {/* Context Provided Section */}
+                {grade.contextProvided && (
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <h3 className="mb-3 font-medium">Context Provided</h3>
+                    <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+                      {/* Instructions indicator */}
+                      <div className="flex items-center gap-2">
+                        <FileText className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Instructions:</span>
+                        <span>
+                          {grade.contextProvided.hasCustomInstructions
+                            ? `Custom (${grade.contextProvided.instructionLength} chars)`
+                            : 'Default'}
+                        </span>
+                      </div>
+                      {/* Rubric indicator */}
+                      <div className="flex items-center gap-2">
+                        <ClipboardList className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Custom Rubric:</span>
+                        <span>
+                          {grade.contextProvided.hasCustomRubric
+                            ? `Yes (${grade.contextProvided.rubricLength} chars)`
+                            : 'No'}
+                        </span>
+                      </div>
+                      {/* Focus areas */}
+                      {grade.contextProvided.focusAreas.length > 0 && (
+                        <div className="flex items-center gap-2">
+                          <Target className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Focus Areas:</span>
+                          <div className="flex flex-wrap gap-1">
+                            {grade.contextProvided.focusAreas.map(area => (
+                              <Badge key={area} variant="secondary">{area}</Badge>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Grade Results */}
                 {grade.grade.percentageRange && grade.grade.feedback && grade.grade.modelResults && (
