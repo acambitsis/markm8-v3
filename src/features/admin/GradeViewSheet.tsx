@@ -1,7 +1,7 @@
 'use client';
 
 import type { Id } from 'convex/_generated/dataModel';
-import { BookOpen, Calendar, FileText, GraduationCap, Loader2 } from 'lucide-react';
+import { BookOpen, Calendar, FileText, GraduationCap, Hash, Loader2 } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import {
@@ -102,7 +102,7 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                 )}
                 {grade.essayMetadata.wordCount && (
                   <div className="flex items-center gap-2">
-                    <FileText className="size-4 text-muted-foreground" />
+                    <Hash className="size-4 text-muted-foreground" />
                     <span className="text-muted-foreground">Word Count:</span>
                     <span>
                       {grade.essayMetadata.wordCount.toLocaleString()}

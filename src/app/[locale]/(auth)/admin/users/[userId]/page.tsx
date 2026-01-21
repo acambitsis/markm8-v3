@@ -394,7 +394,12 @@ export default function AdminUserDetailPage() {
       <GradeViewSheet
         gradeId={selectedGradeId}
         open={gradeSheetOpen}
-        onOpenChange={setGradeSheetOpen}
+        onOpenChange={(open) => {
+          setGradeSheetOpen(open);
+          if (!open) {
+            setSelectedGradeId(null);
+          }
+        }}
       />
     </PageTransition>
   );
