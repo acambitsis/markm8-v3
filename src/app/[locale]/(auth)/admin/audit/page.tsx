@@ -19,7 +19,7 @@ import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminAuditLog } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
 
-import type { AuditAction } from '../../../../../../convex/schema';
+import type { AiConfig, AuditAction } from '../../../../../../convex/schema';
 
 type FilterValue = AuditAction | 'all';
 
@@ -32,6 +32,73 @@ const actionLabels: Record<AuditAction, string> = {
   ai_config_update: 'AI Config',
 };
 
+// Get short model name from full OpenRouter model ID
+function getShortModelName(modelId: string): string {
+  // Extract just the model name part after the provider prefix
+  const parts = modelId.split('/');
+  return parts[parts.length - 1] ?? modelId;
+}
+
+// Describe AI config changes in detail
+function getAiConfigChanges(prev: AiConfig, next: AiConfig): string[] {
+  const changes: string[] = [];
+
+  // Check grading mode
+  if (prev.grading.mode !== next.grading.mode) {
+    changes.push(`Mode: ${prev.grading.mode} → ${next.grading.mode}`);
+  }
+
+  // Check temperature
+  if (prev.grading.temperature !== next.grading.temperature) {
+    changes.push(`Temperature: ${prev.grading.temperature} → ${next.grading.temperature}`);
+  }
+
+  // Check runs (models and reasoning effort)
+  const prevRuns = prev.grading.runs;
+  const nextRuns = next.grading.runs;
+
+  if (prevRuns.length !== nextRuns.length) {
+    changes.push(`Runs: ${prevRuns.length} → ${nextRuns.length}`);
+  }
+
+  // Compare each run for model/reasoning changes
+  const maxRuns = Math.max(prevRuns.length, nextRuns.length);
+  for (let i = 0; i < maxRuns; i++) {
+    const prevRun = prevRuns[i];
+    const nextRun = nextRuns[i];
+
+    if (!prevRun && nextRun) {
+      changes.push(`Run ${i + 1}: Added ${getShortModelName(nextRun.model)}${nextRun.reasoningEffort ? ` (${nextRun.reasoningEffort})` : ''}`);
+    } else if (prevRun && !nextRun) {
+      changes.push(`Run ${i + 1}: Removed ${getShortModelName(prevRun.model)}`);
+    } else if (prevRun && nextRun) {
+      if (prevRun.model !== nextRun.model) {
+        changes.push(`Run ${i + 1} model: ${getShortModelName(prevRun.model)} → ${getShortModelName(nextRun.model)}`);
+      }
+      if (prevRun.reasoningEffort !== nextRun.reasoningEffort) {
+        changes.push(`Run ${i + 1} reasoning: ${prevRun.reasoningEffort ?? 'none'} → ${nextRun.reasoningEffort ?? 'none'}`);
+      }
+    }
+  }
+
+  // Check outlier threshold
+  if (prev.grading.outlierThresholdPercent !== next.grading.outlierThresholdPercent) {
+    changes.push(`Outlier threshold: ${prev.grading.outlierThresholdPercent}% → ${next.grading.outlierThresholdPercent}%`);
+  }
+
+  // Check max tokens
+  if (prev.grading.maxTokens !== next.grading.maxTokens) {
+    changes.push(`Max tokens: ${prev.grading.maxTokens ?? 'default'} → ${next.grading.maxTokens ?? 'default'}`);
+  }
+
+  // Check title generation model
+  if (prev.titleGeneration.model !== next.titleGeneration.model) {
+    changes.push(`Title model: ${getShortModelName(prev.titleGeneration.model)} → ${getShortModelName(next.titleGeneration.model)}`);
+  }
+
+  return changes;
+}
+
 // Human-readable descriptions for changes
 function getChangeDescription(entry: {
   action: AuditAction;
@@ -43,7 +110,7 @@ function getChangeDescription(entry: {
   metadata?: {
     targetEmail?: string;
   };
-}): string {
+}): string | string[] {
   const { action, changes, metadata } = entry;
 
   switch (action) {
@@ -54,8 +121,15 @@ function getChangeDescription(entry: {
       return `Added ${metadata?.targetEmail ?? 'unknown'} to admin allowlist`;
     case 'admin_email_removed':
       return `Removed ${metadata?.targetEmail ?? 'unknown'} from admin allowlist`;
-    case 'ai_config_update':
+    case 'ai_config_update': {
+      const prev = changes.previousValue as AiConfig | undefined;
+      const next = changes.newValue as AiConfig | undefined;
+      if (prev && next) {
+        const aiChanges = getAiConfigChanges(prev, next);
+        return aiChanges.length > 0 ? aiChanges : ['Updated AI configuration'];
+      }
       return 'Updated AI configuration';
+    }
     default:
       return `Updated ${changes.field}`;
   }
@@ -198,9 +272,25 @@ export default function AdminAuditPage() {
                               {actionLabels[entry.action]}
                             </Badge>
                           </div>
-                          <p className="mt-1 text-sm text-foreground">
-                            {getChangeDescription(entry)}
-                          </p>
+                          {(() => {
+                            const description = getChangeDescription(entry);
+                            if (Array.isArray(description)) {
+                              return (
+                                <ul className="mt-1 space-y-0.5 text-sm text-foreground">
+                                  {description.map((line, i) => (
+                                    <li key={i} className="font-mono text-xs">
+                                      {line}
+                                    </li>
+                                  ))}
+                                </ul>
+                              );
+                            }
+                            return (
+                              <p className="mt-1 text-sm text-foreground">
+                                {description}
+                              </p>
+                            );
+                          })()}
                           <p className="mt-0.5 text-xs text-muted-foreground">
                             by
                             {' '}
