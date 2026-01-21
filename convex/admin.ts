@@ -411,6 +411,21 @@ export const getGradeForQA = query({
       return null;
     }
 
+    // Detect if instructions are the auto-generated default
+    // Default template ends with this unique suffix (see convex/essays.ts:238)
+    const DEFAULT_INSTRUCTIONS_SUFFIX
+      = 'Assess the quality of writing, argument structure, evidence usage, and overall effectiveness. Provide constructive feedback to help improve the essay.';
+    const instructions = essay.assignmentBrief?.instructions ?? '';
+    const hasCustomInstructions = instructions.length > 0
+      && !instructions.includes(DEFAULT_INSTRUCTIONS_SUFFIX);
+
+    // Check for custom rubric criteria
+    const customCriteria = essay.rubric?.customCriteria ?? '';
+    const hasCustomRubric = customCriteria.length > 0;
+
+    // Get focus areas (safe to expose - just category labels)
+    const focusAreas = essay.rubric?.focusAreas ?? [];
+
     return {
       grade: {
         _id: grade._id,
@@ -429,6 +444,14 @@ export const getGradeForQA = query({
         wordCount: essay.wordCount,
         academicLevel: essay.assignmentBrief?.academicLevel,
         submittedAt: essay.submittedAt,
+      },
+      // Context provided indicators (for support troubleshooting)
+      contextProvided: {
+        hasCustomInstructions,
+        instructionLength: instructions.length,
+        hasCustomRubric,
+        rubricLength: customCriteria.length,
+        focusAreas,
       },
     };
   },
