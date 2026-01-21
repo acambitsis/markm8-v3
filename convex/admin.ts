@@ -153,9 +153,9 @@ export const getRecentActivity = query({
       }),
     );
 
-    // Batch load grades for essay activities (for timing info)
+    // Batch load grades for essay activities (for timing info and QA review)
     const essayIdsToFetch = submittedEssays.map(e => e._id);
-    const gradeMap = new Map<string, { modelResults?: ModelResult[] }>();
+    const gradeMap = new Map<string, { gradeId: Id<'grades'>; modelResults?: ModelResult[] }>();
 
     // Fetch latest completed grade for each essay
     await Promise.all(
@@ -165,8 +165,8 @@ export const getRecentActivity = query({
           .withIndex('by_essay_id', q => q.eq('essayId', essayId))
           .order('desc')
           .first();
-        if (grade?.status === 'complete' && grade.modelResults) {
-          gradeMap.set(essayId, { modelResults: grade.modelResults });
+        if (grade?.status === 'complete') {
+          gradeMap.set(essayId, { gradeId: grade._id, modelResults: grade.modelResults });
         }
       }),
     );
@@ -178,6 +178,7 @@ export const getRecentActivity = query({
       description: string;
       email?: string;
       amount?: string;
+      gradeId?: Id<'grades'>;
       modelResults?: ModelResult[];
     }> = [];
 
@@ -212,6 +213,7 @@ export const getRecentActivity = query({
         timestamp: essay.submittedAt ?? essay._creationTime,
         description: `Essay submitted`,
         email: user?.email,
+        gradeId: grade?.gradeId,
         modelResults: grade?.modelResults,
       });
     }
