@@ -804,8 +804,10 @@ export const addAdminEmail = mutation({
       throw new Error('Email already in admin allowlist');
     }
 
+    const newEmails = [...currentEmails, normalizedEmail];
+
     await ctx.db.patch(settings._id, {
-      adminEmails: [...currentEmails, normalizedEmail],
+      adminEmails: newEmails,
     });
 
     // Log audit entry
@@ -816,7 +818,7 @@ export const addAdminEmail = mutation({
       changes: {
         field: 'adminEmails',
         previousValue: currentEmails,
-        newValue: [...currentEmails, normalizedEmail],
+        newValue: newEmails,
       },
       metadata: {
         targetEmail: normalizedEmail,
