@@ -1,14 +1,18 @@
 'use client';
 
+import type { Id } from 'convex/_generated/dataModel';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, CreditCard, FileText, Settings, Shield, TrendingUp, Users } from 'lucide-react';
+import { Activity, ArrowRight, CreditCard, Eye, FileText, Settings, Shield, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 import { ModelTimings } from '@/components/ModelTimings';
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
+import { Button } from '@/components/ui/button';
 import { getActivityStyle } from '@/features/admin/colors';
+import { GradeViewSheet } from '@/features/admin/GradeViewSheet';
 import { staggerContainerSlow, staggerItemSlow } from '@/features/admin/motion';
 import { StatsCard } from '@/features/admin/StatsCard';
 import { useAdminDashboardStats, useAdminRecentActivity } from '@/hooks/useAdmin';
@@ -18,6 +22,8 @@ export default function AdminDashboardPage() {
   const t = useTranslations('AdminDashboard');
   const { stats, isLoading: isStatsLoading } = useAdminDashboardStats();
   const { activity, isLoading: isActivityLoading } = useAdminRecentActivity(10);
+  const [selectedGradeId, setSelectedGradeId] = useState<Id<'grades'> | null>(null);
+  const [gradeSheetOpen, setGradeSheetOpen] = useState(false);
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -260,15 +266,43 @@ export default function AdminDashboardPage() {
                             </p>
                           </div>
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {formatTimestamp(item.timestamp)}
-                        </span>
+                        <div className="flex items-center gap-3">
+                          {item.type === 'essay' && item.gradeId && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="gap-1.5"
+                              onClick={() => {
+                                setSelectedGradeId(item.gradeId!);
+                                setGradeSheetOpen(true);
+                              }}
+                            >
+                              <Eye className="size-4" />
+                              View Grade
+                            </Button>
+                          )}
+                          <span className="text-xs text-muted-foreground">
+                            {formatTimestamp(item.timestamp)}
+                          </span>
+                        </div>
                       </motion.div>
                     ))}
                   </motion.div>
                 )}
         </div>
       </motion.section>
+
+      {/* Grade View Dialog */}
+      <GradeViewSheet
+        gradeId={selectedGradeId}
+        open={gradeSheetOpen}
+        onOpenChange={(open) => {
+          setGradeSheetOpen(open);
+          if (!open) {
+            setSelectedGradeId(null);
+          }
+        }}
+      />
     </PageTransition>
   );
 }

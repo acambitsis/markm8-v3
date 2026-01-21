@@ -157,6 +157,22 @@ export function useAdminAuditLog(filters?: {
 }
 
 /**
+ * Hook to get grade data for QA review
+ */
+export function useAdminGradeForQA(gradeId: Id<'grades'> | null) {
+  const { isAuthenticated } = useConvexAuth();
+  const grade = useQuery(
+    api.admin.getGradeForQA,
+    isAuthenticated && gradeId ? { gradeId } : 'skip',
+  );
+
+  return {
+    grade,
+    isLoading: grade === undefined,
+  };
+}
+
+/**
  * Hook for admin mutations
  */
 export function useAdminMutations() {
