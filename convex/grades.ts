@@ -3,6 +3,7 @@
 
 import { v } from 'convex/values';
 
+import type { Doc } from './_generated/dataModel';
 import { internalMutation, internalQuery, query } from './_generated/server';
 import { requireAuth } from './lib/auth';
 // Import validators from schema.ts (single source of truth)
@@ -14,9 +15,28 @@ import {
 } from './schema';
 
 /**
+ * Strip internal cost data from a grade before returning to users
+ * Cost information is internal-only (for admin analytics)
+ * This prevents confusion and keeps business data private
+ */
+function stripCostData(grade: Doc<'grades'>) {
+  // Destructure to remove apiCost and totalTokens from the returned object
+  const { apiCost: _apiCost, totalTokens: _totalTokens, modelResults, ...rest } = grade;
+
+  // Strip cost from each model result if present
+  const sanitizedModelResults = modelResults?.map(({ cost: _cost, ...mr }) => mr);
+
+  return {
+    ...rest,
+    modelResults: sanitizedModelResults,
+  };
+}
+
+/**
  * Get a grade by ID with essay context
  * This is the main query for the grade status page
  * Real-time subscription will auto-update when status changes
+ * Note: Cost data is stripped - internal only (see stripCostData)
  */
 export const getById = query({
   args: { id: v.id('grades') },
@@ -32,7 +52,7 @@ export const getById = query({
     const essay = await ctx.db.get(grade.essayId);
 
     return {
-      ...grade,
+      ...stripCostData(grade),
       essay,
     };
   },
@@ -41,6 +61,7 @@ export const getById = query({
 /**
  * Get all grades for an essay (for regrading history)
  * Limited to prevent unbounded queries (shouldn't be many regrades per essay)
+ * Note: Cost data is stripped - internal only (see stripCostData)
  */
 export const getByEssayId = query({
   args: { essayId: v.id('essays') },
@@ -55,7 +76,7 @@ export const getByEssayId = query({
       .order('desc')
       .take(MAX_GRADES); // Limit to prevent unbounded queries
 
-    return grades;
+    return grades.map(stripCostData);
   },
 });
 
@@ -138,6 +159,7 @@ export const fail = internalMutation({
 
 /**
  * Get the latest grade for an essay (for display purposes)
+ * Note: Cost data is stripped - internal only (see stripCostData)
  */
 export const getLatestForEssay = query({
   args: { essayId: v.id('essays') },
@@ -151,7 +173,7 @@ export const getLatestForEssay = query({
       .order('desc')
       .first();
 
-    return grade;
+    return grade ? stripCostData(grade) : null;
   },
 });
 
