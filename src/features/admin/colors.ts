@@ -1,12 +1,17 @@
 import type { LucideIcon } from 'lucide-react';
 import {
+  Bot,
+  Coins,
   CreditCard,
+  DollarSign,
   FileText,
   Gift,
   RefreshCw,
   Shield,
   Sparkles,
   TrendingUp,
+  UserMinus,
+  UserPlus,
   Users,
 } from 'lucide-react';
 
@@ -91,5 +96,52 @@ export function getActivityStyle(type: string) {
     bg: 'bg-muted',
     text: 'text-muted-foreground',
     icon: CreditCard,
+  };
+}
+
+/**
+ * Color configuration for audit action types (admin audit log).
+ * Used in the audit log page.
+ */
+export const auditActionColors: Record<string, {
+  bg: string;
+  text: string;
+  icon: LucideIcon;
+}> = {
+  pricing_update: {
+    bg: 'bg-purple-500/10',
+    text: 'text-purple-700',
+    icon: DollarSign,
+  },
+  signup_bonus_update: {
+    bg: 'bg-green-500/10',
+    text: 'text-green-700',
+    icon: Coins,
+  },
+  admin_email_added: {
+    bg: 'bg-blue-500/10',
+    text: 'text-blue-700',
+    icon: UserPlus,
+  },
+  admin_email_removed: {
+    bg: 'bg-red-500/10',
+    text: 'text-red-700',
+    icon: UserMinus,
+  },
+  ai_config_update: {
+    bg: 'bg-orange-500/10',
+    text: 'text-orange-700',
+    icon: Bot,
+  },
+};
+
+/**
+ * Get audit action type styling with fallback.
+ */
+export function getAuditActionStyle(type: string) {
+  return auditActionColors[type] ?? {
+    bg: 'bg-muted',
+    text: 'text-muted-foreground',
+    icon: Shield,
   };
 }

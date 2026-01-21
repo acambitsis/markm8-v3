@@ -31,6 +31,14 @@ export const transactionTypeValidator = v.union(
   v.literal('admin_adjustment'),
 );
 
+export const auditActionValidator = v.union(
+  v.literal('pricing_update'),
+  v.literal('signup_bonus_update'),
+  v.literal('admin_email_added'),
+  v.literal('admin_email_removed'),
+  v.literal('ai_config_update'),
+);
+
 export const academicLevelValidator = v.union(
   v.literal('high_school'),
   v.literal('undergraduate'),
@@ -361,6 +369,23 @@ export default defineSchema({
     timestamp: v.number(), // Unix timestamp in ms
   })
     .index('by_user_timestamp', ['userId', 'timestamp']),
+
+  // Admin Audit Log (tracks all admin settings changes)
+  adminAuditLog: defineTable({
+    action: auditActionValidator,
+    performedBy: v.id('users'),
+    performedByEmail: v.string(), // Denormalized for display
+    changes: v.object({
+      field: v.string(),
+      previousValue: v.optional(v.any()),
+      newValue: v.optional(v.any()),
+    }),
+    metadata: v.optional(v.object({
+      targetEmail: v.optional(v.string()), // For email add/remove
+    })),
+  })
+    .index('by_action', ['action'])
+    .index('by_performed_by', ['performedBy']),
 });
 
 // =============================================================================
@@ -370,6 +395,7 @@ export default defineSchema({
 export type EssayStatus = Infer<typeof essayStatusValidator>;
 export type GradeStatus = Infer<typeof gradeStatusValidator>;
 export type TransactionType = Infer<typeof transactionTypeValidator>;
+export type AuditAction = Infer<typeof auditActionValidator>;
 export type AcademicLevel = Infer<typeof academicLevelValidator>;
 
 export type AssignmentBrief = Infer<typeof assignmentBriefValidator>;
