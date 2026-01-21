@@ -18,8 +18,11 @@ import {
  * Strip internal cost data from a grade before returning to users
  * Cost information is internal-only (for admin analytics)
  * This prevents confusion and keeps business data private
+ *
+ * Exported for testing only
+ * @internal
  */
-function stripCostData(grade: Doc<'grades'>) {
+export function stripCostData(grade: Doc<'grades'>) {
   // Destructure to remove apiCost and totalTokens from the returned object
   const { apiCost: _apiCost, totalTokens: _totalTokens, modelResults, ...rest } = grade;
 

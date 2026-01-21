@@ -442,6 +442,12 @@ export async function runAIGrading(
   );
   const apiCost = totalCost > 0 ? totalCost.toFixed(4) : undefined;
 
+  // Log cost summary for observability (console.error used for server-side visibility)
+  console.error(
+    `[GRADING] Completed: ${successfulResults.length}/${runs.length} models, `
+    + `${totalTokens} tokens, cost: $${apiCost ?? 'N/A'}`,
+  );
+
   return {
     percentageRange: {
       lower: lowerBound,
