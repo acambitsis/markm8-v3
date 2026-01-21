@@ -35,7 +35,8 @@ const INITIAL_MODELS: SeedModel[] = [
   { slug: 'x-ai/grok-4', name: 'Grok 4', provider: 'xAI', capabilities: ['grading'] },
   { slug: 'x-ai/grok-4.1-fast', name: 'Grok 4.1 Fast', provider: 'xAI', capabilities: ['grading', 'title'], supportsReasoning: true, reasoningRequired: false, defaultReasoningEffort: 'medium' },
 
-  // OpenAI - GPT-5.2-pro requires reasoning
+  // OpenAI - GPT-5.2-pro requires reasoning, GPT-5.2 supports optional reasoning
+  { slug: 'openai/gpt-5.2', name: 'GPT 5.2', provider: 'OpenAI', capabilities: ['grading'], supportsReasoning: true, reasoningRequired: false, defaultReasoningEffort: 'medium' },
   { slug: 'openai/gpt-5.2-pro', name: 'GPT 5.2 Pro', provider: 'OpenAI', capabilities: ['grading'], supportsReasoning: true, reasoningRequired: true, defaultReasoningEffort: 'medium' },
 
   // Anthropic - Claude models support optional reasoning
