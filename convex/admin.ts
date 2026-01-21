@@ -339,6 +339,21 @@ export const getUserDetail = query({
       .filter(e => e.deletedAt === undefined)
       .slice(0, 10);
 
+    // Batch fetch latest completed grade ID for each essay
+    const gradeMap = new Map<string, Id<'grades'>>();
+    await Promise.all(
+      activeEssays.map(async (essay) => {
+        const grade = await ctx.db
+          .query('grades')
+          .withIndex('by_essay_id', q => q.eq('essayId', essay._id))
+          .order('desc')
+          .first();
+        if (grade?.status === 'complete') {
+          gradeMap.set(essay._id, grade._id);
+        }
+      }),
+    );
+
     return {
       user: {
         _id: user._id,
@@ -366,7 +381,53 @@ export const getUserDetail = query({
         title: e.assignmentBrief?.title ?? 'Untitled',
         status: e.status,
         submittedAt: e.submittedAt,
+        latestGradeId: gradeMap.get(e._id),
       })),
+    };
+  },
+});
+
+/**
+ * Get grade data for QA review (admin only)
+ * Returns grade feedback without essay content for privacy
+ */
+export const getGradeForQA = query({
+  args: {
+    gradeId: v.id('grades'),
+  },
+  handler: async (ctx, { gradeId }) => {
+    await requireAdmin(ctx);
+
+    const grade = await ctx.db.get(gradeId);
+    if (!grade || grade.status !== 'complete') {
+      return null;
+    }
+
+    // Get essay metadata (NOT content) for context
+    const essay = await ctx.db.get(grade.essayId);
+    if (!essay) {
+      return null;
+    }
+
+    return {
+      grade: {
+        _id: grade._id,
+        status: grade.status,
+        percentageRange: grade.percentageRange,
+        feedback: grade.feedback,
+        categoryScores: grade.categoryScores,
+        modelResults: grade.modelResults,
+        queuedAt: grade.queuedAt,
+        completedAt: grade.completedAt,
+      },
+      // Essay metadata only - NO content exposed
+      essayMetadata: {
+        title: essay.assignmentBrief?.title ?? 'Untitled',
+        subject: essay.assignmentBrief?.subject,
+        wordCount: essay.wordCount,
+        academicLevel: essay.assignmentBrief?.academicLevel,
+        submittedAt: essay.submittedAt,
+      },
     };
   },
 });

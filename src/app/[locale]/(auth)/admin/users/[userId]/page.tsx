@@ -9,6 +9,7 @@ import {
   Clock,
   Coins,
   CreditCard,
+  Eye,
   FileText,
   Mail,
   User,
@@ -16,6 +17,7 @@ import {
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Skeleton } from '@/components/Skeleton';
@@ -24,6 +26,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getTransactionStyle } from '@/features/admin/colors';
 import { CreditAdjustForm } from '@/features/admin/CreditAdjustForm';
+import { GradeViewSheet } from '@/features/admin/GradeViewSheet';
 import { staggerContainer, staggerItem } from '@/features/admin/motion';
 import { useAdminUserDetail } from '@/hooks/useAdmin';
 import { cn } from '@/utils/Helpers';
@@ -34,6 +37,8 @@ export default function AdminUserDetailPage() {
   const userId = params.userId as Id<'users'>;
 
   const { userDetail, isLoading } = useAdminUserDetail(userId);
+  const [selectedGradeId, setSelectedGradeId] = useState<Id<'grades'> | null>(null);
+  const [gradeSheetOpen, setGradeSheetOpen] = useState(false);
 
   const formatDate = (timestamp: number) => {
     return new Date(timestamp).toLocaleDateString('en-US', {
@@ -357,17 +362,40 @@ export default function AdminUserDetailPage() {
                     </div>
                   </div>
                 </div>
-                {essay.submittedAt && (
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <Clock className="size-4" />
-                    {formatShortDate(essay.submittedAt)}
-                  </div>
-                )}
+                <div className="flex items-center gap-3">
+                  {essay.latestGradeId && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5"
+                      onClick={() => {
+                        setSelectedGradeId(essay.latestGradeId!);
+                        setGradeSheetOpen(true);
+                      }}
+                    >
+                      <Eye className="size-4" />
+                      View Grade
+                    </Button>
+                  )}
+                  {essay.submittedAt && (
+                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                      <Clock className="size-4" />
+                      {formatShortDate(essay.submittedAt)}
+                    </div>
+                  )}
+                </div>
               </motion.div>
             ))}
           </motion.div>
         </motion.div>
       )}
+
+      {/* Grade View Sheet */}
+      <GradeViewSheet
+        gradeId={selectedGradeId}
+        open={gradeSheetOpen}
+        onOpenChange={setGradeSheetOpen}
+      />
     </PageTransition>
   );
 }
