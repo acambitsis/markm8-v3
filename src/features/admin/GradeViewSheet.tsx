@@ -1,18 +1,13 @@
 'use client';
 
+import * as Dialog from '@radix-ui/react-dialog';
 import type { Id } from 'convex/_generated/dataModel';
-import { BookOpen, Calendar, FileText, GraduationCap, Hash, Loader2 } from 'lucide-react';
+import { BookOpen, Calendar, FileText, GraduationCap, Hash, Loader2, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from '@/components/ui/sheet';
 import { GradeResults } from '@/features/grading/GradeResults';
 import { useAdminGradeForQA } from '@/hooks/useAdmin';
+import { cn } from '@/utils/Helpers';
 
 type Props = {
   gradeId: Id<'grades'> | null;
@@ -50,91 +45,114 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
   };
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="w-full overflow-y-auto sm:max-w-2xl"
-      >
-        <SheetHeader className="pb-4">
-          <SheetTitle>Grade Review</SheetTitle>
-          <SheetDescription>
-            QA review of grade feedback (essay content not shown)
-          </SheetDescription>
-        </SheetHeader>
-
-        {isLoading && (
-          <div className="flex items-center justify-center py-16">
-            <Loader2 className="size-8 animate-spin text-muted-foreground" />
-          </div>
-        )}
-
-        {!isLoading && !grade && (
-          <div className="py-16 text-center">
-            <FileText className="mx-auto size-12 text-muted-foreground/50" />
-            <p className="mt-4 text-muted-foreground">Grade not found</p>
-          </div>
-        )}
-
-        {!isLoading && grade && (
-          <div className="space-y-6">
-            {/* Essay Metadata Card */}
-            <div className="rounded-lg border bg-muted/30 p-4">
-              <h3 className="mb-3 font-medium">Essay Information</h3>
-              <div className="grid gap-3 text-sm">
-                <div className="flex items-center gap-2">
-                  <FileText className="size-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Title:</span>
-                  <span className="font-medium">{grade.essayMetadata.title}</span>
-                </div>
-                {grade.essayMetadata.subject && (
-                  <div className="flex items-center gap-2">
-                    <BookOpen className="size-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Subject:</span>
-                    <Badge variant="secondary">{grade.essayMetadata.subject}</Badge>
-                  </div>
-                )}
-                {grade.essayMetadata.academicLevel && (
-                  <div className="flex items-center gap-2">
-                    <GraduationCap className="size-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Level:</span>
-                    <span>{formatAcademicLevel(grade.essayMetadata.academicLevel)}</span>
-                  </div>
-                )}
-                {grade.essayMetadata.wordCount && (
-                  <div className="flex items-center gap-2">
-                    <Hash className="size-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Word Count:</span>
-                    <span>
-                      {grade.essayMetadata.wordCount.toLocaleString()}
-                      {' '}
-                      words
-                    </span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2">
-                  <Calendar className="size-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Submitted:</span>
-                  <span>{formatDate(grade.essayMetadata.submittedAt)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Calendar className="size-4 text-muted-foreground" />
-                  <span className="text-muted-foreground">Graded:</span>
-                  <span>{formatDate(grade.grade.completedAt)}</span>
-                </div>
-              </div>
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
+        <Dialog.Content
+          className={cn(
+            'fixed left-[50%] top-[50%] z-50 translate-x-[-50%] translate-y-[-50%]',
+            'w-[95vw] max-w-5xl h-[90vh]',
+            'flex flex-col rounded-lg border bg-background shadow-lg',
+            'duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out',
+            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
+            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
+            'data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%]',
+            'data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%]',
+          )}
+        >
+          {/* Header */}
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <div>
+              <Dialog.Title className="text-lg font-semibold">
+                Grade Review
+              </Dialog.Title>
+              <Dialog.Description className="text-sm text-muted-foreground">
+                QA review of grade feedback (essay content not shown)
+              </Dialog.Description>
             </div>
+            <Dialog.Close className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+              <X className="size-5" />
+              <span className="sr-only">Close</span>
+            </Dialog.Close>
+          </div>
 
-            {/* Grade Results */}
-            {grade.grade.percentageRange && grade.grade.feedback && grade.grade.modelResults && (
-              <GradeResults
-                percentageRange={grade.grade.percentageRange}
-                feedback={grade.grade.feedback}
-                modelResults={grade.grade.modelResults}
-              />
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {isLoading && (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {!isLoading && !grade && (
+              <div className="py-16 text-center">
+                <FileText className="mx-auto size-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">Grade not found</p>
+              </div>
+            )}
+
+            {!isLoading && grade && (
+              <div className="mx-auto max-w-4xl space-y-6">
+                {/* Essay Metadata Card */}
+                <div className="rounded-lg border bg-muted/30 p-4">
+                  <h3 className="mb-3 font-medium">Essay Information</h3>
+                  <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+                    <div className="flex items-center gap-2">
+                      <FileText className="size-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Title:</span>
+                      <span className="font-medium">{grade.essayMetadata.title}</span>
+                    </div>
+                    {grade.essayMetadata.subject && (
+                      <div className="flex items-center gap-2">
+                        <BookOpen className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Subject:</span>
+                        <Badge variant="secondary">{grade.essayMetadata.subject}</Badge>
+                      </div>
+                    )}
+                    {grade.essayMetadata.academicLevel && (
+                      <div className="flex items-center gap-2">
+                        <GraduationCap className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Level:</span>
+                        <span>{formatAcademicLevel(grade.essayMetadata.academicLevel)}</span>
+                      </div>
+                    )}
+                    {grade.essayMetadata.wordCount && (
+                      <div className="flex items-center gap-2">
+                        <Hash className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Word Count:</span>
+                        <span>
+                          {grade.essayMetadata.wordCount.toLocaleString()}
+                          {' '}
+                          words
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Calendar className="size-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Submitted:</span>
+                      <span>{formatDate(grade.essayMetadata.submittedAt)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="size-4 text-muted-foreground" />
+                      <span className="text-muted-foreground">Graded:</span>
+                      <span>{formatDate(grade.grade.completedAt)}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Grade Results */}
+                {grade.grade.percentageRange && grade.grade.feedback && grade.grade.modelResults && (
+                  <GradeResults
+                    percentageRange={grade.grade.percentageRange}
+                    feedback={grade.grade.feedback}
+                    modelResults={grade.grade.modelResults}
+                  />
+                )}
+              </div>
             )}
           </div>
-        )}
-      </SheetContent>
-    </Sheet>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
