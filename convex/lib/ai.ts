@@ -39,5 +39,7 @@ export function getOpenRouterProvider() {
  */
 export function getGradingModel(modelId: string) {
   const provider = getOpenRouterProvider();
-  return provider.chat(modelId);
+  return provider.chat(modelId, {
+    usage: { include: true },
+  });
 }

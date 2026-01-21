@@ -254,11 +254,15 @@ export async function runAIGrading(
           system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
         });
 
+        // Extract cost from OpenRouter provider metadata
+        const cost = (aiResult.providerMetadata as any)?.openrouter?.usage?.cost;
+
         return {
           model: run.model,
           index,
           result: aiResult.object,
           usage: aiResult.usage,
+          cost: typeof cost === 'number' ? cost : undefined,
         };
       },
       retry.maxRetries,
@@ -298,6 +302,7 @@ export async function runAIGrading(
           index: i,
           result: recovered.result,
           usage: undefined,
+          cost: undefined, // Cost not available for recovered responses
           durationMs,
         };
       }
@@ -411,7 +416,7 @@ export async function runAIGrading(
       : undefined,
   };
 
-  // Build model results with outlier information and duration
+  // Build model results with outlier information, duration, and cost
   const modelResults: ModelResult[] = successfulResults.map((r, i) => {
     const outlierInfo = outlierResults[i];
     return {
@@ -420,6 +425,7 @@ export async function runAIGrading(
       included: outlierInfo?.included ?? false,
       reason: outlierInfo?.reason,
       durationMs: r.durationMs,
+      cost: typeof r.cost === 'number' ? r.cost.toFixed(4) : undefined,
     };
   });
 
@@ -429,9 +435,18 @@ export async function runAIGrading(
     0,
   );
 
-  // Note: API cost calculation would require OpenRouter pricing data
-  // For now, we'll leave it undefined and can add cost tracking later
-  const apiCost = undefined;
+  // Calculate total API cost from OpenRouter usage data
+  const totalCost = successfulResults.reduce(
+    (sum, r) => sum + (typeof r.cost === 'number' ? r.cost : 0),
+    0,
+  );
+  const apiCost = totalCost > 0 ? totalCost.toFixed(4) : undefined;
+
+  // Log cost summary for observability (console.error used for server-side visibility)
+  console.error(
+    `[GRADING] Completed: ${successfulResults.length}/${runs.length} models, `
+    + `${totalTokens} tokens, cost: $${apiCost ?? 'N/A'}`,
+  );
 
   return {
     percentageRange: {
