@@ -93,8 +93,8 @@ export async function retryWithBackoff<T>(
 }
 
 /**
- * Detect outliers using "furthest from mean" algorithm
- * Excludes scores that deviate more than threshold% from the mean
+ * Detect outliers using "furthest from mean" algorithm. * We are currently not exlcuding any runs and are doing three.
+ * This could change in future, but our philosophy of showing a range of grades fits well into including all runs.
  */
 export function detectOutliers(
   scores: Array<{ model: string; percentage: number }>,
