@@ -13,6 +13,7 @@ import type * as credits from "../credits.js";
 import type * as crons from "../crons.js";
 import type * as documents from "../documents.js";
 import type * as essays from "../essays.js";
+import type * as experiments_synthesisTimingTest from "../experiments/synthesisTimingTest.js";
 import type * as gradeFailures from "../gradeFailures.js";
 import type * as grades from "../grades.js";
 import type * as grading from "../grading.js";
@@ -54,6 +55,7 @@ declare const fullApi: ApiFromModules<{
   crons: typeof crons;
   documents: typeof documents;
   essays: typeof essays;
+  "experiments/synthesisTimingTest": typeof experiments_synthesisTimingTest;
   gradeFailures: typeof gradeFailures;
   grades: typeof grades;
   grading: typeof grading;
