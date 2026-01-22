@@ -164,10 +164,11 @@ jobs:
           # Extract first line of commit message for cleaner display
           COMMIT_TITLE=$(echo "$COMMIT_MESSAGE" | head -n 1)
 
-          # Build the message
-          MESSAGE="*${ENV_LABEL} deployed*\n${COMMIT_TITLE}\n\n_by ${COMMIT_AUTHOR}_ • <${COMMIT_URL}|View commit>"
+          # Build message with actual newlines using printf
+          MESSAGE=$(printf '*%s deployed*\n%s\n\n_by %s_ • <%s|View commit>' \
+            "$ENV_LABEL" "$COMMIT_TITLE" "$COMMIT_AUTHOR" "$COMMIT_URL")
 
-          # Send to Slack
-          curl -X POST -H 'Content-type: application/json' \
-            --data "{\"text\": \"${MESSAGE}\"}" \
+          # Send to Slack (use jq for safe JSON encoding, -sf to fail on errors)
+          curl -sf -X POST -H 'Content-type: application/json' \
+            --data "$(jq -n --arg text "$MESSAGE" '{text: $text}')" \
             "$WEBHOOK_URL"
