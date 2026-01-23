@@ -94,6 +94,8 @@ export const getDashboardStats = query({
     ).length;
 
     // Get completed grades with costs for API spend metrics
+    // TODO: Add index on completedAt and filter by time range (e.g., last 90 days)
+    // when grade volume grows significantly to avoid unbounded memory usage
     const allGrades = await ctx.db.query('grades').collect();
     const completedGrades = allGrades.filter(g => g.status === 'complete' && g.apiCost);
 
