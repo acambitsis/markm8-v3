@@ -2,11 +2,12 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import type { Id } from 'convex/_generated/dataModel';
-import { BookOpen, Calendar, ClipboardList, FileText, GraduationCap, Hash, Loader2, Target, X } from 'lucide-react';
+import { BookOpen, Calendar, ClipboardList, Coins, FileText, GraduationCap, Hash, Loader2, Target, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { GradeResults } from '@/features/grading/GradeResults';
 import { useAdminGradeForQA } from '@/hooks/useAdmin';
+import { formatApiCost, formatTokens } from '@/utils/formatCost';
 import { cn } from '@/utils/Helpers';
 
 type Props = {
@@ -175,6 +176,39 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                               <Badge key={area} variant="secondary">{area}</Badge>
                             ))}
                           </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* API Cost Section */}
+                {(grade.grade.apiCost || grade.grade.totalTokens) && (
+                  <div className="rounded-lg border bg-muted/30 p-4">
+                    <h3 className="mb-3 font-medium">API Cost</h3>
+                    <div className="flex flex-wrap gap-x-8 gap-y-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Coins className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Total Cost:</span>
+                        <span className="font-medium text-green-600">{formatApiCost(grade.grade.apiCost)}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Hash className="size-4 text-muted-foreground" />
+                        <span className="text-muted-foreground">Total Tokens:</span>
+                        <span>{formatTokens(grade.grade.totalTokens)}</span>
+                      </div>
+                      {/* Per-run costs */}
+                      {grade.grade.modelResults && grade.grade.modelResults.some(r => r.cost) && (
+                        <div className="flex w-full flex-wrap items-center gap-2">
+                          <span className="text-muted-foreground">Per-run:</span>
+                          {grade.grade.modelResults.filter(r => r.cost).map(result => (
+                            <Badge key={result.model} variant="outline" className="font-mono text-xs">
+                              {result.model.split('/').pop()}
+                              :
+                              {' '}
+                              {formatApiCost(result.cost)}
+                            </Badge>
+                          ))}
                         </div>
                       )}
                     </div>
