@@ -2,7 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import type { Id } from 'convex/_generated/dataModel';
-import { BookOpen, Calendar, ClipboardList, Coins, FileText, GraduationCap, Hash, Loader2, Target, X } from 'lucide-react';
+import { BookOpen, Calendar, ClipboardList, Coins, FileText, GraduationCap, Hash, Loader2, MessageSquare, Target, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { GradeResults } from '@/features/grading/GradeResults';
@@ -209,6 +209,45 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                               {formatApiCost(result.cost)}
                             </Badge>
                           ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Actual Grade Section (user-provided) */}
+                {grade.actualGradeData && (
+                  <div className="rounded-lg border border-purple-500/30 bg-purple-500/5 p-4">
+                    <h3 className="mb-3 flex items-center gap-2 font-medium">
+                      <GraduationCap className="size-4 text-purple-600" />
+                      Actual Grade Received
+                    </h3>
+                    <div className="space-y-3 text-sm">
+                      {grade.actualGradeData.grade && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Grade:</span>
+                          <span className="font-semibold text-purple-600">{grade.actualGradeData.grade}</span>
+                        </div>
+                      )}
+                      {grade.actualGradeData.feedback && (
+                        <div>
+                          <div className="mb-1 flex items-center gap-2 text-muted-foreground">
+                            <MessageSquare className="size-4" />
+                            <span>Teacher Feedback:</span>
+                          </div>
+                          <p className="whitespace-pre-wrap rounded bg-background/50 p-2 text-sm">
+                            {grade.actualGradeData.feedback}
+                          </p>
+                        </div>
+                      )}
+                      {grade.actualGradeData.addedAt && (
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <Calendar className="size-3" />
+                          <span>
+                            Added:
+                            {' '}
+                            {formatDate(grade.actualGradeData.addedAt)}
+                          </span>
                         </div>
                       )}
                     </div>

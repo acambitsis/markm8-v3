@@ -483,6 +483,14 @@ export const getGradeForQA = query({
         rubricLength: customCriteria.length,
         focusAreas,
       },
+      // Actual grade data (user-provided calibration)
+      actualGradeData: essay.actualGrade || essay.actualFeedback
+        ? {
+            grade: essay.actualGrade,
+            feedback: essay.actualFeedback,
+            addedAt: essay.actualGradeAddedAt,
+          }
+        : null,
     };
   },
 });

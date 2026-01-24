@@ -14,13 +14,20 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
+import type { Id } from '../../../convex/_generated/dataModel';
 import type { GradeFeedback, ModelResult, PercentageRange } from '../../../convex/schema';
+import { ActualGradeSection } from './ActualGradeSection';
 import { ScoreRangeBar } from './components/ScoreRangeBar';
 
 type Props = {
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
   modelResults: ModelResult[];
+  // Optional essay data for actual grade feature
+  essayId?: Id<'essays'>;
+  actualGrade?: string;
+  actualFeedback?: string;
+  onSaveActualGrade?: (data: { essayId: Id<'essays'>; actualGrade?: string; actualFeedback?: string }) => Promise<void>;
 };
 
 // Stagger animation variants
@@ -43,7 +50,15 @@ const itemVariants = {
   },
 };
 
-export function GradeResults({ percentageRange, feedback, modelResults }: Props) {
+export function GradeResults({
+  percentageRange,
+  feedback,
+  modelResults,
+  essayId,
+  actualGrade,
+  actualFeedback,
+  onSaveActualGrade,
+}: Props) {
   // Build stats for the hero section
   const stats = [
     { value: feedback.strengths.length, label: 'Strengths', color: 'text-green-600' },
@@ -266,6 +281,16 @@ export function GradeResults({ percentageRange, feedback, modelResults }: Props)
             </CardContent>
           </Card>
         </motion.div>
+      )}
+
+      {/* Actual Grade Section (for user calibration) */}
+      {essayId && onSaveActualGrade && (
+        <ActualGradeSection
+          essayId={essayId}
+          actualGrade={actualGrade}
+          actualFeedback={actualFeedback}
+          onSave={onSaveActualGrade}
+        />
       )}
     </motion.div>
   );

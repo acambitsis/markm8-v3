@@ -497,3 +497,49 @@ export const getStats = query({
     };
   },
 });
+
+const MAX_ACTUAL_FEEDBACK_LENGTH = 5000;
+
+/**
+ * Update the actual grade received from teacher
+ * Allows users to record calibration data for their essays
+ */
+export const updateActualGrade = mutation({
+  args: {
+    essayId: v.id('essays'),
+    actualGrade: v.optional(v.string()),
+    actualFeedback: v.optional(v.string()),
+  },
+  handler: async (ctx, { essayId, actualGrade, actualFeedback }) => {
+    const userId = await requireAuth(ctx);
+
+    // Get the essay and verify ownership
+    const essay = await ctx.db.get(essayId);
+    if (!essay || essay.userId !== userId) {
+      throw new Error('Essay not found');
+    }
+
+    // Only allow updating submitted essays (not drafts or archived)
+    if (essay.status !== 'submitted') {
+      throw new Error('Can only add actual grade to submitted essays');
+    }
+
+    // Validate feedback length
+    if (actualFeedback && actualFeedback.length > MAX_ACTUAL_FEEDBACK_LENGTH) {
+      throw new Error(`Feedback must be ${MAX_ACTUAL_FEEDBACK_LENGTH} characters or less`);
+    }
+
+    // Trim values (or set to undefined to clear)
+    const trimmedGrade = actualGrade?.trim() || undefined;
+    const trimmedFeedback = actualFeedback?.trim() || undefined;
+
+    // Update the essay
+    await ctx.db.patch(essayId, {
+      actualGrade: trimmedGrade,
+      actualFeedback: trimmedFeedback,
+      actualGradeAddedAt: trimmedGrade || trimmedFeedback ? Date.now() : undefined,
+    });
+
+    return { success: true };
+  },
+});
