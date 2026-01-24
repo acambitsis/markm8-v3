@@ -113,6 +113,9 @@ function getChangeDescription(entry: {
   };
   metadata?: {
     targetEmail?: string;
+    modelSlug?: string;
+    modelName?: string;
+    provider?: string;
   };
 }): string | string[] {
   const { action, changes, metadata } = entry;
@@ -134,6 +137,14 @@ function getChangeDescription(entry: {
       }
       return 'Updated AI configuration';
     }
+    case 'model_added':
+      return `Added "${metadata?.modelName ?? metadata?.modelSlug ?? 'unknown'}" (${metadata?.provider ?? 'unknown'}) to catalog`;
+    case 'model_removed':
+      return `Removed "${metadata?.modelName ?? metadata?.modelSlug ?? 'unknown'}" from catalog`;
+    case 'model_enabled':
+      return `Enabled "${metadata?.modelName ?? metadata?.modelSlug ?? 'unknown'}"`;
+    case 'model_disabled':
+      return `Disabled "${metadata?.modelName ?? metadata?.modelSlug ?? 'unknown'}"`;
     default:
       return `Updated ${changes.field}`;
   }
@@ -199,6 +210,10 @@ export default function AdminAuditPage() {
                 <SelectItem value="admin_email_added">Admin Added</SelectItem>
                 <SelectItem value="admin_email_removed">Admin Removed</SelectItem>
                 <SelectItem value="ai_config_update">AI Config</SelectItem>
+                <SelectItem value="model_added">Model Added</SelectItem>
+                <SelectItem value="model_removed">Model Removed</SelectItem>
+                <SelectItem value="model_enabled">Model Enabled</SelectItem>
+                <SelectItem value="model_disabled">Model Disabled</SelectItem>
               </SelectContent>
             </Select>
           </div>

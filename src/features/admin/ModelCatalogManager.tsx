@@ -6,12 +6,23 @@ import {
   ExternalLink,
   Loader2,
   Plus,
+  RefreshCw,
   Search,
   Trash2,
   X,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -88,29 +99,34 @@ export function ModelCatalogManager() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
+  // Confirmation dialog state
+  const [modelToDelete, setModelToDelete] = useState<{ slug: string; name: string } | null>(null);
+
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch OpenRouter models on mount
-  useEffect(() => {
-    const fetchModels = async () => {
-      setIsLoadingModels(true);
-      setLoadError(null);
-      try {
-        const response = await fetch('https://openrouter.ai/api/v1/models');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch: ${response.status}`);
-        }
-        const data = await response.json();
-        setOpenRouterModels(data.data || []);
-      } catch (err) {
-        setLoadError(err instanceof Error ? err.message : 'Failed to load models');
-      } finally {
-        setIsLoadingModels(false);
+  // Fetch OpenRouter models
+  const fetchModels = useCallback(async () => {
+    setIsLoadingModels(true);
+    setLoadError(null);
+    try {
+      const response = await fetch('https://openrouter.ai/api/v1/models');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch: ${response.status}`);
       }
-    };
-    fetchModels();
+      const data = await response.json();
+      setOpenRouterModels(data.data || []);
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : 'Failed to load models');
+    } finally {
+      setIsLoadingModels(false);
+    }
   }, []);
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchModels();
+  }, [fetchModels]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -198,16 +214,22 @@ export function ModelCatalogManager() {
     }
   };
 
-  // Handle removing model
-  const handleRemoveModel = async (slug: string) => {
+  // Handle removing model (called from confirmation dialog)
+  const handleConfirmRemove = async () => {
+    if (!modelToDelete) {
+      return;
+    }
+
     setActionError(null);
     setActionSuccess(null);
 
     try {
-      await removeModel({ slug });
-      setActionSuccess('Model removed from catalog');
+      await removeModel({ slug: modelToDelete.slug });
+      setActionSuccess(`Removed "${modelToDelete.name}" from catalog`);
     } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Failed to remove model');
+    } finally {
+      setModelToDelete(null);
     }
   };
 
@@ -322,7 +344,19 @@ export function ModelCatalogManager() {
         </div>
 
         {loadError && (
-          <p className="text-sm text-destructive">{loadError}</p>
+          <div className="flex items-center gap-2 text-sm text-destructive">
+            <span>{loadError}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchModels}
+              disabled={isLoadingModels}
+              className="gap-1"
+            >
+              <RefreshCw className={cn('size-3', isLoadingModels && 'animate-spin')} />
+              Retry
+            </Button>
+          </div>
         )}
 
         {/* Selected Model Details */}
@@ -478,7 +512,7 @@ export function ModelCatalogManager() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          onClick={() => handleRemoveModel(model.slug)}
+                          onClick={() => setModelToDelete({ slug: model.slug, name: model.name })}
                           className="size-8 text-muted-foreground hover:text-destructive"
                         >
                           <Trash2 className="size-4" />
@@ -489,6 +523,30 @@ export function ModelCatalogManager() {
                 </div>
               )}
       </div>
+
+      {/* Confirmation Dialog for Model Removal */}
+      <AlertDialog open={!!modelToDelete} onOpenChange={open => !open && setModelToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Model</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to remove &quot;
+              {modelToDelete?.name}
+              &quot; from the catalog?
+              This will prevent it from being selected for grading runs.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmRemove}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
