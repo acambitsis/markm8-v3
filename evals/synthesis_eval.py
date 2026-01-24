@@ -24,6 +24,10 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
+from dotenv import load_dotenv
+
+# Load .env file from evals directory
+load_dotenv(Path(__file__).parent / ".env")
 
 # Disable telemetry before importing deepeval
 os.environ["DEEPEVAL_TELEMETRY"] = "false"

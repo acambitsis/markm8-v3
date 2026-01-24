@@ -609,12 +609,14 @@ source = { virtual = "." }
 dependencies = [
     { name = "deepeval" },
     { name = "httpx" },
+    { name = "python-dotenv" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "deepeval", specifier = ">=3.8.1" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "python-dotenv", specifier = ">=1.2.1" },
 ]
 
 [[package]]
