@@ -8,6 +8,7 @@ import {
   Brain,
   Clock,
   Cpu,
+  ExternalLink,
   Hash,
   Info,
   Minus,
@@ -62,14 +63,6 @@ type RunWithId = {
 // Generate a unique ID for runs
 function generateRunId(): string {
   return `run-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-// Helper to format price
-function formatPrice(pricePerMillion: number | undefined): string {
-  if (pricePerMillion === undefined) {
-    return '';
-  }
-  return `$${pricePerMillion.toFixed(2)}/M`; // OpenRouter prices are in USD
 }
 
 // Default fallback model (used only if catalog is empty)
@@ -330,6 +323,15 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                   <p>Multiple runs improve accuracy through consensus. 3-5 runs recommended.</p>
                 </TooltipContent>
               </Tooltip>
+              <a
+                href="https://openrouter.ai/models"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="ml-2 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+              >
+                View pricing
+                <ExternalLink className="size-3" />
+              </a>
             </div>
             <Button
               type="button"
@@ -375,16 +377,9 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                               <SelectItem key={model.slug} value={model.slug}>
                                 <div className="flex items-center justify-between gap-4">
                                   <span>{model.name}</span>
-                                  <div className="flex items-center gap-2">
-                                    {model.supportsReasoning && (
-                                      <Brain className="size-3 text-purple-500" />
-                                    )}
-                                    {model.pricingInputPer1M !== undefined && (
-                                      <span className="text-xs text-muted-foreground">
-                                        {formatPrice(model.pricingInputPer1M)}
-                                      </span>
-                                    )}
-                                  </div>
+                                  {model.supportsReasoning && (
+                                    <Brain className="size-3 text-purple-500" />
+                                  )}
                                 </div>
                               </SelectItem>
                             ))}
@@ -688,14 +683,7 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
                       <SelectLabel>{provider}</SelectLabel>
                       {models?.map(model => (
                         <SelectItem key={model.slug} value={model.slug}>
-                          <div className="flex items-center justify-between gap-4">
-                            <span>{model.name}</span>
-                            {model.pricingInputPer1M !== undefined && (
-                              <span className="text-xs text-muted-foreground">
-                                {formatPrice(model.pricingInputPer1M)}
-                              </span>
-                            )}
-                          </div>
+                          {model.name}
                         </SelectItem>
                       ))}
                     </SelectGroup>

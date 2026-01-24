@@ -461,14 +461,10 @@ bun add ai @ai-sdk/openai
 - **For v3 launch:** Update config via Convex Dashboard (manual edit of singleton document)
 - **Future (v3.1+):** Admin UI with role-based access
 
-**Model Catalog (Backend Function):**
+**Model Catalog:**
 
-`internalAction modelCatalog.syncFromOpenRouter`
-
-- Fetches latest models from OpenRouter API (`GET https://openrouter.ai/api/v1/models`)
-- Updates pricing and context length for tracked models in `modelCatalog` table
-- Run manually: `npx convex run modelCatalog:syncFromOpenRouter`
 - Seed curated models: `npx convex run seed/modelCatalog:seed`
+- View model pricing: https://openrouter.ai/models
 
 ### Title Generation API
 

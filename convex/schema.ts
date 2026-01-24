@@ -37,6 +37,10 @@ export const auditActionValidator = v.union(
   v.literal('admin_email_added'),
   v.literal('admin_email_removed'),
   v.literal('ai_config_update'),
+  v.literal('model_added'),
+  v.literal('model_removed'),
+  v.literal('model_enabled'),
+  v.literal('model_disabled'),
 );
 
 export const academicLevelValidator = v.union(
@@ -171,13 +175,14 @@ export const modelCatalogEntryValidator = v.object({
   enabled: v.boolean(), // Whether model is available for selection
   capabilities: v.array(modelCapabilityValidator), // Which features can use this model
   contextLength: v.optional(v.number()), // Max context window
-  pricingInputPer1M: v.optional(v.number()), // Cost per 1M input tokens
-  pricingOutputPer1M: v.optional(v.number()), // Cost per 1M output tokens
-  lastSyncedAt: v.optional(v.number()), // Last sync from OpenRouter API
   // Reasoning support
   supportsReasoning: v.optional(v.boolean()), // Model can use reasoning
   reasoningRequired: v.optional(v.boolean()), // Reasoning is mandatory
   defaultReasoningEffort: v.optional(reasoningEffortValidator), // Default effort level
+  // Deprecated fields (kept for backwards compatibility with existing data)
+  lastSyncedAt: v.optional(v.number()),
+  pricingInputPer1M: v.optional(v.number()),
+  pricingOutputPer1M: v.optional(v.number()),
 });
 
 // =============================================================================
@@ -339,7 +344,7 @@ export default defineSchema({
 
   // Model Catalog (available AI models from OpenRouter)
   // Seed with: npx convex run seed/modelCatalog:seed
-  // Sync from OpenRouter: npx convex run modelCatalog:syncFromOpenRouter
+  // View pricing: https://openrouter.ai/models
   modelCatalog: defineTable({
     slug: v.string(), // OpenRouter model ID, e.g., "x-ai/grok-4.1-fast"
     name: v.string(), // Display name, e.g., "Grok 4.1"
@@ -347,13 +352,14 @@ export default defineSchema({
     enabled: v.boolean(), // Whether model is available for selection
     capabilities: v.array(modelCapabilityValidator), // Which features can use this model
     contextLength: v.optional(v.number()), // Max context window
-    pricingInputPer1M: v.optional(v.number()), // Cost per 1M input tokens
-    pricingOutputPer1M: v.optional(v.number()), // Cost per 1M output tokens
-    lastSyncedAt: v.optional(v.number()), // Last sync from OpenRouter API
     // Reasoning support
     supportsReasoning: v.optional(v.boolean()), // Model can use reasoning
     reasoningRequired: v.optional(v.boolean()), // Reasoning is mandatory
     defaultReasoningEffort: v.optional(reasoningEffortValidator), // Default effort level
+    // Deprecated fields (kept for backwards compatibility with existing data)
+    lastSyncedAt: v.optional(v.number()),
+    pricingInputPer1M: v.optional(v.number()),
+    pricingOutputPer1M: v.optional(v.number()),
   })
     .index('by_slug', ['slug'])
     .index('by_enabled', ['enabled'])
@@ -391,6 +397,9 @@ export default defineSchema({
     }),
     metadata: v.optional(v.object({
       targetEmail: v.optional(v.string()), // For email add/remove
+      modelSlug: v.optional(v.string()), // For model add/remove/toggle
+      modelName: v.optional(v.string()), // For model add/remove/toggle
+      provider: v.optional(v.string()), // For model add
     })),
   })
     .index('by_action', ['action'])

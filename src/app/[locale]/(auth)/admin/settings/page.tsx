@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Bot, Check, Coins, DollarSign, Loader2, Radio, Settings, Shield, X } from 'lucide-react';
+import { Bot, Check, Coins, Cpu, DollarSign, Loader2, Radio, Settings, Shield, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { AdminAllowlistEditor } from '@/features/admin/AdminAllowlistEditor';
 import { AIConfigEditor } from '@/features/admin/AIConfigEditor';
+import { ModelCatalogManager } from '@/features/admin/ModelCatalogManager';
 import { SentryTestCard } from '@/features/admin/SentryTestCard';
 import { useAdminMutations, useAdminPlatformSettings } from '@/hooks/useAdmin';
 
@@ -316,6 +317,29 @@ export default function AdminSettingsPage() {
               config={aiConfig}
               onChange={handleAiConfigChange}
             />
+          </div>
+        </motion.div>
+
+        {/* Model Catalog */}
+        <motion.div
+          className="rounded-xl border bg-card"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45, duration: 0.5 }}
+        >
+          <div className="border-b p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-cyan-500/10">
+                <Cpu className="size-5 text-cyan-600" />
+              </div>
+              <div>
+                <h2 className="font-semibold">Model Catalog</h2>
+                <p className="text-sm text-muted-foreground">Manage available AI models from OpenRouter</p>
+              </div>
+            </div>
+          </div>
+          <div className="p-5">
+            <ModelCatalogManager />
           </div>
         </motion.div>
 
