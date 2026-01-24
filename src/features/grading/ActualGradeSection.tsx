@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Check, ChevronDown, GraduationCap, Pencil, X } from 'lucide-react';
+import { AlertCircle, Check, ChevronDown, GraduationCap, Pencil, X } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,10 @@ import { cn } from '@/utils/Helpers';
 
 import type { Id } from '../../../convex/_generated/dataModel';
 
+// Must match backend constants in convex/essays.ts
+const MAX_GRADE_LENGTH = 50;
+const MAX_FEEDBACK_LENGTH = 5000;
+
 type Props = {
   essayId: Id<'essays'>;
   actualGrade?: string;
@@ -25,6 +29,7 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
   const [isOpen, setIsOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [grade, setGrade] = useState(actualGrade ?? '');
   const [feedback, setFeedback] = useState(actualFeedback ?? '');
 
@@ -32,6 +37,7 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
 
   const handleSave = async () => {
     setIsSaving(true);
+    setError(null);
     try {
       await onSave({
         essayId,
@@ -39,6 +45,8 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
         actualFeedback: feedback || undefined,
       });
       setIsEditing(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -47,12 +55,14 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
   const handleCancel = () => {
     setGrade(actualGrade ?? '');
     setFeedback(actualFeedback ?? '');
+    setError(null);
     setIsEditing(false);
   };
 
   const handleStartEdit = () => {
     setGrade(actualGrade ?? '');
     setFeedback(actualFeedback ?? '');
+    setError(null);
     setIsEditing(true);
   };
 
@@ -171,6 +181,13 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
                 : (
                     // Edit mode
                     <div className="space-y-4">
+                      {error && (
+                        <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+                          <AlertCircle className="size-4 shrink-0" />
+                          {error}
+                        </div>
+                      )}
+
                       <div className="space-y-2">
                         <Label htmlFor="actual-grade">Grade</Label>
                         <Input
@@ -178,6 +195,7 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
                           placeholder='e.g., "B+", "85%", "7/10"'
                           value={grade}
                           onChange={e => setGrade(e.target.value)}
+                          maxLength={MAX_GRADE_LENGTH}
                           className="max-w-xs"
                         />
                       </div>
@@ -189,13 +207,18 @@ export function ActualGradeSection({ essayId, actualGrade, actualFeedback, onSav
                           placeholder="Paste or type your teacher's feedback here..."
                           value={feedback}
                           onChange={e => setFeedback(e.target.value)}
+                          maxLength={MAX_FEEDBACK_LENGTH}
                           rows={4}
                           className="resize-y"
                         />
                         <p className="text-xs text-muted-foreground">
                           {feedback.length.toLocaleString()}
                           {' '}
-                          / 5,000 characters
+                          /
+                          {' '}
+                          {MAX_FEEDBACK_LENGTH.toLocaleString()}
+                          {' '}
+                          characters
                         </p>
                       </div>
 

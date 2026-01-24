@@ -498,6 +498,7 @@ export const getStats = query({
   },
 });
 
+const MAX_ACTUAL_GRADE_LENGTH = 50;
 const MAX_ACTUAL_FEEDBACK_LENGTH = 5000;
 
 /**
@@ -522,6 +523,11 @@ export const updateActualGrade = mutation({
     // Only allow updating submitted essays (not drafts or archived)
     if (essay.status !== 'submitted') {
       throw new Error('Can only add actual grade to submitted essays');
+    }
+
+    // Validate grade length
+    if (actualGrade && actualGrade.length > MAX_ACTUAL_GRADE_LENGTH) {
+      throw new Error(`Grade must be ${MAX_ACTUAL_GRADE_LENGTH} characters or less`);
     }
 
     // Validate feedback length
