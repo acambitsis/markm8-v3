@@ -71,6 +71,14 @@ class OpenRouterModel(DeepEvalBaseLLM):
 
     def generate(self, prompt: str, schema: Optional[dict] = None) -> str:
         """Synchronous generation via OpenRouter API."""
+        # Debug: log the prompt being sent
+        if os.environ.get("DEBUG_PROMPTS"):
+            print("\n" + "=" * 80)
+            print("PROMPT SENT TO JUDGE MODEL:")
+            print("=" * 80)
+            print(prompt)
+            print("=" * 80 + "\n")
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -99,6 +107,14 @@ class OpenRouterModel(DeepEvalBaseLLM):
 
     async def a_generate(self, prompt: str, schema: Optional[dict] = None) -> str:
         """Asynchronous generation via OpenRouter API."""
+        # Debug: log the prompt being sent
+        if os.environ.get("DEBUG_PROMPTS"):
+            print("\n" + "=" * 80)
+            print("PROMPT SENT TO JUDGE MODEL:")
+            print("=" * 80)
+            print(prompt)
+            print("=" * 80 + "\n")
+
         headers = {
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
@@ -137,85 +153,75 @@ class OpenRouterModel(DeepEvalBaseLLM):
 
 
 def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
-    """Create evaluation metrics using the provided judge model."""
+    """
+    Create evaluation metrics using the provided judge model.
 
-    coverage_metric = GEval(
-        name="Coverage",
-        criteria="""Evaluate whether the synthesis captures all key points from the original grader feedback.
+    Context: The synthesis takes feedback from multiple graders and distills it
+    into a FIXED number of points. This means some feedback will be dropped.
+    The goal is to keep the MOST relevant, impactful, and helpful feedback.
+    """
 
-        Consider:
-        - Are major strengths from all graders represented?
-        - Are important improvement suggestions included?
-        - Were any significant points lost in synthesis?
-
-        Score 1-5:
-        1 = Major points missing
-        3 = Most points covered, some gaps
-        5 = Comprehensive coverage of all key points""",
+    prioritization_metric = GEval(
+        name="Prioritization",
+        evaluation_steps=[
+            "Identify all feedback points from each grader in the Input (strengths and improvements)",
+            "Rank these points by potential impact on student learning and essay quality",
+            "Check which points were included in the Actual Output",
+            "Assess whether the highest-impact points were kept and lower-value points dropped",
+            "Score: 1=kept trivial points, dropped important ones; 3=reasonable selection; 5=excellent prioritization of highest-impact feedback",
+        ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
         model=model,
     )
 
-    deduplication_metric = GEval(
-        name="Deduplication",
-        criteria="""Evaluate whether overlapping or similar points from different graders were merged effectively.
+    helpfulness_metric = GEval(
+        name="Helpfulness",
+        evaluation_steps=[
+            "Read each point in the Actual Output from a student's perspective",
+            "For each point, assess: Will this actually help the student improve their writing?",
+            "Check if suggestions are specific enough to act on (not vague platitudes)",
+            "Check if the feedback explains WHY something matters, not just WHAT to fix",
+            "Score: 1=unhelpful or confusing; 3=somewhat helpful; 5=highly actionable guidance that will clearly improve the essay",
+        ],
+        evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
+        threshold=0.6,
+        model=model,
+    )
 
-        Consider:
-        - Were redundant points consolidated?
-        - Is the synthesis concise without unnecessary repetition?
-        - Were similar suggestions (e.g., "transitions" and "paragraph flow") combined?
-
-        Score 1-5:
-        1 = Significant redundancy remains
-        3 = Some consolidation, minor repetition
-        5 = Excellent deduplication, no redundancy""",
+    clarity_metric = GEval(
+        name="Clarity",
+        evaluation_steps=[
+            "Read each point in the Actual Output",
+            "Check if each point is clearly written and easy to understand",
+            "Check if points are concise (no unnecessary words or filler)",
+            "Check if similar ideas from different graders were merged cleanly (not jumbled)",
+            "Score: 1=confusing or verbose; 3=mostly clear; 5=crystal clear and concise throughout",
+        ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
         model=model,
     )
 
     evidence_metric = GEval(
-        name="Evidence Preservation",
-        criteria="""Evaluate whether specific quotes, examples, and evidence from the original feedback were preserved.
-
-        Consider:
-        - Are direct quotes from the essay retained where relevant?
-        - Are specific examples kept rather than genericized?
-        - Is the synthesis grounded in concrete evidence?
-
-        Score 1-5:
-        1 = Evidence largely lost, generic statements
-        3 = Some evidence preserved
-        5 = Strong evidence preservation throughout""",
-        evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
-        threshold=0.6,
-        model=model,
-    )
-
-    actionability_metric = GEval(
-        name="Actionability",
-        criteria="""Evaluate whether the synthesized suggestions are clear, specific, and actionable.
-
-        Consider:
-        - Are improvement suggestions specific enough to act on?
-        - Do suggestions include concrete steps or examples?
-        - Would a student know exactly what to do?
-
-        Score 1-5:
-        1 = Vague, unhelpful suggestions
-        3 = Moderately actionable
-        5 = Highly specific and actionable guidance""",
+        name="Evidence",
+        evaluation_steps=[
+            "Identify specific quotes, examples, or references in the Input feedback",
+            "Check which specific evidence was preserved in the Actual Output",
+            "Assess whether the Actual Output is grounded in specifics vs generic statements",
+            "Note: Some evidence may be appropriately dropped if the point was low-priority",
+            "Score: 1=generic platitudes with no specifics; 3=some evidence; 5=well-grounded with specific examples/quotes where appropriate",
+        ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
         model=model,
     )
 
     return [
-        coverage_metric,
-        deduplication_metric,
+        prioritization_metric,
+        helpfulness_metric,
+        clarity_metric,
         evidence_metric,
-        actionability_metric,
     ]
 
 
@@ -280,29 +286,27 @@ def create_sample_test_case() -> LLMTestCase:
     """
 
     # Sample synthesized feedback (output to evaluate)
+    # Constrained to 3-4 items per category as per synthesis prompt
     synthesized_feedback = """
-    ## Strengths
+    ## Strengths (3-4 most impactful)
 
-    1. **Clear and Arguable Thesis**: Your essay opens with a well-defined, specific thesis that effectively guides the reader through your argument. This is a strong foundation.
+    1. **Clear and Arguable Thesis**: Your essay opens with a well-defined, specific thesis that effectively guides the reader. As grader 3 noted: "This essay argues that technological innovation, rather than political reform, drove social change" - this is specific and arguable.
 
-    2. **Effective Use of Evidence**: You demonstrate good use of historical evidence, including quotations from historians and primary sources that strengthen your analysis.
+    2. **Effective Use of Evidence**: You demonstrate strong use of historical evidence, including quotations from historians and primary sources. The vivid description of factory conditions effectively draws readers in.
 
-    3. **Logical Structure**: The essay follows a logical argument structure with clear topic sentences in each paragraph.
+    3. **Logical Structure**: The essay follows a logical argument structure with clear topic sentences in each paragraph, building points coherently.
 
-    ## Areas for Improvement
+    ## Areas for Improvement (3-4 most actionable)
 
-    1. **Strengthen Transitions**: The transitions between paragraphs and sections need work, particularly the shift from economic to social analysis. Add transitional phrases like "Furthermore," "In contrast," or "Building on this economic foundation" to improve flow.
+    1. **Strengthen Transitions**: The transitions between sections need work, particularly the shift from economic to social analysis. Add a bridging paragraph or transitional phrases like "Furthermore," "In contrast," or "Building on this economic foundation."
 
-    2. **Develop the Conclusion**: Your conclusion currently restates the thesis without synthesis. Expand it to discuss broader implications - why does this matter today?
+    2. **Develop the Conclusion**: Your conclusion restates the thesis without synthesis and feels rushed. Expand it to discuss broader implications - why does this matter today?
 
-    3. **Address Counterarguments**: Include a paragraph acknowledging and refuting alternative perspectives to strengthen your argument.
-
-    4. **Standardize Citations**: Your citation formatting is inconsistent (mixing MLA and APA). Standardize to one format throughout.
+    3. **Address Counterarguments**: The essay does not address opposing viewpoints. Include a paragraph acknowledging and refuting alternative perspectives to strengthen your argument.
 
     ## Language Tips
 
-    - Review comma usage with introductory clauses
-    - Some sentences are overly complex - consider breaking them up for clarity
+    - Standardize citation formatting - currently mixing MLA and APA styles
     """
 
     return LLMTestCase(
