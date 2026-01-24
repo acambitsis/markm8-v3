@@ -2,7 +2,7 @@
 
 import type { Id } from 'convex/_generated/dataModel';
 import { motion } from 'framer-motion';
-import { Activity, ArrowRight, CreditCard, Eye, FileText, Settings, Shield, TrendingUp, Users } from 'lucide-react';
+import { Activity, ArrowRight, Coins, CreditCard, Eye, FileText, Settings, Shield, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -16,6 +16,7 @@ import { GradeViewSheet } from '@/features/admin/GradeViewSheet';
 import { staggerContainerSlow, staggerItemSlow } from '@/features/admin/motion';
 import { StatsCard } from '@/features/admin/StatsCard';
 import { useAdminDashboardStats, useAdminRecentActivity } from '@/hooks/useAdmin';
+import { formatApiCost } from '@/utils/formatCost';
 import { cn } from '@/utils/Helpers';
 
 export default function AdminDashboardPage() {
@@ -125,10 +126,10 @@ export default function AdminDashboardPage() {
             delay={0.2}
           />
           <StatsCard
-            title={t('recent_signups')}
-            value={stats?.recentSignups ?? 0}
-            description="Last 7 days"
-            icon={<Users className="size-5" />}
+            title="API Spend Today"
+            value={formatApiCost(stats?.todayApiSpend)}
+            description={`Avg: ${formatApiCost(stats?.avgCostPerEssay)}/essay`}
+            icon={<Coins className="size-5" />}
             color="orange"
             isLoading={isStatsLoading}
             delay={0.3}
@@ -253,6 +254,13 @@ export default function AdminDashboardPage() {
                               {/* Show model timings for essay activities */}
                               {item.type === 'essay' && item.modelResults && item.modelResults.length > 0 && (
                                 <ModelTimings modelResults={item.modelResults} compact />
+                              )}
+                              {/* Show API cost badge for essay activities */}
+                              {item.type === 'essay' && item.apiCost && (
+                                <span className="inline-flex items-center gap-0.5 rounded bg-green-500/10 px-1.5 py-0.5 text-xs text-green-600">
+                                  <Coins className="size-3" />
+                                  {formatApiCost(item.apiCost)}
+                                </span>
                               )}
                             </div>
                             <p className="text-xs text-muted-foreground">

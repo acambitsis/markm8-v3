@@ -93,12 +93,38 @@ export const getDashboardStats = query({
       u => u._creationTime >= sevenDaysAgo,
     ).length;
 
+    // Get completed grades with costs for API spend metrics
+    // TODO: Add index on completedAt and filter by time range (e.g., last 90 days)
+    // when grade volume grows significantly to avoid unbounded memory usage
+    const allGrades = await ctx.db.query('grades').collect();
+    const completedGrades = allGrades.filter(g => g.status === 'complete' && g.apiCost);
+
+    const totalApiSpend = completedGrades.reduce(
+      (sum, g) => sum + Number.parseFloat(g.apiCost || '0'),
+      0,
+    );
+
+    const gradesToday = completedGrades.filter(
+      g => g.completedAt && g.completedAt >= startOfDayMs,
+    );
+    const todayApiSpend = gradesToday.reduce(
+      (sum, g) => sum + Number.parseFloat(g.apiCost || '0'),
+      0,
+    );
+
+    const avgCostPerEssay = completedGrades.length > 0
+      ? totalApiSpend / completedGrades.length
+      : 0;
+
     return {
       totalUsers,
       recentSignups,
       essaysToday,
       totalEssays,
       totalCreditsPurchased: totalPurchased.toFixed(2),
+      totalApiSpend: totalApiSpend.toFixed(4),
+      todayApiSpend: todayApiSpend.toFixed(4),
+      avgCostPerEssay: avgCostPerEssay.toFixed(4),
     };
   },
 });
@@ -155,7 +181,7 @@ export const getRecentActivity = query({
 
     // Batch load grades for essay activities (for timing info and QA review)
     const essayIdsToFetch = submittedEssays.map(e => e._id);
-    const gradeMap = new Map<string, { gradeId: Id<'grades'>; modelResults?: ModelResult[] }>();
+    const gradeMap = new Map<string, { gradeId: Id<'grades'>; modelResults?: ModelResult[]; apiCost?: string }>();
 
     // Fetch latest completed grade for each essay
     await Promise.all(
@@ -166,7 +192,7 @@ export const getRecentActivity = query({
           .order('desc')
           .first();
         if (grade?.status === 'complete') {
-          gradeMap.set(essayId, { gradeId: grade._id, modelResults: grade.modelResults });
+          gradeMap.set(essayId, { gradeId: grade._id, modelResults: grade.modelResults, apiCost: grade.apiCost });
         }
       }),
     );
@@ -180,6 +206,7 @@ export const getRecentActivity = query({
       amount?: string;
       gradeId?: Id<'grades'>;
       modelResults?: ModelResult[];
+      apiCost?: string;
     }> = [];
 
     // Add user signups
@@ -215,6 +242,7 @@ export const getRecentActivity = query({
         email: user?.email,
         gradeId: grade?.gradeId,
         modelResults: grade?.modelResults,
+        apiCost: grade?.apiCost,
       });
     }
 
@@ -436,6 +464,8 @@ export const getGradeForQA = query({
         modelResults: grade.modelResults,
         queuedAt: grade.queuedAt,
         completedAt: grade.completedAt,
+        apiCost: grade.apiCost,
+        totalTokens: grade.totalTokens,
       },
       // Essay metadata only - NO content exposed
       essayMetadata: {
@@ -453,6 +483,14 @@ export const getGradeForQA = query({
         rubricLength: customCriteria.length,
         focusAreas,
       },
+      // Actual grade data (user-provided calibration)
+      actualGradeData: essay.actualGrade || essay.actualFeedback
+        ? {
+            grade: essay.actualGrade,
+            feedback: essay.actualFeedback,
+            addedAt: essay.actualGradeAddedAt,
+          }
+        : null,
     };
   },
 });

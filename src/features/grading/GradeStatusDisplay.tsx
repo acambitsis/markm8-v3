@@ -1,10 +1,10 @@
 'use client';
 
-import { useAction } from 'convex/react';
+import { useAction, useMutation } from 'convex/react';
 import { motion } from 'framer-motion';
 import { AlertCircle, ArrowRight, FileText, RefreshCw, Sparkles } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -25,6 +25,14 @@ type Props = {
 
 export function GradeStatusDisplay({ gradeId }: Props) {
   const { grade, isLoading, isError } = useGradeStatus(gradeId);
+  const updateActualGrade = useMutation(api.essays.updateActualGrade);
+
+  const handleSaveActualGrade = useCallback(
+    async (data: { essayId: Id<'essays'>; actualGrade?: string; actualFeedback?: string }) => {
+      await updateActualGrade(data);
+    },
+    [updateActualGrade],
+  );
 
   if (isLoading) {
     return (
@@ -160,6 +168,10 @@ export function GradeStatusDisplay({ gradeId }: Props) {
               percentageRange={grade.percentageRange}
               feedback={grade.feedback}
               modelResults={grade.modelResults}
+              essayId={essay?._id}
+              actualGrade={essay?.actualGrade}
+              actualFeedback={essay?.actualFeedback}
+              onSaveActualGrade={handleSaveActualGrade}
             />
           )}
         </div>

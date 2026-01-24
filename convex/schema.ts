@@ -275,6 +275,11 @@ export default defineSchema({
     status: essayStatusValidator,
     submittedAt: v.optional(v.number()), // Unix timestamp in ms
     deletedAt: v.optional(v.number()), // Soft delete timestamp
+
+    // Calibration data (actual grade received from teacher)
+    actualGrade: v.optional(v.string()), // Free text: "A+", "85%", "7/10"
+    actualFeedback: v.optional(v.string()), // Teacher's feedback
+    actualGradeAddedAt: v.optional(v.number()), // Timestamp when added
   })
     .index('by_user_id', ['userId'])
     .index('by_user_status', ['userId', 'status'])
