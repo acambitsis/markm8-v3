@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Bot, Check, Coins, Cpu, DollarSign, Loader2, Radio, Settings, Shield, X } from 'lucide-react';
+import { Bot, Check, Coins, Cpu, Loader2, PoundSterling, Radio, Settings, Shield, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
 
 import { PageTransition } from '@/components/motion/PageTransition';
@@ -97,10 +97,10 @@ export default function AdminSettingsPage() {
         throw new Error('Grading cost must be a positive number');
       }
 
-      // Validate credits per dollar
+      // Validate credits per pound
       const cpd = Number.parseFloat(creditsPerDollar);
       if (Number.isNaN(cpd) || cpd <= 0) {
-        throw new Error('Credits per dollar must be a positive number');
+        throw new Error('Credits per pound must be a positive number');
       }
 
       // Validate AI config
@@ -209,7 +209,7 @@ export default function AdminSettingsPage() {
           <div className="border-b p-5">
             <div className="flex items-center gap-3">
               <div className="flex size-10 items-center justify-center rounded-lg bg-purple-500/10">
-                <DollarSign className="size-5 text-purple-600" />
+                <PoundSterling className="size-5 text-purple-600" />
               </div>
               <div>
                 <h2 className="font-semibold">Pricing</h2>
@@ -234,9 +234,9 @@ export default function AdminSettingsPage() {
               <p className="text-xs text-muted-foreground">Credits charged per essay graded</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="creditsPerDollar" className="text-muted-foreground">Credits per Dollar</Label>
+              <Label htmlFor="creditsPerDollar" className="text-muted-foreground">Credits per Pound</Label>
               <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <PoundSterling className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   id="creditsPerDollar"
                   type="text"
