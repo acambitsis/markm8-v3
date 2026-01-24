@@ -2,7 +2,7 @@
 
 import * as Dialog from '@radix-ui/react-dialog';
 import type { Id } from 'convex/_generated/dataModel';
-import { BookOpen, Calendar, ClipboardList, Coins, FileText, GraduationCap, Hash, Loader2, MessageSquare, Target, X } from 'lucide-react';
+import { BookOpen, Calendar, ClipboardList, Coins, FileText, GraduationCap, Hash, Loader2, MessageSquare, Tag, Target, X } from 'lucide-react';
 
 import { Badge } from '@/components/ui/badge';
 import { GradeResults } from '@/features/grading/GradeResults';
@@ -197,6 +197,13 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                         <span className="text-muted-foreground">Total Tokens:</span>
                         <span>{formatTokens(grade.grade.totalTokens)}</span>
                       </div>
+                      {grade.grade.promptVersion && (
+                        <div className="flex items-center gap-2">
+                          <Tag className="size-4 text-muted-foreground" />
+                          <span className="text-muted-foreground">Prompt Version:</span>
+                          <span className="font-mono text-xs">{grade.grade.promptVersion}</span>
+                        </div>
+                      )}
                       {/* Per-run costs */}
                       {grade.grade.modelResults && grade.grade.modelResults.some(r => r.cost) && (
                         <div className="flex w-full flex-wrap items-center gap-2">

@@ -3,6 +3,13 @@
 
 import type { AcademicLevel } from '../schema';
 
+/**
+ * Grading prompt version
+ * Increment when making changes to the prompt structure or content
+ * Stored with each grade for traceability and debugging
+ */
+export const GRADING_PROMPT_VERSION = '1.1.0';
+
 type EssayData = {
   instructions: string;
   rubric?: string;
@@ -29,7 +36,9 @@ export function buildGradingPrompt(essay: EssayData): string {
 
 ## Assignment Instructions
 
+<assignment_instructions>
 ${instructions}
+</assignment_instructions>
 
 `;
 
@@ -38,7 +47,9 @@ ${instructions}
 
 The essay should be evaluated according to these specific criteria:
 
+<custom_rubric>
 ${rubric}
+</custom_rubric>
 
 `;
   }
@@ -48,7 +59,9 @@ ${rubric}
 
 Please pay special attention to these areas in your feedback:
 
+<focus_areas>
 ${focusAreas.map((area, i) => `${i + 1}. ${area}`).join('\n')}
+</focus_areas>
 
 `;
   }
@@ -59,7 +72,9 @@ This essay is written at the ${academicLevelLabel} level. Adjust your expectatio
 
 ## Essay Content
 
+<essay_content>
 ${content}
+</essay_content>
 
 ---
 
