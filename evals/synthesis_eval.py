@@ -7,30 +7,133 @@ Usage:
     uv run python synthesis_eval.py
 
 Requires:
-    OPENAI_API_KEY environment variable
+    OPENROUTER_API_KEY environment variable
+
+Optional:
+    JUDGE_MODEL - OpenRouter model ID (default: anthropic/claude-opus-4.5)
+
+Recommended judge models (in order of preference):
+    - anthropic/claude-opus-4.5
+    - google/gemini-3-pro-preview
+    - openai/gpt-5.2
 """
 
 import json
 import os
 from pathlib import Path
+from typing import Optional
+
+import httpx
 
 # Disable telemetry before importing deepeval
 os.environ["DEEPEVAL_TELEMETRY"] = "false"
 
 from deepeval import evaluate
 from deepeval.metrics import GEval
+from deepeval.models import DeepEvalBaseLLM
 from deepeval.test_case import LLMTestCase, LLMTestCaseParams
 
-# Judge model configuration
-JUDGE_MODEL = "gpt-4o"
+# Default judge model - best models for evaluation
+DEFAULT_JUDGE_MODEL = "anthropic/claude-opus-4.5"
+
+# OpenRouter API endpoint
+OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
+
+
+# -----------------------------------------------------------------------------
+# OpenRouter Model Wrapper
+# -----------------------------------------------------------------------------
+
+
+class OpenRouterModel(DeepEvalBaseLLM):
+    """Custom DeepEval model wrapper for OpenRouter API."""
+
+    def __init__(
+        self,
+        model: str = DEFAULT_JUDGE_MODEL,
+        api_key: Optional[str] = None,
+    ):
+        self.model_name = model
+        self.api_key = api_key or os.environ.get("OPENROUTER_API_KEY")
+        if not self.api_key:
+            raise ValueError(
+                "OPENROUTER_API_KEY environment variable is required. "
+                "Set it with: export OPENROUTER_API_KEY=sk-or-..."
+            )
+
+    def load_model(self):
+        """Return the model identifier."""
+        return self.model_name
+
+    def generate(self, prompt: str, schema: Optional[dict] = None) -> str:
+        """Synchronous generation via OpenRouter API."""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://markm8.com",
+            "X-Title": "MarkM8 Evals",
+        }
+
+        payload = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,  # Low temperature for consistent evaluation
+        }
+
+        # Add JSON schema if provided (for structured output)
+        if schema:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": schema,
+            }
+
+        with httpx.Client(timeout=120.0) as client:
+            response = client.post(OPENROUTER_API_URL, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+
+    async def a_generate(self, prompt: str, schema: Optional[dict] = None) -> str:
+        """Asynchronous generation via OpenRouter API."""
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://markm8.com",
+            "X-Title": "MarkM8 Evals",
+        }
+
+        payload = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1,
+        }
+
+        if schema:
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": schema,
+            }
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(
+                OPENROUTER_API_URL, headers=headers, json=payload
+            )
+            response.raise_for_status()
+            data = response.json()
+            return data["choices"][0]["message"]["content"]
+
+    def get_model_name(self) -> str:
+        """Return the model identifier."""
+        return self.model_name
 
 
 # -----------------------------------------------------------------------------
 # Evaluation Metrics
 # -----------------------------------------------------------------------------
 
-def create_metrics() -> list[GEval]:
-    """Create evaluation metrics. Requires OPENAI_API_KEY to be set."""
+
+def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
+    """Create evaluation metrics using the provided judge model."""
 
     coverage_metric = GEval(
         name="Coverage",
@@ -47,7 +150,7 @@ def create_metrics() -> list[GEval]:
         5 = Comprehensive coverage of all key points""",
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
-        model=JUDGE_MODEL,
+        model=model,
     )
 
     deduplication_metric = GEval(
@@ -65,7 +168,7 @@ def create_metrics() -> list[GEval]:
         5 = Excellent deduplication, no redundancy""",
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
-        model=JUDGE_MODEL,
+        model=model,
     )
 
     evidence_metric = GEval(
@@ -83,7 +186,7 @@ def create_metrics() -> list[GEval]:
         5 = Strong evidence preservation throughout""",
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
-        model=JUDGE_MODEL,
+        model=model,
     )
 
     actionability_metric = GEval(
@@ -101,7 +204,7 @@ def create_metrics() -> list[GEval]:
         5 = Highly specific and actionable guidance""",
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
-        model=JUDGE_MODEL,
+        model=model,
     )
 
     return [
@@ -115,6 +218,7 @@ def create_metrics() -> list[GEval]:
 # -----------------------------------------------------------------------------
 # Test Data
 # -----------------------------------------------------------------------------
+
 
 def load_test_cases_from_file(filepath: str) -> list[LLMTestCase]:
     """Load test cases from a JSON file exported from the synthesis experiment."""
@@ -207,21 +311,29 @@ def create_sample_test_case() -> LLMTestCase:
 # Main
 # -----------------------------------------------------------------------------
 
+
 def main():
     """Run the evaluation."""
     # Check for API key early
-    if not os.environ.get("OPENAI_API_KEY"):
-        print("Error: OPENAI_API_KEY environment variable is required.")
-        print("Set it with: export OPENAI_API_KEY=sk-...")
+    api_key = os.environ.get("OPENROUTER_API_KEY")
+    if not api_key:
+        print("Error: OPENROUTER_API_KEY environment variable is required.")
+        print("Set it with: export OPENROUTER_API_KEY=sk-or-...")
         return None
 
-    # Create metrics (requires API key)
-    metrics = create_metrics()
+    # Get judge model from env or use default
+    judge_model_id = os.environ.get("JUDGE_MODEL", DEFAULT_JUDGE_MODEL)
+
+    # Create OpenRouter model wrapper
+    judge_model = OpenRouterModel(model=judge_model_id, api_key=api_key)
+
+    # Create metrics with the judge model
+    metrics = create_metrics(judge_model)
 
     print("=" * 60)
     print("SYNTHESIS QUALITY EVALUATION")
     print("=" * 60)
-    print(f"Judge model: {JUDGE_MODEL}")
+    print(f"Judge model: {judge_model_id}")
     print(f"Metrics: {[m.name for m in metrics]}")
     print("=" * 60)
 

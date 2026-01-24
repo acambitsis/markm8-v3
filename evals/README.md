@@ -7,13 +7,17 @@ LLM-as-judge evaluation suite for assessing AI feedback synthesis quality.
 ```bash
 cd evals
 uv sync
-export OPENAI_API_KEY=sk-...
+export OPENROUTER_API_KEY=sk-or-...  # Same key as main project
 ```
 
 ## Run
 
 ```bash
+# Default judge: Claude Opus 4.5
 uv run python synthesis_eval.py
+
+# Or use a different judge model
+JUDGE_MODEL=google/gemini-3-pro-preview uv run python synthesis_eval.py
 ```
 
 ## Documentation

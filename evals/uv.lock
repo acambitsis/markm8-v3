@@ -608,10 +608,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "deepeval" },
+    { name = "httpx" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "deepeval", specifier = ">=3.8.1" }]
+requires-dist = [
+    { name = "deepeval", specifier = ">=3.8.1" },
+    { name = "httpx", specifier = ">=0.28.1" },
+]
 
 [[package]]
 name = "markupsafe"

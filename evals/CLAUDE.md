@@ -15,7 +15,7 @@ This is a Python-based evaluation suite for assessing the quality of AI-generate
 | **Runtime** | Python 3.12 | Pinned in `.python-version` |
 | **Package Manager** | uv | Fast, modern Python tooling |
 | **Eval Framework** | DeepEval | LLM-as-judge, G-Eval metrics |
-| **Judge Model** | OpenAI GPT-4o | Via `OPENAI_API_KEY` |
+| **Judge Model** | Claude Opus 4.5 (default) | Via OpenRouter + `OPENROUTER_API_KEY` |
 
 ---
 
@@ -27,11 +27,14 @@ cd evals
 # Install dependencies (uv creates .venv automatically)
 uv sync
 
-# Set API key
-export OPENAI_API_KEY=sk-...
+# Set API key (uses same key as main project)
+export OPENROUTER_API_KEY=sk-or-...
 
-# Run evaluations
+# Run evaluations (default: Claude Opus 4.5)
 uv run python synthesis_eval.py
+
+# Or specify a different judge model
+JUDGE_MODEL=google/gemini-3-pro-preview uv run python synthesis_eval.py
 ```
 
 ---
@@ -110,8 +113,14 @@ coverage_metric = GEval(
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENAI_API_KEY` | Yes | For GPT-4o judge model |
+| `OPENROUTER_API_KEY` | Yes | Same key as main project - for judge model |
+| `JUDGE_MODEL` | No | OpenRouter model ID (default: `anthropic/claude-opus-4.5`) |
 | `DEEPEVAL_TELEMETRY` | No | Set to `false` to disable telemetry |
+
+**Recommended judge models:**
+1. `anthropic/claude-opus-4.5` (default)
+2. `google/gemini-3-pro-preview`
+3. `openai/gpt-5.2`
 
 ---
 
