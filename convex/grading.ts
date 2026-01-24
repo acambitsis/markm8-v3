@@ -81,6 +81,7 @@ export const processGrade = internalAction({
         modelResults: results.modelResults,
         totalTokens: results.totalTokens,
         apiCost: results.apiCost,
+        promptVersion: results.promptVersion,
       });
 
       // 8. Clear credit reservation and record transaction

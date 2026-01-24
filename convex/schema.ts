@@ -305,6 +305,9 @@ export default defineSchema({
     totalTokens: v.optional(v.number()),
     apiCost: v.optional(v.string()), // Decimal as string
 
+    // Prompt versioning (for traceability)
+    promptVersion: v.optional(v.string()),
+
     // Error handling
     errorMessage: v.optional(v.string()),
 

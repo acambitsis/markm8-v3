@@ -8,6 +8,7 @@ import type {
   ModelResult,
   PercentageRange,
 } from '../../schema';
+import { GRADING_PROMPT_VERSION } from '../gradingPrompt';
 import { clampPercentage } from './utils';
 
 /**
@@ -19,6 +20,7 @@ export function generateMockGrade(config: GradingConfig): {
   feedback: GradeFeedback;
   categoryScores: CategoryScores;
   modelResults: ModelResult[];
+  promptVersion: string;
 } {
   const { runs } = config;
 
@@ -142,5 +144,6 @@ export function generateMockGrade(config: GradingConfig): {
       percentage: clampPercentage(basePercentage + deviations[i]!),
       included: true,
     })),
+    promptVersion: GRADING_PROMPT_VERSION,
   };
 }

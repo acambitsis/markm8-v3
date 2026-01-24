@@ -13,7 +13,7 @@ import type {
 } from '../../schema';
 import { getGradingModel } from '../ai';
 import { type GradeOutput, gradeOutputSchema } from '../gradeSchema';
-import { buildGradingPrompt } from '../gradingPrompt';
+import { buildGradingPrompt, GRADING_PROMPT_VERSION } from '../gradingPrompt';
 import { reportToSentry } from '../sentry';
 import {
   clampPercentage,
@@ -194,6 +194,7 @@ export async function runAIGrading(
     modelResults: ModelResult[];
     totalTokens?: number;
     apiCost?: string;
+    promptVersion: string;
   }> {
   if (
     !essay.assignmentBrief?.instructions
@@ -458,5 +459,6 @@ export async function runAIGrading(
     modelResults,
     totalTokens,
     apiCost,
+    promptVersion: GRADING_PROMPT_VERSION,
   };
 }

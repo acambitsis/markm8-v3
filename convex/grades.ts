@@ -130,6 +130,7 @@ export const complete = internalMutation({
     modelResults: v.array(modelResultValidator),
     totalTokens: v.optional(v.number()),
     apiCost: v.optional(v.string()),
+    promptVersion: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { gradeId, ...results } = args;
