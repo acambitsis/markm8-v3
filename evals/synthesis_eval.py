@@ -168,7 +168,7 @@ def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
             "Rank these points by potential impact on student learning and essay quality",
             "Check which points were included in the Actual Output",
             "Assess whether the highest-impact points were kept and lower-value points dropped",
-            "Score: 1=kept trivial points, dropped important ones; 3=reasonable selection; 5=excellent prioritization of highest-impact feedback",
+            "Score 0-10: 0-3=kept trivial points, dropped important ones; 4-6=reasonable selection; 7-10=excellent prioritization of highest-impact feedback",
         ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
@@ -182,7 +182,7 @@ def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
             "For each point, assess: Will this actually help the student improve their writing?",
             "Check if suggestions are specific enough to act on (not vague platitudes)",
             "Check if the feedback explains WHY something matters, not just WHAT to fix",
-            "Score: 1=unhelpful or confusing; 3=somewhat helpful; 5=highly actionable guidance that will clearly improve the essay",
+            "Score 0-10: 0-3=unhelpful or confusing; 4-6=somewhat helpful; 7-10=highly actionable guidance that will clearly improve the essay",
         ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
@@ -196,7 +196,7 @@ def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
             "Check if each point is clearly written and easy to understand",
             "Check if points are concise (no unnecessary words or filler)",
             "Check if similar ideas from different graders were merged cleanly (not jumbled)",
-            "Score: 1=confusing or verbose; 3=mostly clear; 5=crystal clear and concise throughout",
+            "Score 0-10: 0-3=confusing or verbose; 4-6=mostly clear; 7-10=crystal clear and concise throughout",
         ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
@@ -210,7 +210,21 @@ def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
             "Check which specific evidence was preserved in the Actual Output",
             "Assess whether the Actual Output is grounded in specifics vs generic statements",
             "Note: Some evidence may be appropriately dropped if the point was low-priority",
-            "Score: 1=generic platitudes with no specifics; 3=some evidence; 5=well-grounded with specific examples/quotes where appropriate",
+            "Score 0-10: 0-3=generic platitudes with no specifics; 4-6=some evidence; 7-10=well-grounded with specific examples/quotes where appropriate",
+        ],
+        evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
+        threshold=0.6,
+        model=model,
+    )
+
+    no_duplication_metric = GEval(
+        name="No Duplication",
+        evaluation_steps=[
+            "Read each point in the Actual Output (strengths, improvements, language tips)",
+            "Look for OBVIOUS duplicates: two points making the exact same suggestion or praising the exact same thing",
+            "Related but distinct points are NOT duplicates (e.g., 'clear thesis' and 'logical structure' are different)",
+            "Consolidating overlapping grader feedback into one point is GOOD, not duplication",
+            "Score 0-10: 0-3=same feedback repeated multiple times; 4-6=some redundant overlap; 7-10=each point is distinct (minor thematic connections are fine)",
         ],
         evaluation_params=[LLMTestCaseParams.INPUT, LLMTestCaseParams.ACTUAL_OUTPUT],
         threshold=0.6,
@@ -222,6 +236,7 @@ def create_metrics(model: DeepEvalBaseLLM) -> list[GEval]:
         helpfulness_metric,
         clarity_metric,
         evidence_metric,
+        no_duplication_metric,
     ]
 
 
