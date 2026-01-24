@@ -1098,6 +1098,26 @@ export const removeModelFromCatalog = mutation({
       throw new Error(`Model "${slug}" not found in catalog`);
     }
 
+    // Check if model is currently in use
+    const settings = await ctx.db
+      .query('platformSettings')
+      .withIndex('by_key', q => q.eq('key', 'singleton'))
+      .unique();
+
+    if (settings?.aiConfig) {
+      const inGradingRuns = settings.aiConfig.grading.runs.some(r => r.model === slug);
+      const isTitleModel = settings.aiConfig.titleGeneration.model === slug;
+
+      if (inGradingRuns || isTitleModel) {
+        const usage = inGradingRuns && isTitleModel
+          ? 'grading and title generation'
+          : inGradingRuns
+            ? 'grading'
+            : 'title generation';
+        throw new Error(`Cannot remove "${model.name}" - it's currently configured for ${usage}`);
+      }
+    }
+
     await ctx.db.delete(model._id);
 
     // Log audit entry

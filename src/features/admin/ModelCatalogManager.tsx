@@ -105,6 +105,15 @@ export function ModelCatalogManager() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Auto-clear success messages after 3 seconds
+  useEffect(() => {
+    if (!actionSuccess) {
+      return;
+    }
+    const timer = setTimeout(() => setActionSuccess(null), 3000);
+    return () => clearTimeout(timer);
+  }, [actionSuccess]);
+
   // Fetch OpenRouter models
   const fetchModels = useCallback(async () => {
     setIsLoadingModels(true);
