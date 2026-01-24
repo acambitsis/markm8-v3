@@ -10,7 +10,7 @@ import { isAdmin, requireAdmin } from './lib/auth';
 import { addDecimal, isNegative, isZero } from './lib/decimal';
 import { validatePricingValue } from './lib/pricing';
 import type { AuditAction, ModelResult } from './schema';
-import { aiConfigValidator, auditActionValidator, transactionTypeValidator } from './schema';
+import { aiConfigValidator, auditActionValidator, modelCapabilityValidator, transactionTypeValidator } from './schema';
 
 /**
  * Simple email validation function
@@ -1010,5 +1010,175 @@ export const removeAdminEmail = mutation({
     });
 
     return { success: true };
+  },
+});
+
+// =============================================================================
+// Model Catalog Management
+// =============================================================================
+
+/**
+ * Add a new model to the catalog
+ * Used by admin UI to add models from OpenRouter
+ */
+export const addModelToCatalog = mutation({
+  args: {
+    slug: v.string(), // OpenRouter model ID, e.g., "anthropic/claude-sonnet-4.5"
+    name: v.string(), // Display name
+    provider: v.string(), // Provider name
+    capabilities: v.array(modelCapabilityValidator),
+    contextLength: v.optional(v.number()),
+    supportsReasoning: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const admin = await requireAdmin(ctx);
+
+    // Validate slug format (should be provider/model-name)
+    if (!args.slug.includes('/')) {
+      throw new Error('Invalid model slug format. Expected: provider/model-name');
+    }
+
+    // Check if model already exists
+    const existing = await ctx.db
+      .query('modelCatalog')
+      .withIndex('by_slug', q => q.eq('slug', args.slug))
+      .unique();
+
+    if (existing) {
+      throw new Error(`Model "${args.slug}" already exists in catalog`);
+    }
+
+    // Insert new model
+    const modelId = await ctx.db.insert('modelCatalog', {
+      slug: args.slug,
+      name: args.name,
+      provider: args.provider,
+      enabled: true, // Enable by default
+      capabilities: args.capabilities,
+      contextLength: args.contextLength,
+      supportsReasoning: args.supportsReasoning,
+    });
+
+    // Log audit entry
+    await ctx.db.insert('adminAuditLog', {
+      action: 'model_added',
+      performedBy: admin.userId,
+      performedByEmail: admin.email,
+      changes: {
+        field: 'modelCatalog',
+        newValue: args.slug,
+      },
+      metadata: {
+        modelSlug: args.slug,
+        modelName: args.name,
+        provider: args.provider,
+      },
+    });
+
+    return { success: true, modelId };
+  },
+});
+
+/**
+ * Remove a model from the catalog
+ */
+export const removeModelFromCatalog = mutation({
+  args: {
+    slug: v.string(),
+  },
+  handler: async (ctx, { slug }) => {
+    const admin = await requireAdmin(ctx);
+
+    const model = await ctx.db
+      .query('modelCatalog')
+      .withIndex('by_slug', q => q.eq('slug', slug))
+      .unique();
+
+    if (!model) {
+      throw new Error(`Model "${slug}" not found in catalog`);
+    }
+
+    await ctx.db.delete(model._id);
+
+    // Log audit entry
+    await ctx.db.insert('adminAuditLog', {
+      action: 'model_removed',
+      performedBy: admin.userId,
+      performedByEmail: admin.email,
+      changes: {
+        field: 'modelCatalog',
+        previousValue: slug,
+      },
+      metadata: {
+        modelSlug: slug,
+        modelName: model.name,
+        provider: model.provider,
+      },
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Toggle a model's enabled status
+ */
+export const toggleModelEnabled = mutation({
+  args: {
+    slug: v.string(),
+    enabled: v.boolean(),
+  },
+  handler: async (ctx, { slug, enabled }) => {
+    const admin = await requireAdmin(ctx);
+
+    const model = await ctx.db
+      .query('modelCatalog')
+      .withIndex('by_slug', q => q.eq('slug', slug))
+      .unique();
+
+    if (!model) {
+      throw new Error(`Model "${slug}" not found in catalog`);
+    }
+
+    await ctx.db.patch(model._id, { enabled });
+
+    // Log audit entry
+    await ctx.db.insert('adminAuditLog', {
+      action: enabled ? 'model_enabled' : 'model_disabled',
+      performedBy: admin.userId,
+      performedByEmail: admin.email,
+      changes: {
+        field: 'modelCatalog.enabled',
+        previousValue: model.enabled,
+        newValue: enabled,
+      },
+      metadata: {
+        modelSlug: slug,
+        modelName: model.name,
+      },
+    });
+
+    return { success: true };
+  },
+});
+
+/**
+ * Get all models in catalog (for admin management)
+ */
+export const getModelCatalog = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+
+    const models = await ctx.db.query('modelCatalog').take(100);
+
+    // Sort by provider then name
+    return models.sort((a, b) => {
+      const providerCompare = a.provider.localeCompare(b.provider);
+      if (providerCompare !== 0) {
+        return providerCompare;
+      }
+      return a.name.localeCompare(b.name);
+    });
   },
 });

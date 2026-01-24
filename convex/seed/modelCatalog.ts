@@ -22,8 +22,6 @@ type SeedModel = {
   provider: string;
   capabilities: ModelCapability[];
   contextLength?: number;
-  pricingInputPer1M?: number;
-  pricingOutputPer1M?: number;
   // Reasoning support
   supportsReasoning?: boolean;
   reasoningRequired?: boolean;
@@ -82,9 +80,6 @@ export const seed = internalMutation({
         enabled: true,
         capabilities: model.capabilities,
         contextLength: model.contextLength,
-        pricingInputPer1M: model.pricingInputPer1M,
-        pricingOutputPer1M: model.pricingOutputPer1M,
-        lastSyncedAt: Date.now(),
         supportsReasoning: model.supportsReasoning,
         reasoningRequired: model.reasoningRequired,
         defaultReasoningEffort: model.defaultReasoningEffort,
@@ -123,9 +118,6 @@ export const reset = internalMutation({
         enabled: true,
         capabilities: model.capabilities,
         contextLength: model.contextLength,
-        pricingInputPer1M: model.pricingInputPer1M,
-        pricingOutputPer1M: model.pricingOutputPer1M,
-        lastSyncedAt: Date.now(),
         supportsReasoning: model.supportsReasoning,
         reasoningRequired: model.reasoningRequired,
         defaultReasoningEffort: model.defaultReasoningEffort,

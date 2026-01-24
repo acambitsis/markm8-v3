@@ -30,6 +30,10 @@ const actionLabels: Record<AuditAction, string> = {
   admin_email_added: 'Admin Added',
   admin_email_removed: 'Admin Removed',
   ai_config_update: 'AI Config',
+  model_added: 'Model Added',
+  model_removed: 'Model Removed',
+  model_enabled: 'Model Enabled',
+  model_disabled: 'Model Disabled',
 };
 
 // Get short model name from full OpenRouter model ID
