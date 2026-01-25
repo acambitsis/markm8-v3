@@ -2,7 +2,7 @@
 
 import { useAction, useMutation } from 'convex/react';
 import { motion } from 'framer-motion';
-import { AlertCircle, ArrowRight, FileText, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, ArrowRight, Check, FileText, Loader2, RefreshCw, Sparkles, X } from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useGradeStatus } from '@/hooks/useGradeStatus';
 import { calculateEssayStats } from '@/utils/essayStats';
+import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
 import type { Id } from '../../../convex/_generated/dataModel';
@@ -74,6 +75,7 @@ export function GradeStatusDisplay({ gradeId }: Props) {
         essayContent={essay?.content}
         essaySubject={essay?.assignmentBrief?.subject}
         synthesisStatus={grade.synthesisStatus}
+        runProgress={grade.runProgress}
       />
     );
   }
@@ -197,6 +199,13 @@ export function GradeStatusDisplay({ gradeId }: Props) {
 // =============================================================================
 
 type SynthesisStatus = 'pending' | 'processing' | 'complete' | 'skipped' | 'failed';
+type RunStatus = 'pending' | 'complete' | 'failed';
+
+type RunProgress = {
+  model: string;
+  status: RunStatus;
+  completedAt?: number;
+};
 
 type ProcessingExperienceProps = {
   gradeId: Id<'grades'>;
@@ -204,6 +213,7 @@ type ProcessingExperienceProps = {
   essayContent?: string;
   essaySubject?: string;
   synthesisStatus?: SynthesisStatus;
+  runProgress?: RunProgress[];
 };
 
 function ProcessingExperience({
@@ -212,6 +222,7 @@ function ProcessingExperience({
   essayContent,
   essaySubject,
   synthesisStatus,
+  runProgress,
 }: ProcessingExperienceProps) {
   // Essay observations state (fetched via action, not persisted)
   const [observations, setObservations] = useState<EssayObservations | null>(null);
@@ -256,12 +267,32 @@ function ProcessingExperience({
   const subject = essaySubject ?? 'General';
   const hasObservations = observations !== null && !observationsLoading;
 
-  // Determine status message based on synthesis status
-  const isSynthesizing = synthesisStatus === 'processing';
-  const statusTitle = isSynthesizing ? 'Synthesizing Feedback' : 'Grading Your Essay';
-  const statusSubtext = isSynthesizing
-    ? 'Merging insights from multiple AI graders...'
-    : null;
+  // Derive status info from progress
+  const { statusTitle, statusSubtext } = useMemo(() => {
+    const completed = runProgress?.filter(r => r.status === 'complete').length ?? 0;
+    const total = runProgress?.length ?? 0;
+    const allComplete = total > 0 && completed === total;
+
+    if (synthesisStatus === 'processing') {
+      return {
+        statusTitle: 'Synthesizing Feedback',
+        statusSubtext: 'Merging insights from multiple AI graders...',
+      };
+    }
+    if (allComplete) {
+      return {
+        statusTitle: 'Finalizing Results',
+        statusSubtext: `All ${total} grading runs complete`,
+      };
+    }
+    if (total > 0) {
+      return {
+        statusTitle: 'Grading Your Essay',
+        statusSubtext: `Completed ${completed} of ${total} grading runs`,
+      };
+    }
+    return { statusTitle: 'Grading Your Essay', statusSubtext: null };
+  }, [runProgress, synthesisStatus]);
 
   return (
     <PageTransition>
@@ -300,6 +331,12 @@ function ProcessingExperience({
               </motion.p>
             </div>
 
+            {/* Progress indicator */}
+            <GradingProgressIndicator
+              runProgress={runProgress}
+              synthesisStatus={synthesisStatus}
+            />
+
             {/* Matrix animation */}
             <motion.div
               className="mb-6"
@@ -321,5 +358,132 @@ function ProcessingExperience({
         </CardContent>
       </Card>
     </PageTransition>
+  );
+}
+
+// =============================================================================
+// Grading Progress Indicator Component
+// =============================================================================
+
+type GradingProgressIndicatorProps = {
+  runProgress?: RunProgress[];
+  synthesisStatus?: SynthesisStatus;
+};
+
+/**
+ * Extract a short, readable model name from a slug
+ * e.g., "openai/gpt-5.2" -> "GPT 5.2"
+ *       "x-ai/grok-4.1-fast" -> "Grok 4.1"
+ */
+function getModelShortName(slug: string): string {
+  const name = slug.split('/')[1] || slug;
+  return name
+    .replace(/-preview$/, '')
+    .replace(/-pro$/, '')
+    .replace(/-fast$/, '')
+    .replace(/^gpt-/, 'GPT ')
+    .replace(/^gemini-/, 'Gemini ')
+    .replace(/^grok-/, 'Grok ')
+    .replace(/^claude-/, 'Claude ');
+}
+
+/** Shared base classes for status chips */
+const STATUS_CHIP_BASE = 'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 border shadow-sm';
+
+/** Status color variants - high contrast, prominent styling */
+const STATUS_COLORS = {
+  success: 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-200 dark:bg-emerald-600 dark:border-emerald-500 dark:shadow-emerald-900/50',
+  warning: 'bg-amber-500 text-white border-amber-600 shadow-amber-200 dark:bg-amber-600 dark:border-amber-500 dark:shadow-amber-900/50',
+  error: 'bg-red-500 text-white border-red-600 shadow-red-200 dark:bg-red-600 dark:border-red-500 dark:shadow-red-900/50',
+  muted: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+  active: 'bg-primary text-primary-foreground border-primary shadow-primary/25',
+} as const;
+
+/** Get status-specific chip classes for model runs */
+function getRunStatusClasses(status: RunStatus): string {
+  switch (status) {
+    case 'complete':
+      return STATUS_COLORS.success;
+    case 'failed':
+      return STATUS_COLORS.error;
+    default:
+      return STATUS_COLORS.muted;
+  }
+}
+
+/** Get status-specific chip classes for synthesis (uses warning for failed) */
+function getSynthesisStatusClasses(status: SynthesisStatus): string {
+  switch (status) {
+    case 'complete':
+      return STATUS_COLORS.success;
+    case 'processing':
+      return STATUS_COLORS.active;
+    case 'failed':
+      return STATUS_COLORS.warning; // Warning, not error - synthesis failure is non-critical
+    default:
+      return STATUS_COLORS.muted;
+  }
+}
+
+/** Get the icon for a run status */
+function RunStatusIcon({ status }: { status: RunStatus }) {
+  switch (status) {
+    case 'complete':
+      return <Check className="size-4" strokeWidth={3} />;
+    case 'failed':
+      return <X className="size-4" strokeWidth={3} />;
+    default:
+      return <Loader2 className="size-4 animate-spin" />;
+  }
+}
+
+/** Get the icon for a synthesis status */
+function SynthesisStatusIcon({ status }: { status: SynthesisStatus }) {
+  switch (status) {
+    case 'complete':
+      return <Check className="size-4" strokeWidth={3} />;
+    case 'failed':
+      return <AlertCircle className="size-4" />;
+    default:
+      return <Loader2 className="size-4 animate-spin" />;
+  }
+}
+
+function GradingProgressIndicator({
+  runProgress,
+  synthesisStatus,
+}: GradingProgressIndicatorProps) {
+  if (!runProgress || runProgress.length === 0) {
+    return null;
+  }
+
+  const allComplete = runProgress.every(r => r.status === 'complete');
+
+  return (
+    <motion.div
+      className="mb-6 flex flex-wrap items-center justify-center gap-3"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.15 }}
+    >
+      {/* Model chips */}
+      {runProgress.map((run, i) => (
+        <div
+          key={`${run.model}-${i}`}
+          className={cn(STATUS_CHIP_BASE, getRunStatusClasses(run.status))}
+        >
+          <RunStatusIcon status={run.status} />
+          <span>{getModelShortName(run.model)}</span>
+        </div>
+      ))}
+
+      {/* Synthesis chip when all models complete */}
+      {allComplete && synthesisStatus && synthesisStatus !== 'skipped' && (
+        <div className={cn(STATUS_CHIP_BASE, getSynthesisStatusClasses(synthesisStatus))}>
+          <SynthesisStatusIcon status={synthesisStatus} />
+          <span>Synthesis</span>
+        </div>
+      )}
+    </motion.div>
   );
 }

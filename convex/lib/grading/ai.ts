@@ -168,6 +168,15 @@ function categorizeFailure(error: unknown): FailureReason {
 }
 
 /**
+ * Callback fired when a model completes grading (success or failure)
+ * Used for real-time progress updates in the UI
+ */
+export type OnModelComplete = (
+  index: number,
+  status: 'complete' | 'failed',
+) => Promise<void>;
+
+/**
  * Runs AI grading using the configured ensemble approach
  *
  * @param essay - Essay data with assignment brief, rubric, and content
@@ -176,6 +185,7 @@ function categorizeFailure(error: unknown): FailureReason {
  * @param essay.focusAreas - Specific areas to focus on during grading
  * @param essay.content - Essay content to be graded
  * @param config - Grading configuration from platformSettings.aiConfig.grading
+ * @param onModelComplete - Optional callback fired as each model completes
  */
 export async function runAIGrading(
   essay: {
@@ -188,6 +198,7 @@ export async function runAIGrading(
     content?: string | null;
   },
   config: GradingConfig,
+  onModelComplete?: OnModelComplete,
 ): Promise<{
     percentageRange: PercentageRange;
     feedback: GradeFeedback;
@@ -234,46 +245,56 @@ export async function runAIGrading(
   const gradingPromises = runs.map(async (run, index) => {
     const startTime = Date.now();
     startTimes[index] = startTime; // Also store for failure recovery path
-    const result = await retryWithBackoff(
-      async () => {
-        const model = getGradingModel(run.model);
+    try {
+      const result = await retryWithBackoff(
+        async () => {
+          const model = getGradingModel(run.model);
 
-        // Build provider options for reasoning if configured
-        const providerOptions = run.reasoningEffort
-          ? {
-              openrouter: {
-                reasoning: { effort: run.reasoningEffort },
-              },
-            }
-          : undefined;
+          // Build provider options for reasoning if configured
+          const providerOptions = run.reasoningEffort
+            ? {
+                openrouter: {
+                  reasoning: { effort: run.reasoningEffort },
+                },
+              }
+            : undefined;
 
-        const aiResult = await generateObject({
-          model,
-          schema: gradeOutputSchema,
-          prompt,
-          temperature,
-          maxOutputTokens: maxTokens,
-          providerOptions,
-          system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
-        });
+          const aiResult = await generateObject({
+            model,
+            schema: gradeOutputSchema,
+            prompt,
+            temperature,
+            maxOutputTokens: maxTokens,
+            providerOptions,
+            system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
+          });
 
-        // Extract cost from OpenRouter provider metadata
-        const cost = (aiResult.providerMetadata as any)?.openrouter?.usage?.cost;
+          // Extract cost from OpenRouter provider metadata
+          const cost = (aiResult.providerMetadata as any)?.openrouter?.usage?.cost;
 
-        return {
-          model: run.model,
-          index,
-          result: aiResult.object,
-          usage: aiResult.usage,
-          cost: typeof cost === 'number' ? cost : undefined,
-        };
-      },
-      retry.maxRetries,
-      retry.backoffMs,
-    );
-    // Capture duration when THIS model completes (success case)
-    const durationMs = Date.now() - startTime;
-    return { ...result, durationMs };
+          return {
+            model: run.model,
+            index,
+            result: aiResult.object,
+            usage: aiResult.usage,
+            cost: typeof cost === 'number' ? cost : undefined,
+          };
+        },
+        retry.maxRetries,
+        retry.backoffMs,
+      );
+      // Capture duration when THIS model completes (success case)
+      const durationMs = Date.now() - startTime;
+
+      // Fire callback on success (non-blocking, but await to ensure mutation completes)
+      await onModelComplete?.(index, 'complete');
+
+      return { ...result, durationMs };
+    } catch (error) {
+      // Fire callback on failure before re-throwing
+      await onModelComplete?.(index, 'failed');
+      throw error;
+    }
   });
 
   // Wait for all calls to complete (or fail)
