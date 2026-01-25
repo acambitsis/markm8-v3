@@ -23,6 +23,9 @@ type Props = {
   percentageRange: PercentageRange;
   feedback: GradeFeedback;
   modelResults: ModelResult[];
+  // Synthesis info for timing display
+  synthesized?: boolean;
+  synthesisDurationMs?: number;
   // Optional essay data for actual grade feature
   essayId?: Id<'essays'>;
   actualGrade?: string;
@@ -54,6 +57,8 @@ export function GradeResults({
   percentageRange,
   feedback,
   modelResults,
+  synthesized,
+  synthesisDurationMs,
   essayId,
   actualGrade,
   actualFeedback,
@@ -83,6 +88,8 @@ export function GradeResults({
               modelResults={modelResults}
               stats={stats}
               delay={0.3}
+              synthesized={synthesized}
+              synthesisDurationMs={synthesisDurationMs}
             />
           </div>
         </Card>

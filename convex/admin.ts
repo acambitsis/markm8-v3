@@ -204,7 +204,7 @@ export const getRecentActivity = query({
     );
 
     // Combine and format activities
-    const activities: Array<{
+    type ActivityItem = {
       type: 'signup' | 'purchase' | 'essay';
       timestamp: number;
       description: string;
@@ -215,7 +215,8 @@ export const getRecentActivity = query({
       apiCost?: string;
       synthesized?: boolean;
       synthesisDurationMs?: number;
-    }> = [];
+    };
+    const activities: ActivityItem[] = [];
 
     // Add user signups
     for (const user of users) {

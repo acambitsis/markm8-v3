@@ -20,6 +20,8 @@ type Props = {
   modelResults: ModelResult[];
   stats: StatItem[];
   delay?: number;
+  synthesized?: boolean;
+  synthesisDurationMs?: number;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -334,7 +336,7 @@ function ScoreDisplay({
 // Main Component
 // ─────────────────────────────────────────────────────────────────────────────
 
-export function ScoreRangeBar({ percentageRange, modelResults, stats, delay = 0 }: Props) {
+export function ScoreRangeBar({ percentageRange, modelResults, stats, delay = 0, synthesized, synthesisDurationMs }: Props) {
   const [showBand, setShowBand] = useState(false);
 
   // Derived values
@@ -418,7 +420,12 @@ export function ScoreRangeBar({ percentageRange, modelResults, stats, delay = 0 
 
           {/* AI Grading Runs - subtle, expandable */}
           <div className="mt-2">
-            <ModelTimings modelResults={modelResults} triggerClassName="w-full" />
+            <ModelTimings
+              modelResults={modelResults}
+              triggerClassName="w-full"
+              synthesized={synthesized}
+              synthesisDurationMs={synthesisDurationMs}
+            />
           </div>
         </motion.div>
       </div>

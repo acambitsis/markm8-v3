@@ -171,6 +171,8 @@ export function GradeStatusDisplay({ gradeId }: Props) {
               percentageRange={grade.percentageRange}
               feedback={grade.feedback}
               modelResults={grade.modelResults}
+              synthesized={grade.synthesized}
+              synthesisDurationMs={grade.synthesisDurationMs}
               essayId={essay?._id}
               actualGrade={essay?.actualGrade}
               actualFeedback={essay?.actualFeedback}
@@ -388,64 +390,43 @@ function getModelShortName(slug: string): string {
 }
 
 /** Shared base classes for status chips */
-const STATUS_CHIP_BASE = 'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 border shadow-sm';
+const STATUS_CHIP_BASE = 'flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-300';
 
-/** Status color variants - high contrast, prominent styling */
+/** Status color variants */
 const STATUS_COLORS = {
-  success: 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-200 dark:bg-emerald-600 dark:border-emerald-500 dark:shadow-emerald-900/50',
-  warning: 'bg-amber-500 text-white border-amber-600 shadow-amber-200 dark:bg-amber-600 dark:border-amber-500 dark:shadow-amber-900/50',
-  error: 'bg-red-500 text-white border-red-600 shadow-red-200 dark:bg-red-600 dark:border-red-500 dark:shadow-red-900/50',
-  muted: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
-  active: 'bg-primary text-primary-foreground border-primary shadow-primary/25',
+  pending: 'bg-muted/40 text-muted-foreground border border-border/60',
+  processing: 'bg-primary/5 text-foreground border border-primary/20',
+  complete: 'bg-emerald-100 text-emerald-800 border border-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-300 dark:border-emerald-700',
+  failed: 'bg-destructive/10 text-destructive border border-destructive/20',
 } as const;
 
-/** Get status-specific chip classes for model runs */
-function getRunStatusClasses(status: RunStatus): string {
-  switch (status) {
-    case 'complete':
-      return STATUS_COLORS.success;
-    case 'failed':
-      return STATUS_COLORS.error;
-    default:
-      return STATUS_COLORS.muted;
-  }
-}
+type ChipStatus = 'pending' | 'processing' | 'complete' | 'failed';
 
-/** Get status-specific chip classes for synthesis (uses warning for failed) */
-function getSynthesisStatusClasses(status: SynthesisStatus): string {
+/** Get chip classes for any status (works for both runs and synthesis) */
+function getStatusClasses(status: RunStatus | SynthesisStatus): string {
   switch (status) {
     case 'complete':
-      return STATUS_COLORS.success;
+      return STATUS_COLORS.complete;
+    case 'failed':
+      return STATUS_COLORS.failed;
     case 'processing':
-      return STATUS_COLORS.active;
-    case 'failed':
-      return STATUS_COLORS.warning; // Warning, not error - synthesis failure is non-critical
+      return STATUS_COLORS.processing;
     default:
-      return STATUS_COLORS.muted;
+      return STATUS_COLORS.pending;
   }
 }
 
-/** Get the icon for a run status */
-function RunStatusIcon({ status }: { status: RunStatus }) {
+/** Status icon - unified for both runs and synthesis */
+function StatusIcon({ status, variant = 'default' }: { status: ChipStatus | 'skipped'; variant?: 'default' | 'synthesis' }) {
   switch (status) {
     case 'complete':
-      return <Check className="size-4" strokeWidth={3} />;
+      return <Check className="size-4 text-emerald-700 dark:text-emerald-300" strokeWidth={3} />;
     case 'failed':
-      return <X className="size-4" strokeWidth={3} />;
+      return variant === 'synthesis'
+        ? <AlertCircle className="size-3.5 text-destructive" />
+        : <X className="size-3.5 text-destructive" strokeWidth={2.5} />;
     default:
-      return <Loader2 className="size-4 animate-spin" />;
-  }
-}
-
-/** Get the icon for a synthesis status */
-function SynthesisStatusIcon({ status }: { status: SynthesisStatus }) {
-  switch (status) {
-    case 'complete':
-      return <Check className="size-4" strokeWidth={3} />;
-    case 'failed':
-      return <AlertCircle className="size-4" />;
-    default:
-      return <Loader2 className="size-4 animate-spin" />;
+      return <Loader2 className="size-3.5 animate-spin text-primary" />;
   }
 }
 
@@ -469,18 +450,18 @@ function GradingProgressIndicator({
       {/* Model chips */}
       {runProgress.map((run, i) => (
         <div
-          key={`${run.model}-${i}`}
-          className={cn(STATUS_CHIP_BASE, getRunStatusClasses(run.status))}
+          key={`${run.model}-${i}`} // eslint-disable-line react/no-array-index-key -- display-only list with stable order, model names may repeat
+          className={cn(STATUS_CHIP_BASE, getStatusClasses(run.status))}
         >
-          <RunStatusIcon status={run.status} />
+          <StatusIcon status={run.status} />
           <span>{getModelShortName(run.model)}</span>
         </div>
       ))}
 
       {/* Synthesis chip when all models complete */}
       {allComplete && synthesisStatus && synthesisStatus !== 'skipped' && (
-        <div className={cn(STATUS_CHIP_BASE, getSynthesisStatusClasses(synthesisStatus))}>
-          <SynthesisStatusIcon status={synthesisStatus} />
+        <div className={cn(STATUS_CHIP_BASE, getStatusClasses(synthesisStatus))}>
+          <StatusIcon status={synthesisStatus} variant="synthesis" />
           <span>Synthesis</span>
         </div>
       )}

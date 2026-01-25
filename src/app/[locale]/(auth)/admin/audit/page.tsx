@@ -297,6 +297,7 @@ export default function AdminAuditPage() {
                               return (
                                 <ul className="mt-1 space-y-0.5 text-sm text-foreground">
                                   {description.map((line, i) => (
+                                    // eslint-disable-next-line react/no-array-index-key -- display-only list with stable order
                                     <li key={i} className="font-mono text-xs">
                                       {line}
                                     </li>

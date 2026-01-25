@@ -106,6 +106,10 @@ const synthesizedFeedbackSchema = z.object({
 /**
  * Run LLM-powered feedback synthesis
  *
+ * Note: Full integration testing requires the Python eval suite (evals/)
+ * since this function calls external AI APIs. Unit tests cover prompt
+ * construction in synthesis.test.ts.
+ *
  * @param input - Essay context and feedback from grading runs
  * @param config - Synthesis configuration (model, temperature, maxTokens)
  * @returns Synthesized feedback with cost and timing info
