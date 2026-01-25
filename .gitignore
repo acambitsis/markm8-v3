@@ -53,3 +53,12 @@ local
 # vercel
 .vercel
 keys.txt
+
+# Python (evals/)
+evals/.venv/
+evals/.deepeval/
+evals/results/*.json
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
