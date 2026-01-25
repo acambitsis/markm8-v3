@@ -4,6 +4,7 @@
 import type {
   AiConfig,
   GradingConfig,
+  SynthesisConfig,
   TitleGenerationConfig,
 } from '../schema';
 import { REASONING_EFFORT_OPTIONS } from '../schema';
@@ -34,9 +35,17 @@ export const DEFAULT_TITLE_GENERATION_CONFIG: TitleGenerationConfig = {
   maxTokens: 14, // ~10 words
 };
 
+export const DEFAULT_SYNTHESIS_CONFIG: SynthesisConfig = {
+  enabled: true, // Enable synthesis by default for better feedback quality
+  model: 'google/gemini-3-pro-preview', // Fast and cost-effective for synthesis
+  temperature: 0.3, // Lower temperature for consistent synthesis
+  maxTokens: 2048, // Sufficient for merged feedback output
+};
+
 export const DEFAULT_AI_CONFIG: AiConfig = {
   grading: DEFAULT_GRADING_CONFIG,
   titleGeneration: DEFAULT_TITLE_GENERATION_CONFIG,
+  synthesis: DEFAULT_SYNTHESIS_CONFIG,
 };
 
 // =============================================================================
@@ -173,22 +182,68 @@ export function validateTitleGenerationConfig(
 }
 
 /**
+ * Validate synthesis configuration
+ */
+export function validateSynthesisConfig(
+  config: SynthesisConfig,
+): ValidationResult {
+  const warnings: string[] = [];
+  const errors: string[] = [];
+
+  // Temperature validation
+  if (config.temperature < 0 || config.temperature > 1) {
+    errors.push(`Temperature ${config.temperature} out of range [0, 1]`);
+  } else if (config.temperature > 0.5) {
+    warnings.push(
+      `Temperature ${config.temperature} is high for synthesis; recommend 0.2-0.4`,
+    );
+  }
+
+  // Model ID format validation
+  if (!config.model.includes('/')) {
+    warnings.push(
+      `Model "${config.model}" doesn't match expected format "provider/model"`,
+    );
+  }
+
+  // Max tokens validation
+  if (config.maxTokens < 256) {
+    errors.push(`maxTokens must be at least 256: ${config.maxTokens}`);
+  } else if (config.maxTokens > 4096) {
+    warnings.push(
+      `maxTokens ${config.maxTokens} seems high for synthesis; typically 1024-2048`,
+    );
+  }
+
+  return {
+    valid: errors.length === 0,
+    warnings,
+    errors,
+  };
+}
+
+/**
  * Validate complete AI configuration
  * Aggregates validation results from all sub-configs
  */
 export function validateAiConfig(config: AiConfig): ValidationResult {
   const gradingResult = validateGradingConfig(config.grading);
   const titleResult = validateTitleGenerationConfig(config.titleGeneration);
+  const synthesisResult = config.synthesis
+    ? validateSynthesisConfig(config.synthesis)
+    : { valid: true, warnings: [], errors: [] };
 
   return {
-    valid: gradingResult.valid && titleResult.valid,
+    valid: gradingResult.valid && titleResult.valid && synthesisResult.valid,
     warnings: [
       ...gradingResult.warnings.map(w => `[grading] ${w}`),
       ...titleResult.warnings.map(w => `[titleGeneration] ${w}`),
+      ...synthesisResult.warnings.map(w => `[synthesis] ${w}`),
     ],
     errors: [
       ...gradingResult.errors.map(e => `[grading] ${e}`),
       ...titleResult.errors.map(e => `[titleGeneration] ${e}`),
+      ...synthesisResult.errors.map(e => `[synthesis] ${e}`),
     ],
   };
 }
@@ -213,6 +268,8 @@ export type CatalogValidationOptions = {
   gradingSlugs: string[];
   /** Enabled model slugs for title capability */
   titleSlugs: string[];
+  /** Enabled model slugs for synthesis capability */
+  synthesisSlugs?: string[];
   /** Model info for reasoning validation */
   gradingModels?: CatalogModelInfo[];
   /** If true, validation fails for missing models; if false, only warns */
@@ -232,7 +289,7 @@ export function validateAiConfigAgainstCatalog(
   config: AiConfig,
   options: CatalogValidationOptions,
 ): ValidationResult {
-  const { gradingSlugs, titleSlugs, gradingModels, strict = false } = options;
+  const { gradingSlugs, titleSlugs, synthesisSlugs, gradingModels, strict = false } = options;
   const warnings: string[] = [];
   const errors: string[] = [];
 
@@ -271,6 +328,19 @@ export function validateAiConfigAgainstCatalog(
       errors.push(msg);
     } else {
       warnings.push(msg);
+    }
+  }
+
+  // Check synthesis model (if synthesis is enabled)
+  if (config.synthesis?.enabled && synthesisSlugs) {
+    const synthesisSet = new Set(synthesisSlugs);
+    if (!synthesisSet.has(config.synthesis.model)) {
+      const msg = `Synthesis model "${config.synthesis.model}" not in catalog or not enabled for synthesis`;
+      if (strict) {
+        errors.push(msg);
+      } else {
+        warnings.push(msg);
+      }
     }
   }
 

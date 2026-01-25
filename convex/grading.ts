@@ -6,12 +6,15 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
+import { DEFAULT_SYNTHESIS_CONFIG } from './lib/aiConfig';
 import {
   generateMockGrade,
   runAIGrading,
+  runSynthesis,
   USER_ERROR_MESSAGE,
 } from './lib/grading';
 import { reportToSentry } from './lib/sentry';
+import type { GradeFeedback } from './schema';
 
 /**
  * Process a grade (background action)
@@ -62,7 +65,19 @@ export const processGrade = internalAction({
       // 4. Update status to processing
       await ctx.runMutation(internal.grades.startProcessing, { gradeId });
 
-      // 5. Generate results using AI or mock
+      // Get synthesis config (fallback to defaults if not configured)
+      const synthesisConfig = aiConfig.synthesis ?? DEFAULT_SYNTHESIS_CONFIG;
+      const synthesisEnabled = synthesisConfig.enabled && gradingConfig.mode !== 'mock';
+
+      // 5. Initialize progress tracking
+      const models = gradingConfig.runs.map(run => run.model);
+      await ctx.runMutation(internal.grades.initializeProgress, {
+        gradeId,
+        models,
+        synthesisEnabled,
+      });
+
+      // 6. Generate results using AI or mock
       let results: Awaited<ReturnType<typeof runAIGrading>>;
 
       if (gradingConfig.mode === 'mock') {
@@ -72,19 +87,94 @@ export const processGrade = internalAction({
         results = await runAIGrading(essay, gradingConfig);
       }
 
-      // 6. Complete the grade
+      // 7. Run feedback synthesis if enabled
+      let finalFeedback: GradeFeedback = results.feedback;
+      let synthesized = false;
+      let synthesisCost: string | undefined;
+      let totalApiCost = results.apiCost;
+
+      if (synthesisEnabled && results.rawFeedback.length > 0) {
+        await ctx.runMutation(internal.grades.updateSynthesisStatus, {
+          gradeId,
+          status: 'processing',
+        });
+
+        try {
+          const synthesisResult = await runSynthesis(
+            {
+              assignmentTitle: essay.assignmentBrief?.title,
+              assignmentInstructions: essay.assignmentBrief?.instructions,
+              academicLevel: essay.assignmentBrief?.academicLevel,
+              rubric: essay.rubric?.customCriteria,
+              focusAreas: essay.focusAreas ?? essay.rubric?.focusAreas,
+              essayContent: essay.content ?? '',
+              feedbackFromRuns: results.rawFeedback,
+            },
+            synthesisConfig,
+          );
+
+          finalFeedback = synthesisResult.feedback;
+          synthesized = true;
+          synthesisCost = synthesisResult.cost?.toFixed(4);
+
+          // Add synthesis cost to total API cost
+          if (synthesisResult.cost && synthesisResult.cost > 0) {
+            const gradingCostNum = results.apiCost ? Number.parseFloat(results.apiCost) : 0;
+            totalApiCost = (gradingCostNum + synthesisResult.cost).toFixed(4);
+          }
+
+          await ctx.runMutation(internal.grades.updateSynthesisStatus, {
+            gradeId,
+            status: 'complete',
+          });
+
+          console.error(
+            `[GRADING] Synthesis completed: ${synthesisResult.durationMs}ms, cost: $${synthesisCost ?? 'N/A'}`,
+          );
+        } catch (synthesisError) {
+          // Synthesis failed - log and continue with fallback (lowest-scorer feedback)
+          console.error('[GRADING] Synthesis failed, using fallback:', synthesisError);
+
+          await ctx.runMutation(internal.grades.updateSynthesisStatus, {
+            gradeId,
+            status: 'failed',
+          });
+
+          // Report to Sentry (non-blocking)
+          void reportToSentry({
+            error: synthesisError instanceof Error ? synthesisError : new Error(String(synthesisError)),
+            functionName: 'grading.processGrade.synthesis',
+            functionType: 'action',
+            userId: grade.userId,
+            tags: { 'grading.status': 'synthesis_failure', 'grade.id': gradeId },
+            extra: { gradeId, synthesisModel: synthesisConfig.model },
+          });
+
+          // Keep synthesized = false, use original fallback feedback
+        }
+      } else {
+        // Synthesis skipped - either disabled or no feedback to synthesize
+        await ctx.runMutation(internal.grades.updateSynthesisStatus, {
+          gradeId,
+          status: 'skipped',
+        });
+      }
+
+      // 8. Complete the grade
       await ctx.runMutation(internal.grades.complete, {
         gradeId,
         percentageRange: results.percentageRange,
-        feedback: results.feedback,
+        feedback: finalFeedback,
         categoryScores: results.categoryScores,
         modelResults: results.modelResults,
         totalTokens: results.totalTokens,
-        apiCost: results.apiCost,
+        apiCost: totalApiCost,
         promptVersion: results.promptVersion,
+        synthesized,
+        synthesisCost,
       });
 
-      // 8. Clear credit reservation and record transaction
+      // 9. Clear credit reservation and record transaction
       await ctx.runMutation(internal.credits.clearReservation, {
         userId: grade.userId,
         amount: gradingCost,

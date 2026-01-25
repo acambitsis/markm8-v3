@@ -9,6 +9,7 @@ import {
   Clock,
   Cpu,
   ExternalLink,
+  GitMerge,
   Hash,
   Info,
   Minus,
@@ -45,7 +46,8 @@ import {
 import { cn } from '@/utils/Helpers';
 
 import { api } from '../../../convex/_generated/api';
-import type { AiConfig, ReasoningEffort } from '../../../convex/schema';
+import { DEFAULT_SYNTHESIS_CONFIG } from '../../../convex/lib/aiConfig';
+import type { AiConfig, ReasoningEffort, SynthesisConfig } from '../../../convex/schema';
 import { REASONING_EFFORT_OPTIONS } from '../../../convex/schema';
 
 type AIConfigEditorProps = {
@@ -68,15 +70,18 @@ function generateRunId(): string {
 // Default fallback model (used only if catalog is empty)
 const FALLBACK_GRADING_MODEL = 'x-ai/grok-4.1-fast';
 const FALLBACK_TITLE_MODEL = 'anthropic/claude-haiku-4.5';
+const FALLBACK_SYNTHESIS_MODEL = 'google/gemini-3-pro-preview';
 
 export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
   // Fetch available models from catalog
   const gradingModels = useQuery(api.modelCatalog.getEnabled, { capability: 'grading' });
   const titleModels = useQuery(api.modelCatalog.getEnabled, { capability: 'title' });
+  const synthesisModels = useQuery(api.modelCatalog.getEnabled, { capability: 'synthesis' });
 
   // Get default model from catalog or fallback
   const defaultGradingModel = gradingModels?.[0]?.slug ?? FALLBACK_GRADING_MODEL;
   const defaultTitleModel = titleModels?.[0]?.slug ?? FALLBACK_TITLE_MODEL;
+  const defaultSynthesisModel = synthesisModels?.[0]?.slug ?? FALLBACK_SYNTHESIS_MODEL;
 
   // Create default config using catalog models
   const defaultConfig = useMemo<AiConfig>(() => ({
@@ -96,7 +101,13 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
       temperature: 0.4,
       maxTokens: 14,
     },
-  }), [defaultGradingModel, defaultTitleModel]);
+    synthesis: {
+      enabled: true,
+      model: defaultSynthesisModel,
+      temperature: 0.3,
+      maxTokens: 2048,
+    },
+  }), [defaultGradingModel, defaultTitleModel, defaultSynthesisModel]);
 
   // Initialize local state from config or defaults
   const [localConfig, setLocalConfig] = useState<AiConfig>(config ?? defaultConfig);
@@ -146,6 +157,14 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
       titleGeneration: { ...localConfig.titleGeneration, ...updates },
     });
   }, [localConfig.titleGeneration, updateConfig]);
+
+  // Update synthesis config
+  const updateSynthesis = useCallback((updates: Partial<SynthesisConfig>) => {
+    const currentSynthesis = localConfig.synthesis ?? DEFAULT_SYNTHESIS_CONFIG;
+    updateConfig({
+      synthesis: { ...currentSynthesis, ...updates },
+    });
+  }, [localConfig.synthesis, updateConfig]);
 
   // Add a grading run
   const addGradingRun = useCallback(() => {
@@ -236,8 +255,10 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
 
   const groupedGradingModels = groupByProvider(gradingModels);
   const groupedTitleModels = groupByProvider(titleModels);
+  const groupedSynthesisModels = groupByProvider(synthesisModels);
 
   const isLiveMode = localConfig.grading.mode === 'live';
+  const synthesisConfig = localConfig.synthesis ?? DEFAULT_SYNTHESIS_CONFIG;
 
   return (
     <TooltipProvider>
@@ -726,6 +747,136 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
               className="py-2"
             />
           </div>
+        </motion.div>
+
+        {/* Divider */}
+        <div className="border-t" />
+
+        {/* Feedback Synthesis Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+          className="space-y-4"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <GitMerge className="size-5 text-teal-500" />
+              <h3 className="font-semibold">Feedback Synthesis</h3>
+              <Tooltip>
+                <TooltipTrigger>
+                  <Info className="size-4 text-muted-foreground" />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  <p>
+                    <strong>Enabled:</strong>
+                    {' '}
+                    Uses an LLM to synthesize feedback from all grading models into a unified response
+                  </p>
+                  <p className="mt-1">
+                    <strong>Disabled:</strong>
+                    {' '}
+                    Uses feedback from the lowest-scoring model (most critical)
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={cn('text-sm', synthesisConfig.enabled ? 'text-muted-foreground' : 'font-medium')}>
+                Off
+              </span>
+              <Switch
+                checked={synthesisConfig.enabled}
+                onCheckedChange={(checked: boolean) =>
+                  updateSynthesis({ enabled: checked })}
+              />
+              <span className={cn('text-sm', !synthesisConfig.enabled ? 'text-muted-foreground' : 'font-medium')}>
+                On
+              </span>
+            </div>
+          </div>
+
+          <AnimatePresence>
+            {synthesisConfig.enabled && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 rounded-md bg-teal-500/10 p-3 text-sm text-teal-700 dark:text-teal-400">
+                  <GitMerge className="size-4 shrink-0" />
+                  <span>Synthesis merges feedback from all grading models into a single coherent response.</span>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Synthesis Model</Label>
+                    <Select
+                      value={synthesisConfig.model}
+                      onValueChange={value => updateSynthesis({ model: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {groupedSynthesisModels && Object.entries(groupedSynthesisModels).map(([provider, models]) => (
+                          <SelectGroup key={provider}>
+                            <SelectLabel>{provider}</SelectLabel>
+                            {models?.map(model => (
+                              <SelectItem key={model.slug} value={model.slug}>
+                                {model.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                        {!synthesisModels?.length && (
+                          <SelectItem value={synthesisConfig.model} disabled>
+                            Loading models...
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Max Tokens</Label>
+                    <Input
+                      type="number"
+                      min={256}
+                      max={4096}
+                      step={256}
+                      value={synthesisConfig.maxTokens}
+                      onChange={e =>
+                        updateSynthesis({
+                          maxTokens: Math.max(256, Math.min(4096, Number.parseInt(e.target.value) || 2048)),
+                        })}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label>Temperature</Label>
+                    <span className="text-sm font-medium">{synthesisConfig.temperature.toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={[synthesisConfig.temperature]}
+                    onValueChange={([value]: number[]) => updateSynthesis({ temperature: value })}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    className="py-2"
+                  />
+                  {synthesisConfig.temperature > 0.5 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Higher temperatures may produce inconsistent synthesis
+                    </p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Debug Preview (collapsible) */}

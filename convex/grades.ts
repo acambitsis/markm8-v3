@@ -23,8 +23,14 @@ import {
  * @internal
  */
 export function stripCostData(grade: Doc<'grades'>) {
-  // Destructure to remove apiCost and totalTokens from the returned object
-  const { apiCost: _apiCost, totalTokens: _totalTokens, modelResults, ...rest } = grade;
+  // Destructure to remove cost-related fields from the returned object
+  const {
+    apiCost: _apiCost,
+    totalTokens: _totalTokens,
+    synthesisCost: _synthesisCost,
+    modelResults,
+    ...rest
+  } = grade;
 
   // Strip cost from each model result if present
   const sanitizedModelResults = modelResults?.map(({ cost: _cost, ...mr }) => mr);
@@ -131,6 +137,8 @@ export const complete = internalMutation({
     totalTokens: v.optional(v.number()),
     apiCost: v.optional(v.string()),
     promptVersion: v.optional(v.string()),
+    synthesized: v.optional(v.boolean()),
+    synthesisCost: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const { gradeId, ...results } = args;
@@ -188,5 +196,77 @@ export const getInternal = internalQuery({
   args: { gradeId: v.id('grades') },
   handler: async (ctx, { gradeId }) => {
     return await ctx.db.get(gradeId);
+  },
+});
+
+/**
+ * Initialize progress tracking for a grade (internal mutation)
+ * Sets up runProgress array with pending status for each model
+ */
+export const initializeProgress = internalMutation({
+  args: {
+    gradeId: v.id('grades'),
+    models: v.array(v.string()),
+    synthesisEnabled: v.boolean(),
+  },
+  handler: async (ctx, { gradeId, models, synthesisEnabled }) => {
+    await ctx.db.patch(gradeId, {
+      runProgress: models.map(model => ({
+        model,
+        status: 'pending' as const,
+      })),
+      synthesisStatus: synthesisEnabled ? 'pending' : 'skipped',
+    });
+  },
+});
+
+/**
+ * Update a specific grading run's progress (internal mutation)
+ * Called when a model completes or fails
+ *
+ * NOTE: Not currently called - grading runs complete in parallel.
+ * Infrastructure for future per-run progress updates if needed.
+ */
+export const updateRunProgress = internalMutation({
+  args: {
+    gradeId: v.id('grades'),
+    modelIndex: v.number(),
+    status: v.union(v.literal('complete'), v.literal('failed')),
+  },
+  handler: async (ctx, { gradeId, modelIndex, status }) => {
+    const grade = await ctx.db.get(gradeId);
+    if (!grade?.runProgress) {
+      return;
+    }
+
+    const updatedProgress = [...grade.runProgress];
+    if (modelIndex < updatedProgress.length) {
+      updatedProgress[modelIndex] = {
+        ...updatedProgress[modelIndex]!,
+        status,
+        completedAt: Date.now(),
+      };
+    }
+
+    await ctx.db.patch(gradeId, { runProgress: updatedProgress });
+  },
+});
+
+/**
+ * Update synthesis status (internal mutation)
+ */
+export const updateSynthesisStatus = internalMutation({
+  args: {
+    gradeId: v.id('grades'),
+    status: v.union(
+      v.literal('pending'),
+      v.literal('processing'),
+      v.literal('complete'),
+      v.literal('skipped'),
+      v.literal('failed'),
+    ),
+  },
+  handler: async (ctx, { gradeId, status }) => {
+    await ctx.db.patch(gradeId, { synthesisStatus: status });
   },
 });
