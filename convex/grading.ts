@@ -82,8 +82,18 @@ export const processGrade = internalAction({
       if (gradingConfig.mode === 'mock') {
         results = generateMockGrade(gradingConfig);
       } else {
-        // Real AI grading
-        results = await runAIGrading(essay, gradingConfig);
+        // Real AI grading with progress callback
+        results = await runAIGrading(
+          essay,
+          gradingConfig,
+          async (modelIndex, status) => {
+            await ctx.runMutation(internal.grades.updateRunProgress, {
+              gradeId,
+              modelIndex,
+              status,
+            });
+          },
+        );
       }
 
       // 7. Run feedback synthesis if enabled
