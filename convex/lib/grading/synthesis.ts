@@ -7,23 +7,19 @@ import { z } from 'zod';
 
 import type { GradeFeedback, SynthesisConfig } from '../../schema';
 import { getOpenRouterProvider } from '../ai';
-import { buildSynthesisPrompt, SYNTHESIS_PROMPT_VERSION } from '../synthesisPrompt';
+import {
+  buildSynthesisPrompt,
+  type RawGradingFeedback,
+  SYNTHESIS_PROMPT_VERSION,
+} from '../synthesisPrompt';
 
 // Re-export for convenience
+export type { RawGradingFeedback } from '../synthesisPrompt';
 export { SYNTHESIS_PROMPT_VERSION } from '../synthesisPrompt';
 
 // =============================================================================
 // Types
 // =============================================================================
-
-/**
- * Raw feedback from a single grading run (includes model and percentage for context)
- */
-export type RawGradingFeedback = {
-  model: string;
-  percentage: number;
-  feedback: GradeFeedback;
-};
 
 /**
  * Input for synthesis

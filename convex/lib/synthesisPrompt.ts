@@ -16,7 +16,7 @@ export const SYNTHESIS_PROMPT_VERSION = '1.0.0';
 /**
  * Raw feedback from a single grading run (includes model and percentage for context)
  */
-type RawGradingFeedback = {
+export type RawGradingFeedback = {
   model: string;
   percentage: number;
   feedback: GradeFeedback;
