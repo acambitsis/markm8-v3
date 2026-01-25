@@ -50,17 +50,19 @@ export type SynthesisResult = {
 // Schema for AI Output
 // =============================================================================
 
+// Note: Using .nullable() instead of .optional() for OpenAI strict JSON schema compatibility.
+// Strict mode requires all properties in 'required' array; nullable allows null values.
 const synthesizedFeedbackSchema = z.object({
   strengths: z.array(z.object({
     title: z.string(),
     description: z.string(),
-    evidence: z.string().optional(),
+    evidence: z.string().nullable(),
   })).describe('3-4 best strengths, curated from all runs, with strongest evidence'),
   improvements: z.array(z.object({
     title: z.string(),
     description: z.string(),
     suggestion: z.string(),
-    detailedSuggestions: z.array(z.string()).optional(),
+    detailedSuggestions: z.array(z.string()).nullable(),
   })).describe('3-4 most actionable improvements, merged if overlapping'),
   languageTips: z.array(z.object({
     category: z.string(),
@@ -68,9 +70,9 @@ const synthesizedFeedbackSchema = z.object({
   })).describe('Consolidated language tips, no duplicates'),
   resources: z.array(z.object({
     title: z.string(),
-    url: z.string().optional(),
+    url: z.string().nullable(),
     description: z.string(),
-  })).optional().describe('Optional learning resources'),
+  })).nullable().describe('Optional learning resources'),
 });
 
 // =============================================================================
@@ -114,12 +116,25 @@ export async function runSynthesis(
   // Extract cost from OpenRouter provider metadata
   const cost = (result.providerMetadata as any)?.openrouter?.usage?.cost;
 
-  // Convert schema output to GradeFeedback type
+  // Convert schema output to GradeFeedback type (null → undefined for optional fields)
   const feedback: GradeFeedback = {
-    strengths: result.object.strengths,
-    improvements: result.object.improvements,
+    strengths: result.object.strengths.map(s => ({
+      title: s.title,
+      description: s.description,
+      evidence: s.evidence ?? undefined,
+    })),
+    improvements: result.object.improvements.map(i => ({
+      title: i.title,
+      description: i.description,
+      suggestion: i.suggestion,
+      detailedSuggestions: i.detailedSuggestions ?? undefined,
+    })),
     languageTips: result.object.languageTips,
-    resources: result.object.resources,
+    resources: result.object.resources?.map(r => ({
+      title: r.title,
+      description: r.description,
+      url: r.url ?? undefined,
+    })) ?? undefined,
   };
 
   return {
