@@ -2,9 +2,14 @@
 // Tests how long feedback synthesis takes across different models
 // Uses real essay data from the database for realistic context
 //
+// NOTE: This experiment uses sample grader feedback even when loading real essays.
+// Only essay content, rubric, and assignment brief are pulled from the database.
+// Individual grading run feedback is not currently persisted, so we use synthetic samples.
+//
 // Usage:
-//   npx convex run experiments/synthesisTimingTest:run '{"essayId": "jd7f8fagt58fn7300ajrc1knzn7zpt43"}'
-//   npx convex run experiments/synthesisTimingTest:run '{"gradeId": "jh7bc2zxgpjxde2vev5hq4fz517zp4a4"}'
+//   npx convex run experiments/synthesisTimingTest:run  # Uses built-in sample essay
+//   npx convex run experiments/synthesisTimingTest:run '{"essayId": "<your-essay-id>"}'
+//   npx convex run experiments/synthesisTimingTest:run '{"gradeId": "<your-grade-id>"}'
 //
 // Models tested:
 // - google/gemini-3-pro-preview (Gemini 3 Pro)
@@ -266,6 +271,7 @@ async function runSynthesisTest(
     });
 
     const durationMs = Date.now() - startTime;
+    // OpenRouter returns cost in providerMetadata.openrouter.usage.cost
     const cost = (result.providerMetadata as any)?.openrouter?.usage?.cost;
 
     return {
@@ -323,9 +329,7 @@ export const run = internalAction({
         essayContent: essay.content ?? '',
       };
       essaySource = `grade ${args.gradeId} -> essay ${grade.essayId}`;
-
-      // Note: We still use sample feedback since individual run feedback isn't persisted
-      // In a real implementation, we'd run the grading first or store per-run feedback
+      // NOTE: Grader feedback is still sample data - see file header comment
     } else if (args.essayId) {
       // Load from essay directly
       const essay = await ctx.runQuery(internal.essays.getInternal, { essayId: args.essayId });

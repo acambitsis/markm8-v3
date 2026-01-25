@@ -12,6 +12,7 @@ Requires:
 
 import json
 import os
+import sys
 import time
 from pathlib import Path
 
@@ -571,8 +572,8 @@ def run_benchmark():
 
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
-        print("Error: OPENROUTER_API_KEY required")
-        return
+        print("Error: OPENROUTER_API_KEY required", file=sys.stderr)
+        sys.exit(1)
 
     client = OpenRouterClient(api_key)
     judge = OpenRouterJudge(JUDGE_MODEL, api_key)
