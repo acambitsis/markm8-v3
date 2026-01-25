@@ -137,6 +137,7 @@ export const complete = internalMutation({
     totalTokens: v.optional(v.number()),
     apiCost: v.optional(v.string()),
     promptVersion: v.optional(v.string()),
+    synthesisPromptVersion: v.optional(v.string()),
     synthesized: v.optional(v.boolean()),
     synthesisCost: v.optional(v.string()),
   },

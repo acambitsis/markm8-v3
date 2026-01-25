@@ -6,7 +6,6 @@ import { v } from 'convex/values';
 
 import { internal } from './_generated/api';
 import { internalAction } from './_generated/server';
-import { DEFAULT_SYNTHESIS_CONFIG } from './lib/aiConfig';
 import {
   generateMockGrade,
   runAIGrading,
@@ -65,16 +64,16 @@ export const processGrade = internalAction({
       // 4. Update status to processing
       await ctx.runMutation(internal.grades.startProcessing, { gradeId });
 
-      // Get synthesis config (fallback to defaults if not configured)
-      const synthesisConfig = aiConfig.synthesis ?? DEFAULT_SYNTHESIS_CONFIG;
-      const synthesisEnabled = synthesisConfig.enabled && gradingConfig.mode !== 'mock';
+      // Synthesis requires explicit configuration - no hidden defaults
+      const synthesisConfig = aiConfig.synthesis;
+      const synthesisEnabled = synthesisConfig?.enabled && gradingConfig.mode !== 'mock';
 
       // 5. Initialize progress tracking
       const models = gradingConfig.runs.map(run => run.model);
       await ctx.runMutation(internal.grades.initializeProgress, {
         gradeId,
         models,
-        synthesisEnabled,
+        synthesisEnabled: !!synthesisEnabled,
       });
 
       // 6. Generate results using AI or mock
@@ -91,6 +90,7 @@ export const processGrade = internalAction({
       let finalFeedback: GradeFeedback = results.feedback;
       let synthesized = false;
       let synthesisCost: string | undefined;
+      let synthesisPromptVersion: string | undefined;
       let totalApiCost = results.apiCost;
 
       if (synthesisEnabled && results.rawFeedback.length > 0) {
@@ -110,12 +110,13 @@ export const processGrade = internalAction({
               essayContent: essay.content ?? '',
               feedbackFromRuns: results.rawFeedback,
             },
-            synthesisConfig,
+            synthesisConfig!, // Safe: synthesisEnabled check guarantees config exists
           );
 
           finalFeedback = synthesisResult.feedback;
           synthesized = true;
           synthesisCost = synthesisResult.cost?.toFixed(4);
+          synthesisPromptVersion = synthesisResult.promptVersion;
 
           // Add synthesis cost to total API cost
           if (synthesisResult.cost && synthesisResult.cost > 0) {
@@ -147,7 +148,7 @@ export const processGrade = internalAction({
             functionType: 'action',
             userId: grade.userId,
             tags: { 'grading.status': 'synthesis_failure', 'grade.id': gradeId },
-            extra: { gradeId, synthesisModel: synthesisConfig.model },
+            extra: { gradeId, synthesisModel: synthesisConfig?.model },
           });
 
           // Keep synthesized = false, use original fallback feedback
@@ -170,6 +171,7 @@ export const processGrade = internalAction({
         totalTokens: results.totalTokens,
         apiCost: totalApiCost,
         promptVersion: results.promptVersion,
+        synthesisPromptVersion,
         synthesized,
         synthesisCost,
       });

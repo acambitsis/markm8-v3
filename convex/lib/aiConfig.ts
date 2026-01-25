@@ -37,9 +37,9 @@ export const DEFAULT_TITLE_GENERATION_CONFIG: TitleGenerationConfig = {
 
 export const DEFAULT_SYNTHESIS_CONFIG: SynthesisConfig = {
   enabled: true, // Enable synthesis by default for better feedback quality
-  model: 'google/gemini-3-pro-preview', // Fast and cost-effective for synthesis
+  model: 'x-ai/grok-4.1-fast', // Use same model pool as grading
   temperature: 0.3, // Lower temperature for consistent synthesis
-  maxTokens: 2048, // Sufficient for merged feedback output
+  maxTokens: 8192, // Match grading maxTokens
 };
 
 export const DEFAULT_AI_CONFIG: AiConfig = {
@@ -206,12 +206,12 @@ export function validateSynthesisConfig(
     );
   }
 
-  // Max tokens validation
-  if (config.maxTokens < 256) {
-    errors.push(`maxTokens must be at least 256: ${config.maxTokens}`);
-  } else if (config.maxTokens > 4096) {
+  // Max tokens validation (same limits as grading)
+  if (config.maxTokens < 1024) {
+    errors.push(`maxTokens must be at least 1024: ${config.maxTokens}`);
+  } else if (config.maxTokens > 16384) {
     warnings.push(
-      `maxTokens ${config.maxTokens} seems high for synthesis; typically 1024-2048`,
+      `maxTokens ${config.maxTokens} exceeds typical limits`,
     );
   }
 
@@ -268,8 +268,6 @@ export type CatalogValidationOptions = {
   gradingSlugs: string[];
   /** Enabled model slugs for title capability */
   titleSlugs: string[];
-  /** Enabled model slugs for synthesis capability */
-  synthesisSlugs?: string[];
   /** Model info for reasoning validation */
   gradingModels?: CatalogModelInfo[];
   /** If true, validation fails for missing models; if false, only warns */
@@ -289,7 +287,7 @@ export function validateAiConfigAgainstCatalog(
   config: AiConfig,
   options: CatalogValidationOptions,
 ): ValidationResult {
-  const { gradingSlugs, titleSlugs, synthesisSlugs, gradingModels, strict = false } = options;
+  const { gradingSlugs, titleSlugs, gradingModels, strict = false } = options;
   const warnings: string[] = [];
   const errors: string[] = [];
 
@@ -331,11 +329,10 @@ export function validateAiConfigAgainstCatalog(
     }
   }
 
-  // Check synthesis model (if synthesis is enabled)
-  if (config.synthesis?.enabled && synthesisSlugs) {
-    const synthesisSet = new Set(synthesisSlugs);
-    if (!synthesisSet.has(config.synthesis.model)) {
-      const msg = `Synthesis model "${config.synthesis.model}" not in catalog or not enabled for synthesis`;
+  // Check synthesis model (uses same pool as grading)
+  if (config.synthesis?.enabled) {
+    if (!gradingSet.has(config.synthesis.model)) {
+      const msg = `Synthesis model "${config.synthesis.model}" not in catalog or not enabled for grading`;
       if (strict) {
         errors.push(msg);
       } else {

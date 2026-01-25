@@ -33,6 +33,7 @@ import type * as lib_gradingPrompt from "../lib/gradingPrompt.js";
 import type * as lib_pricing from "../lib/pricing.js";
 import type * as lib_sentry from "../lib/sentry.js";
 import type * as lib_slack from "../lib/slack.js";
+import type * as lib_synthesisPrompt from "../lib/synthesisPrompt.js";
 import type * as modelCatalog from "../modelCatalog.js";
 import type * as notifications from "../notifications.js";
 import type * as platformSettings from "../platformSettings.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   "lib/pricing": typeof lib_pricing;
   "lib/sentry": typeof lib_sentry;
   "lib/slack": typeof lib_slack;
+  "lib/synthesisPrompt": typeof lib_synthesisPrompt;
   modelCatalog: typeof modelCatalog;
   notifications: typeof notifications;
   platformSettings: typeof platformSettings;
