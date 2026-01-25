@@ -152,8 +152,8 @@ export const processGrade = internalAction({
 
           // Keep synthesized = false, use original fallback feedback
         }
-      } else if (!synthesisEnabled) {
-        // Synthesis disabled - mark as skipped
+      } else {
+        // Synthesis skipped - either disabled or no feedback to synthesize
         await ctx.runMutation(internal.grades.updateSynthesisStatus, {
           gradeId,
           status: 'skipped',

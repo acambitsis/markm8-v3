@@ -796,85 +796,87 @@ export function AIConfigEditor({ config, onChange }: AIConfigEditorProps) {
             </div>
           </div>
 
-          {synthesisConfig.enabled && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-4"
-            >
-              <div className="flex items-center gap-2 rounded-md bg-teal-500/10 p-3 text-sm text-teal-700 dark:text-teal-400">
-                <GitMerge className="size-4 shrink-0" />
-                <span>Synthesis merges feedback from all grading models into a single coherent response.</span>
-              </div>
+          <AnimatePresence>
+            {synthesisConfig.enabled && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="space-y-4"
+              >
+                <div className="flex items-center gap-2 rounded-md bg-teal-500/10 p-3 text-sm text-teal-700 dark:text-teal-400">
+                  <GitMerge className="size-4 shrink-0" />
+                  <span>Synthesis merges feedback from all grading models into a single coherent response.</span>
+                </div>
 
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Synthesis Model</Label>
-                  <Select
-                    value={synthesisConfig.model}
-                    onValueChange={value => updateSynthesis({ model: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select model" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {groupedSynthesisModels && Object.entries(groupedSynthesisModels).map(([provider, models]) => (
-                        <SelectGroup key={provider}>
-                          <SelectLabel>{provider}</SelectLabel>
-                          {models?.map(model => (
-                            <SelectItem key={model.slug} value={model.slug}>
-                              {model.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                      ))}
-                      {!synthesisModels?.length && (
-                        <SelectItem value={synthesisConfig.model} disabled>
-                          Loading models...
-                        </SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label>Synthesis Model</Label>
+                    <Select
+                      value={synthesisConfig.model}
+                      onValueChange={value => updateSynthesis({ model: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select model" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {groupedSynthesisModels && Object.entries(groupedSynthesisModels).map(([provider, models]) => (
+                          <SelectGroup key={provider}>
+                            <SelectLabel>{provider}</SelectLabel>
+                            {models?.map(model => (
+                              <SelectItem key={model.slug} value={model.slug}>
+                                {model.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        ))}
+                        {!synthesisModels?.length && (
+                          <SelectItem value={synthesisConfig.model} disabled>
+                            Loading models...
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Max Tokens</Label>
+                    <Input
+                      type="number"
+                      min={256}
+                      max={4096}
+                      step={256}
+                      value={synthesisConfig.maxTokens}
+                      onChange={e =>
+                        updateSynthesis({
+                          maxTokens: Math.max(256, Math.min(4096, Number.parseInt(e.target.value) || 2048)),
+                        })}
+                    />
+                  </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Max Tokens</Label>
-                  <Input
-                    type="number"
-                    min={256}
-                    max={4096}
-                    step={256}
-                    value={synthesisConfig.maxTokens}
-                    onChange={e =>
-                      updateSynthesis({
-                        maxTokens: Math.max(256, Math.min(4096, Number.parseInt(e.target.value) || 2048)),
-                      })}
+                  <div className="flex items-center justify-between">
+                    <Label>Temperature</Label>
+                    <span className="text-sm font-medium">{synthesisConfig.temperature.toFixed(2)}</span>
+                  </div>
+                  <Slider
+                    value={[synthesisConfig.temperature]}
+                    onValueChange={([value]: number[]) => updateSynthesis({ temperature: value })}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    className="py-2"
                   />
+                  {synthesisConfig.temperature > 0.5 && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Higher temperatures may produce inconsistent synthesis
+                    </p>
+                  )}
                 </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Temperature</Label>
-                  <span className="text-sm font-medium">{synthesisConfig.temperature.toFixed(2)}</span>
-                </div>
-                <Slider
-                  value={[synthesisConfig.temperature]}
-                  onValueChange={([value]: number[]) => updateSynthesis({ temperature: value })}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  className="py-2"
-                />
-                {synthesisConfig.temperature > 0.5 && (
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Higher temperatures may produce inconsistent synthesis
-                  </p>
-                )}
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
         {/* Debug Preview (collapsible) */}

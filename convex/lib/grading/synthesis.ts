@@ -89,13 +89,20 @@ function buildSynthesisPrompt(input: SynthesisInput): string {
     feedbackFromRuns,
   } = input;
 
+  // Build assignment block only if there's content
+  const assignmentParts = [
+    assignmentTitle ? `<title>${assignmentTitle}</title>` : '',
+    assignmentInstructions ? `<instructions>${assignmentInstructions}</instructions>` : '',
+    academicLevel ? `<academic_level>${academicLevel}</academic_level>` : '',
+  ].filter(Boolean);
+
+  const assignmentBlock = assignmentParts.length > 0
+    ? `<assignment>\n${assignmentParts.join('\n')}\n</assignment>`
+    : '';
+
   return `You are synthesizing feedback from ${feedbackFromRuns.length} independent essay graders.
 
-<assignment>
-${assignmentTitle ? `<title>${assignmentTitle}</title>` : ''}
-${assignmentInstructions ? `<instructions>${assignmentInstructions}</instructions>` : ''}
-${academicLevel ? `<academic_level>${academicLevel}</academic_level>` : ''}
-</assignment>
+${assignmentBlock}
 
 ${rubric ? `<rubric>\n${rubric}\n</rubric>` : ''}
 
