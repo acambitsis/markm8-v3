@@ -267,23 +267,32 @@ function ProcessingExperience({
   const subject = essaySubject ?? 'General';
   const hasObservations = observations !== null && !observationsLoading;
 
-  // Calculate progress from runProgress
-  const completedCount = runProgress?.filter(r => r.status === 'complete').length ?? 0;
-  const totalModels = runProgress?.length ?? 0;
-  const allModelsComplete = completedCount === totalModels && totalModels > 0;
+  // Derive status info from progress
+  const { statusTitle, statusSubtext } = useMemo(() => {
+    const completed = runProgress?.filter(r => r.status === 'complete').length ?? 0;
+    const total = runProgress?.length ?? 0;
+    const allComplete = total > 0 && completed === total;
 
-  // Determine status message based on progress and synthesis status
-  const isSynthesizing = synthesisStatus === 'processing';
-  const statusTitle = isSynthesizing
-    ? 'Synthesizing Feedback'
-    : allModelsComplete
-      ? 'Finalizing Results'
-      : 'Grading Your Essay';
-  const statusSubtext = isSynthesizing
-    ? 'Merging insights from multiple AI graders...'
-    : totalModels > 0
-      ? `Completed ${completedCount} of ${totalModels} grading runs`
-      : null;
+    if (synthesisStatus === 'processing') {
+      return {
+        statusTitle: 'Synthesizing Feedback',
+        statusSubtext: 'Merging insights from multiple AI graders...',
+      };
+    }
+    if (allComplete) {
+      return {
+        statusTitle: 'Finalizing Results',
+        statusSubtext: `All ${total} grading runs complete`,
+      };
+    }
+    if (total > 0) {
+      return {
+        statusTitle: 'Grading Your Essay',
+        statusSubtext: `Completed ${completed} of ${total} grading runs`,
+      };
+    }
+    return { statusTitle: 'Grading Your Essay', statusSubtext: null };
+  }, [runProgress, synthesisStatus]);
 
   return (
     <PageTransition>
@@ -378,6 +387,68 @@ function getModelShortName(slug: string): string {
     .replace(/^claude-/, 'Claude ');
 }
 
+/** Shared base classes for status chips */
+const STATUS_CHIP_BASE = 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors';
+
+/** Status color variants */
+const STATUS_COLORS = {
+  success: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  warning: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
+  error: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  muted: 'bg-muted text-muted-foreground',
+  active: 'bg-primary/10 text-primary',
+} as const;
+
+/** Get status-specific chip classes for model runs */
+function getRunStatusClasses(status: RunStatus): string {
+  switch (status) {
+    case 'complete':
+      return STATUS_COLORS.success;
+    case 'failed':
+      return STATUS_COLORS.error;
+    default:
+      return STATUS_COLORS.muted;
+  }
+}
+
+/** Get status-specific chip classes for synthesis (uses warning for failed) */
+function getSynthesisStatusClasses(status: SynthesisStatus): string {
+  switch (status) {
+    case 'complete':
+      return STATUS_COLORS.success;
+    case 'processing':
+      return STATUS_COLORS.active;
+    case 'failed':
+      return STATUS_COLORS.warning; // Warning, not error - synthesis failure is non-critical
+    default:
+      return STATUS_COLORS.muted;
+  }
+}
+
+/** Get the icon for a run status */
+function RunStatusIcon({ status }: { status: RunStatus }) {
+  switch (status) {
+    case 'complete':
+      return <Check className="size-3" />;
+    case 'failed':
+      return <X className="size-3" />;
+    default:
+      return <Loader2 className="size-3 animate-spin" />;
+  }
+}
+
+/** Get the icon for a synthesis status */
+function SynthesisStatusIcon({ status }: { status: SynthesisStatus }) {
+  switch (status) {
+    case 'complete':
+      return <Check className="size-3" />;
+    case 'failed':
+      return <AlertCircle className="size-3" />;
+    default:
+      return <Loader2 className="size-3 animate-spin" />;
+  }
+}
+
 function GradingProgressIndicator({
   runProgress,
   synthesisStatus,
@@ -386,9 +457,7 @@ function GradingProgressIndicator({
     return null;
   }
 
-  const completedCount = runProgress.filter(r => r.status === 'complete').length;
-  const totalModels = runProgress.length;
-  const allComplete = completedCount === totalModels;
+  const allComplete = runProgress.every(r => r.status === 'complete');
 
   return (
     <motion.div
@@ -401,16 +470,9 @@ function GradingProgressIndicator({
       {runProgress.map((run, i) => (
         <div
           key={`${run.model}-${i}`}
-          className={cn(
-            'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-            run.status === 'complete' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-            run.status === 'pending' && 'bg-muted text-muted-foreground',
-            run.status === 'failed' && 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-          )}
+          className={cn(STATUS_CHIP_BASE, getRunStatusClasses(run.status))}
         >
-          {run.status === 'complete' && <Check className="size-3" />}
-          {run.status === 'pending' && <Loader2 className="size-3 animate-spin" />}
-          {run.status === 'failed' && <X className="size-3" />}
+          <RunStatusIcon status={run.status} />
           <span>{getModelShortName(run.model)}</span>
         </div>
       ))}
@@ -419,19 +481,8 @@ function GradingProgressIndicator({
       {allComplete && synthesisStatus && synthesisStatus !== 'skipped' && (
         <>
           <ArrowRight className="mx-1 size-4 text-muted-foreground" />
-          <div
-            className={cn(
-              'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors',
-              synthesisStatus === 'complete' && 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-              synthesisStatus === 'processing' && 'bg-primary/10 text-primary',
-              synthesisStatus === 'pending' && 'bg-muted text-muted-foreground',
-              synthesisStatus === 'failed' && 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-            )}
-          >
-            {synthesisStatus === 'processing' && <Loader2 className="size-3 animate-spin" />}
-            {synthesisStatus === 'complete' && <Check className="size-3" />}
-            {synthesisStatus === 'pending' && <Loader2 className="size-3 animate-spin" />}
-            {synthesisStatus === 'failed' && <AlertCircle className="size-3" />}
+          <div className={cn(STATUS_CHIP_BASE, getSynthesisStatusClasses(synthesisStatus))}>
+            <SynthesisStatusIcon status={synthesisStatus} />
             <span>Synthesis</span>
           </div>
         </>
