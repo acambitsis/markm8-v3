@@ -15,6 +15,7 @@ import { getGradingModel } from '../ai';
 import { type GradeOutput, gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt, GRADING_PROMPT_VERSION } from '../gradingPrompt';
 import { reportToSentry } from '../sentry';
+import type { RawGradingFeedback } from './synthesis';
 import {
   clampPercentage,
   detectOutliers,
@@ -192,6 +193,7 @@ export async function runAIGrading(
     feedback: GradeFeedback;
     categoryScores: CategoryScores;
     modelResults: ModelResult[];
+    rawFeedback: RawGradingFeedback[];
     totalTokens?: number;
     apiCost?: string;
     promptVersion: string;
@@ -430,6 +432,18 @@ export async function runAIGrading(
     };
   });
 
+  // Build raw feedback array for synthesis (only included results)
+  const rawFeedback: RawGradingFeedback[] = includedResults.map(r => ({
+    model: r.model,
+    percentage: clampPercentage(r.result.percentage),
+    feedback: {
+      strengths: r.result.feedback.strengths,
+      improvements: r.result.feedback.improvements,
+      languageTips: r.result.feedback.languageTips,
+      resources: r.result.feedback.resources,
+    },
+  }));
+
   // Calculate total tokens and cost (if available)
   const totalTokens = successfulResults.reduce(
     (sum, r) => sum + (r.usage?.totalTokens ?? 0),
@@ -457,6 +471,7 @@ export async function runAIGrading(
     feedback,
     categoryScores,
     modelResults,
+    rawFeedback,
     totalTokens,
     apiCost,
     promptVersion: GRADING_PROMPT_VERSION,

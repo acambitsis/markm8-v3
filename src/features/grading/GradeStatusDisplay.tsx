@@ -73,6 +73,7 @@ export function GradeStatusDisplay({ gradeId }: Props) {
         essayTitle={essayTitle}
         essayContent={essay?.content}
         essaySubject={essay?.assignmentBrief?.subject}
+        synthesisStatus={grade.synthesisStatus}
       />
     );
   }
@@ -195,11 +196,14 @@ export function GradeStatusDisplay({ gradeId }: Props) {
 // Processing Experience Component (Simplified)
 // =============================================================================
 
+type SynthesisStatus = 'pending' | 'processing' | 'complete' | 'skipped' | 'failed';
+
 type ProcessingExperienceProps = {
   gradeId: Id<'grades'>;
   essayTitle: string;
   essayContent?: string;
   essaySubject?: string;
+  synthesisStatus?: SynthesisStatus;
 };
 
 function ProcessingExperience({
@@ -207,6 +211,7 @@ function ProcessingExperience({
   essayTitle,
   essayContent,
   essaySubject,
+  synthesisStatus,
 }: ProcessingExperienceProps) {
   // Essay observations state (fetched via action, not persisted)
   const [observations, setObservations] = useState<EssayObservations | null>(null);
@@ -251,6 +256,13 @@ function ProcessingExperience({
   const subject = essaySubject ?? 'General';
   const hasObservations = observations !== null && !observationsLoading;
 
+  // Determine status message based on synthesis status
+  const isSynthesizing = synthesisStatus === 'processing';
+  const statusTitle = isSynthesizing ? 'Synthesizing Feedback' : 'Grading Your Essay';
+  const statusSubtext = isSynthesizing
+    ? 'Merging insights from multiple AI graders...'
+    : null;
+
   return (
     <PageTransition>
       <Card className="border-0 shadow-lg">
@@ -262,8 +274,9 @@ function ProcessingExperience({
                 className="text-lg font-semibold"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
+                key={statusTitle}
               >
-                Grading Your Essay
+                {statusTitle}
               </motion.h3>
               <motion.p
                 className="mt-1 text-sm text-muted-foreground"
@@ -271,14 +284,18 @@ function ProcessingExperience({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.05 }}
               >
-                &ldquo;
-                {essayTitle}
-                &rdquo;
-                {subject !== 'General' && (
-                  <span className="ml-1">
-                    ·
-                    {subject}
-                  </span>
+                {statusSubtext ?? (
+                  <>
+                    &ldquo;
+                    {essayTitle}
+                    &rdquo;
+                    {subject !== 'General' && (
+                      <span className="ml-1">
+                        ·
+                        {subject}
+                      </span>
+                    )}
+                  </>
                 )}
               </motion.p>
             </div>

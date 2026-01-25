@@ -9,6 +9,7 @@ import type {
   PercentageRange,
 } from '../../schema';
 import { GRADING_PROMPT_VERSION } from '../gradingPrompt';
+import type { RawGradingFeedback } from './synthesis';
 import { clampPercentage } from './utils';
 
 /**
@@ -20,6 +21,7 @@ export function generateMockGrade(config: GradingConfig): {
   feedback: GradeFeedback;
   categoryScores: CategoryScores;
   modelResults: ModelResult[];
+  rawFeedback: RawGradingFeedback[];
   promptVersion: string;
 } {
   const { runs } = config;
@@ -53,97 +55,109 @@ export function generateMockGrade(config: GradingConfig): {
     ),
   };
 
+  const feedback: GradeFeedback = {
+    strengths: [
+      {
+        title: 'Clear Structure',
+        description:
+          'Your essay follows a logical progression with well-defined sections.',
+        evidence:
+          'The introduction clearly sets up the thesis and each paragraph builds on the previous.',
+      },
+      {
+        title: 'Strong Evidence',
+        description:
+          'You support your arguments with relevant examples and citations.',
+        evidence:
+          'Multiple references to primary and secondary sources strengthen your analysis.',
+      },
+      {
+        title: 'Engaging Writing Style',
+        description:
+          'Your prose is readable and maintains reader interest throughout.',
+      },
+    ],
+    improvements: [
+      {
+        title: 'Transition Clarity',
+        description: 'Some paragraph transitions could be smoother.',
+        suggestion:
+          'Use transitional phrases to connect ideas between paragraphs.',
+        detailedSuggestions: [
+          'Add "Furthermore" or "In addition" when introducing supporting points',
+          'Use "However" or "Conversely" for contrasting ideas',
+          'Reference previous paragraphs: "Building on this point..."',
+        ],
+      },
+      {
+        title: 'Conclusion Depth',
+        description:
+          'The conclusion could more effectively synthesize your arguments.',
+        suggestion:
+          'Rather than summarizing, show how your points connect to form a larger insight.',
+      },
+      {
+        title: 'Evidence Integration',
+        description:
+          'Some evidence could be more seamlessly integrated into your argument.',
+        suggestion:
+          'Use signal phrases to introduce evidence and explain how it supports your thesis.',
+      },
+    ],
+    languageTips: [
+      {
+        category: 'Academic Tone',
+        feedback:
+          'Consider avoiding contractions in formal academic writing.',
+      },
+      {
+        category: 'Vocabulary',
+        feedback: 'Vary your word choice to avoid repetition of key terms.',
+      },
+      {
+        category: 'Sentence Structure',
+        feedback:
+          'Mix simple and complex sentences to create better rhythm and flow.',
+      },
+    ],
+    resources: [
+      {
+        title: 'Purdue OWL - Transitions',
+        url: 'https://owl.purdue.edu/owl/general_writing/mechanics/transitions_and_transitional_devices/',
+        description:
+          'Comprehensive guide on using transitional phrases effectively.',
+      },
+      {
+        title: 'Purdue OWL - Academic Writing',
+        url: 'https://owl.purdue.edu/owl/general_writing/academic_writing/',
+        description:
+          'Guidelines for academic writing style and conventions.',
+      },
+    ],
+  };
+
+  const modelResults: ModelResult[] = runs.map((run, i) => ({
+    model: run.model,
+    percentage: clampPercentage(basePercentage + deviations[i]!),
+    included: true,
+  }));
+
+  // Build raw feedback array for synthesis (mock mode uses same feedback for all)
+  const rawFeedback: RawGradingFeedback[] = modelResults.map(result => ({
+    model: result.model,
+    percentage: result.percentage,
+    feedback,
+  }));
+
   return {
     percentageRange: {
       lower: lowerBound,
       upper: upperBound,
     },
-    feedback: {
-      strengths: [
-        {
-          title: 'Clear Structure',
-          description:
-            'Your essay follows a logical progression with well-defined sections.',
-          evidence:
-            'The introduction clearly sets up the thesis and each paragraph builds on the previous.',
-        },
-        {
-          title: 'Strong Evidence',
-          description:
-            'You support your arguments with relevant examples and citations.',
-          evidence:
-            'Multiple references to primary and secondary sources strengthen your analysis.',
-        },
-        {
-          title: 'Engaging Writing Style',
-          description:
-            'Your prose is readable and maintains reader interest throughout.',
-        },
-      ],
-      improvements: [
-        {
-          title: 'Transition Clarity',
-          description: 'Some paragraph transitions could be smoother.',
-          suggestion:
-            'Use transitional phrases to connect ideas between paragraphs.',
-          detailedSuggestions: [
-            'Add "Furthermore" or "In addition" when introducing supporting points',
-            'Use "However" or "Conversely" for contrasting ideas',
-            'Reference previous paragraphs: "Building on this point..."',
-          ],
-        },
-        {
-          title: 'Conclusion Depth',
-          description:
-            'The conclusion could more effectively synthesize your arguments.',
-          suggestion:
-            'Rather than summarizing, show how your points connect to form a larger insight.',
-        },
-        {
-          title: 'Evidence Integration',
-          description:
-            'Some evidence could be more seamlessly integrated into your argument.',
-          suggestion:
-            'Use signal phrases to introduce evidence and explain how it supports your thesis.',
-        },
-      ],
-      languageTips: [
-        {
-          category: 'Academic Tone',
-          feedback:
-            'Consider avoiding contractions in formal academic writing.',
-        },
-        {
-          category: 'Vocabulary',
-          feedback: 'Vary your word choice to avoid repetition of key terms.',
-        },
-        {
-          category: 'Sentence Structure',
-          feedback:
-            'Mix simple and complex sentences to create better rhythm and flow.',
-        },
-      ],
-      resources: [
-        {
-          title: 'Purdue OWL - Transitions',
-          url: 'https://owl.purdue.edu/owl/general_writing/mechanics/transitions_and_transitional_devices/',
-          description:
-            'Comprehensive guide on using transitional phrases effectively.',
-        },
-        {
-          title: 'Purdue OWL - Academic Writing',
-          url: 'https://owl.purdue.edu/owl/general_writing/academic_writing/',
-          description:
-            'Guidelines for academic writing style and conventions.',
-        },
-      ],
-    },
+    feedback,
     categoryScores,
-    modelResults: runs.map((run, i) => ({
-      model: run.model,
-      percentage: clampPercentage(basePercentage + deviations[i]!),
-      included: true,
-    })),
+    modelResults,
+    rawFeedback,
     promptVersion: GRADING_PROMPT_VERSION,
   };
 }

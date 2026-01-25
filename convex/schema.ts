@@ -148,6 +148,7 @@ export const categoryScoresValidator = v.object({
 export const modelCapabilityValidator = v.union(
   v.literal('grading'),
   v.literal('title'),
+  v.literal('synthesis'),
 );
 
 export const REASONING_EFFORT_OPTIONS = [
@@ -219,9 +220,17 @@ export const titleGenerationConfigValidator = v.object({
   maxTokens: v.number(),
 });
 
+export const synthesisConfigValidator = v.object({
+  enabled: v.boolean(), // Whether to use LLM synthesis or fallback to lowest-scorer
+  model: v.string(), // OpenRouter model ID for synthesis
+  temperature: v.number(), // Recommend 0.3 for consistent synthesis
+  maxTokens: v.number(), // Max output tokens (typically 2048)
+});
+
 export const aiConfigValidator = v.object({
   grading: gradingConfigValidator,
   titleGeneration: titleGenerationConfigValidator,
+  synthesis: v.optional(synthesisConfigValidator),
 });
 
 // =============================================================================
@@ -315,6 +324,22 @@ export default defineSchema({
 
     // Error handling
     errorMessage: v.optional(v.string()),
+
+    // Progress tracking (for real-time UI updates)
+    runProgress: v.optional(v.array(v.object({
+      model: v.string(),
+      status: v.union(v.literal('pending'), v.literal('complete'), v.literal('failed')),
+      completedAt: v.optional(v.number()),
+    }))),
+    synthesisStatus: v.optional(v.union(
+      v.literal('pending'),
+      v.literal('processing'),
+      v.literal('complete'),
+      v.literal('skipped'),
+      v.literal('failed'),
+    )),
+    synthesized: v.optional(v.boolean()), // Whether feedback was synthesized (false = fallback)
+    synthesisCost: v.optional(v.string()), // Synthesis API cost (decimal as string)
 
     // Timing (Unix timestamps in ms)
     queuedAt: v.number(),
@@ -434,6 +459,7 @@ export type GradingRun = Infer<typeof gradingRunValidator>;
 export type RetryConfig = Infer<typeof retryConfigValidator>;
 export type GradingConfig = Infer<typeof gradingConfigValidator>;
 export type TitleGenerationConfig = Infer<typeof titleGenerationConfigValidator>;
+export type SynthesisConfig = Infer<typeof synthesisConfigValidator>;
 export type AiConfig = Infer<typeof aiConfigValidator>;
 
 // Essay Observation Types (for waiting experience)
