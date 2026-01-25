@@ -321,6 +321,7 @@ export default defineSchema({
 
     // Prompt versioning (for traceability)
     promptVersion: v.optional(v.string()),
+    synthesisPromptVersion: v.optional(v.string()),
 
     // Error handling
     errorMessage: v.optional(v.string()),
