@@ -202,13 +202,21 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                           <Tag className="size-4 text-muted-foreground" />
                           <span className="text-muted-foreground">Prompt Version:</span>
                           <span className="font-mono text-xs">{grade.grade.promptVersion}</span>
+                          {grade.grade.synthesisPromptVersion && (
+                            <span className="font-mono text-xs text-purple-600">
+                              (synthesis:
+                              {' '}
+                              {grade.grade.synthesisPromptVersion}
+                              )
+                            </span>
+                          )}
                         </div>
                       )}
-                      {/* Per-run costs */}
-                      {grade.grade.modelResults && grade.grade.modelResults.some(r => r.cost) && (
+                      {/* Cost breakdown (per-run + synthesis) */}
+                      {(grade.grade.modelResults?.some(r => r.cost) || grade.grade.synthesisCost) && (
                         <div className="flex w-full flex-wrap items-center gap-2">
-                          <span className="text-muted-foreground">Per-run:</span>
-                          {grade.grade.modelResults.filter(r => r.cost).map(result => (
+                          <span className="text-muted-foreground">Breakdown:</span>
+                          {grade.grade.modelResults?.filter(r => r.cost).map(result => (
                             <Badge key={result.model} variant="outline" className="font-mono text-xs">
                               {result.model.split('/').pop()}
                               :
@@ -216,6 +224,14 @@ export function GradeViewSheet({ gradeId, open, onOpenChange }: Props) {
                               {formatApiCost(result.cost)}
                             </Badge>
                           ))}
+                          {/* Synthesis cost */}
+                          {grade.grade.synthesized && grade.grade.synthesisCost && (
+                            <Badge variant="outline" className="border-purple-300 bg-purple-50 font-mono text-xs text-purple-700 dark:border-purple-700 dark:bg-purple-950 dark:text-purple-300">
+                              synthesis:
+                              {' '}
+                              {formatApiCost(grade.grade.synthesisCost)}
+                            </Badge>
+                          )}
                         </div>
                       )}
                     </div>

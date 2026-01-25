@@ -467,6 +467,10 @@ export const getGradeForQA = query({
         apiCost: grade.apiCost,
         totalTokens: grade.totalTokens,
         promptVersion: grade.promptVersion,
+        // Synthesis info
+        synthesized: grade.synthesized,
+        synthesisCost: grade.synthesisCost,
+        synthesisPromptVersion: grade.synthesisPromptVersion,
       },
       // Essay metadata only - NO content exposed
       essayMetadata: {
