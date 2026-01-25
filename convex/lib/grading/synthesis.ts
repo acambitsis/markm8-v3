@@ -6,12 +6,13 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 import type { GradeFeedback, SynthesisConfig } from '../../schema';
-import { getOpenRouterProvider } from '../ai';
+import { getGradingModel } from '../ai';
 import {
   buildSynthesisPrompt,
   type RawGradingFeedback,
   SYNTHESIS_PROMPT_VERSION,
 } from '../synthesisPrompt';
+import { retryWithBackoff } from './utils';
 
 // Re-export for convenience
 export type { RawGradingFeedback } from '../synthesisPrompt';
@@ -88,17 +89,25 @@ export async function runSynthesis(
   config: SynthesisConfig,
 ): Promise<SynthesisResult> {
   const startTime = Date.now();
-  const provider = getOpenRouterProvider();
+  const model = getGradingModel(config.model);
 
   const prompt = buildSynthesisPrompt(input);
 
-  const result = await generateObject({
-    model: provider.chat(config.model),
-    schema: synthesizedFeedbackSchema,
-    prompt,
-    temperature: config.temperature,
-    maxOutputTokens: config.maxTokens,
-  });
+  // Use retry logic for resilience (same as grading)
+  const result = await retryWithBackoff(
+    async () => {
+      return await generateObject({
+        model,
+        schema: synthesizedFeedbackSchema,
+        prompt,
+        temperature: config.temperature,
+        maxOutputTokens: config.maxTokens,
+        system: 'You are an expert academic writing coach. Synthesize feedback from multiple AI graders into clear, actionable guidance. Output only the requested structured data.',
+      });
+    },
+    2, // maxRetries - fewer than grading since synthesis is optional
+    [3000, 9000], // backoffMs
+  );
 
   const durationMs = Date.now() - startTime;
 

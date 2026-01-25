@@ -388,15 +388,15 @@ function getModelShortName(slug: string): string {
 }
 
 /** Shared base classes for status chips */
-const STATUS_CHIP_BASE = 'flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition-colors';
+const STATUS_CHIP_BASE = 'flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-300 border shadow-sm';
 
-/** Status color variants */
+/** Status color variants - high contrast, prominent styling */
 const STATUS_COLORS = {
-  success: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
-  warning: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
-  error: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
-  muted: 'bg-muted text-muted-foreground',
-  active: 'bg-primary/10 text-primary',
+  success: 'bg-emerald-500 text-white border-emerald-600 shadow-emerald-200 dark:bg-emerald-600 dark:border-emerald-500 dark:shadow-emerald-900/50',
+  warning: 'bg-amber-500 text-white border-amber-600 shadow-amber-200 dark:bg-amber-600 dark:border-amber-500 dark:shadow-amber-900/50',
+  error: 'bg-red-500 text-white border-red-600 shadow-red-200 dark:bg-red-600 dark:border-red-500 dark:shadow-red-900/50',
+  muted: 'bg-slate-100 text-slate-500 border-slate-200 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700',
+  active: 'bg-primary text-primary-foreground border-primary shadow-primary/25',
 } as const;
 
 /** Get status-specific chip classes for model runs */
@@ -429,11 +429,11 @@ function getSynthesisStatusClasses(status: SynthesisStatus): string {
 function RunStatusIcon({ status }: { status: RunStatus }) {
   switch (status) {
     case 'complete':
-      return <Check className="size-3" />;
+      return <Check className="size-4" strokeWidth={3} />;
     case 'failed':
-      return <X className="size-3" />;
+      return <X className="size-4" strokeWidth={3} />;
     default:
-      return <Loader2 className="size-3 animate-spin" />;
+      return <Loader2 className="size-4 animate-spin" />;
   }
 }
 
@@ -441,11 +441,11 @@ function RunStatusIcon({ status }: { status: RunStatus }) {
 function SynthesisStatusIcon({ status }: { status: SynthesisStatus }) {
   switch (status) {
     case 'complete':
-      return <Check className="size-3" />;
+      return <Check className="size-4" strokeWidth={3} />;
     case 'failed':
-      return <AlertCircle className="size-3" />;
+      return <AlertCircle className="size-4" />;
     default:
-      return <Loader2 className="size-3 animate-spin" />;
+      return <Loader2 className="size-4 animate-spin" />;
   }
 }
 
@@ -461,7 +461,7 @@ function GradingProgressIndicator({
 
   return (
     <motion.div
-      className="mb-6 flex flex-wrap items-center justify-center gap-2"
+      className="mb-6 flex flex-wrap items-center justify-center gap-3"
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.15 }}
@@ -477,15 +477,12 @@ function GradingProgressIndicator({
         </div>
       ))}
 
-      {/* Arrow and synthesis chip when all models complete */}
+      {/* Synthesis chip when all models complete */}
       {allComplete && synthesisStatus && synthesisStatus !== 'skipped' && (
-        <>
-          <ArrowRight className="mx-1 size-4 text-muted-foreground" />
-          <div className={cn(STATUS_CHIP_BASE, getSynthesisStatusClasses(synthesisStatus))}>
-            <SynthesisStatusIcon status={synthesisStatus} />
-            <span>Synthesis</span>
-          </div>
-        </>
+        <div className={cn(STATUS_CHIP_BASE, getSynthesisStatusClasses(synthesisStatus))}>
+          <SynthesisStatusIcon status={synthesisStatus} />
+          <span>Synthesis</span>
+        </div>
       )}
     </motion.div>
   );
