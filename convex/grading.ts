@@ -101,6 +101,7 @@ export const processGrade = internalAction({
       let synthesized = false;
       let synthesisCost: string | undefined;
       let synthesisPromptVersion: string | undefined;
+      let synthesisDurationMs: number | undefined;
       let totalApiCost = results.apiCost;
 
       if (synthesisEnabled && results.rawFeedback.length > 0) {
@@ -127,6 +128,7 @@ export const processGrade = internalAction({
           synthesized = true;
           synthesisCost = synthesisResult.cost?.toFixed(4);
           synthesisPromptVersion = synthesisResult.promptVersion;
+          synthesisDurationMs = synthesisResult.durationMs;
 
           // Add synthesis cost to total API cost
           if (synthesisResult.cost && synthesisResult.cost > 0) {
@@ -184,6 +186,7 @@ export const processGrade = internalAction({
         synthesisPromptVersion,
         synthesized,
         synthesisCost,
+        synthesisDurationMs,
       });
 
       // 9. Clear credit reservation and record transaction

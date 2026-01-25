@@ -181,7 +181,7 @@ export const getRecentActivity = query({
 
     // Batch load grades for essay activities (for timing info and QA review)
     const essayIdsToFetch = submittedEssays.map(e => e._id);
-    const gradeMap = new Map<string, { gradeId: Id<'grades'>; modelResults?: ModelResult[]; apiCost?: string }>();
+    const gradeMap = new Map<string, { gradeId: Id<'grades'>; modelResults?: ModelResult[]; apiCost?: string; synthesized?: boolean; synthesisDurationMs?: number }>();
 
     // Fetch latest completed grade for each essay
     await Promise.all(
@@ -192,7 +192,13 @@ export const getRecentActivity = query({
           .order('desc')
           .first();
         if (grade?.status === 'complete') {
-          gradeMap.set(essayId, { gradeId: grade._id, modelResults: grade.modelResults, apiCost: grade.apiCost });
+          gradeMap.set(essayId, {
+            gradeId: grade._id,
+            modelResults: grade.modelResults,
+            apiCost: grade.apiCost,
+            synthesized: grade.synthesized,
+            synthesisDurationMs: grade.synthesisDurationMs,
+          });
         }
       }),
     );
@@ -207,6 +213,8 @@ export const getRecentActivity = query({
       gradeId?: Id<'grades'>;
       modelResults?: ModelResult[];
       apiCost?: string;
+      synthesized?: boolean;
+      synthesisDurationMs?: number;
     }> = [];
 
     // Add user signups
@@ -243,6 +251,8 @@ export const getRecentActivity = query({
         gradeId: grade?.gradeId,
         modelResults: grade?.modelResults,
         apiCost: grade?.apiCost,
+        synthesized: grade?.synthesized,
+        synthesisDurationMs: grade?.synthesisDurationMs,
       });
     }
 
@@ -471,6 +481,7 @@ export const getGradeForQA = query({
         synthesized: grade.synthesized,
         synthesisCost: grade.synthesisCost,
         synthesisPromptVersion: grade.synthesisPromptVersion,
+        synthesisDurationMs: grade.synthesisDurationMs,
       },
       // Essay metadata only - NO content exposed
       essayMetadata: {

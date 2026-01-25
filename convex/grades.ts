@@ -140,6 +140,7 @@ export const complete = internalMutation({
     synthesisPromptVersion: v.optional(v.string()),
     synthesized: v.optional(v.boolean()),
     synthesisCost: v.optional(v.string()),
+    synthesisDurationMs: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const { gradeId, ...results } = args;

@@ -341,6 +341,7 @@ export default defineSchema({
     )),
     synthesized: v.optional(v.boolean()), // Whether feedback was synthesized (false = fallback)
     synthesisCost: v.optional(v.string()), // Synthesis API cost (decimal as string)
+    synthesisDurationMs: v.optional(v.number()), // Time taken for synthesis
 
     // Timing (Unix timestamps in ms)
     queuedAt: v.number(),

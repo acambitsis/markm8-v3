@@ -253,7 +253,12 @@ export default function AdminDashboardPage() {
                               <p className="text-sm font-medium">{item.description}</p>
                               {/* Show model timings for essay activities */}
                               {item.type === 'essay' && item.modelResults && item.modelResults.length > 0 && (
-                                <ModelTimings modelResults={item.modelResults} compact />
+                                <ModelTimings
+                                  modelResults={item.modelResults}
+                                  compact
+                                  synthesized={item.synthesized}
+                                  synthesisDurationMs={item.synthesisDurationMs}
+                                />
                               )}
                               {/* Show API cost badge for essay activities */}
                               {item.type === 'essay' && item.apiCost && (

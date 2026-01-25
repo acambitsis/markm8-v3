@@ -20,6 +20,10 @@ type Props = {
   defaultOpen?: boolean;
   /** Custom trigger className */
   triggerClassName?: string;
+  /** Whether synthesis was run */
+  synthesized?: boolean;
+  /** Duration of synthesis in milliseconds */
+  synthesisDurationMs?: number;
 };
 
 /**
@@ -52,14 +56,16 @@ function getShortModelName(slug: string): string {
 }
 
 /**
- * Calculate total grading time (max of all durations since they run in parallel)
+ * Calculate total grading time (max of model durations + synthesis time)
+ * Models run in parallel, then synthesis runs after
  */
-function getTotalTime(modelResults: ModelResult[]): number | undefined {
+function getTotalTime(modelResults: ModelResult[], synthesisDurationMs?: number): number | undefined {
   const durations = modelResults.map(r => r.durationMs).filter((d): d is number => d !== undefined);
-  if (durations.length === 0) {
+  if (durations.length === 0 && !synthesisDurationMs) {
     return undefined;
   }
-  return Math.max(...durations);
+  const maxModelTime = durations.length > 0 ? Math.max(...durations) : 0;
+  return maxModelTime + (synthesisDurationMs ?? 0);
 }
 
 /**
@@ -71,10 +77,12 @@ export function ModelTimings({
   compact = false,
   defaultOpen = false,
   triggerClassName,
+  synthesized,
+  synthesisDurationMs,
 }: Props) {
   const [isOpen, setIsOpen] = useState(defaultOpen);
-  const totalTime = getTotalTime(modelResults);
-  const hasDurations = modelResults.some(r => r.durationMs !== undefined);
+  const totalTime = getTotalTime(modelResults, synthesisDurationMs);
+  const hasDurations = modelResults.some(r => r.durationMs !== undefined) || synthesisDurationMs !== undefined;
 
   // Don't render if no results
   if (modelResults.length === 0) {
@@ -123,6 +131,17 @@ export function ModelTimings({
                   </span>
                 </div>
               ))}
+              {/* Synthesis row */}
+              {synthesized && synthesisDurationMs !== undefined && (
+                <div className="flex items-center justify-between gap-4 border-t border-border/50 pt-1 mt-1">
+                  <span className="truncate text-purple-600 dark:text-purple-400">
+                    Synthesis
+                  </span>
+                  <span className="shrink-0 tabular-nums text-purple-600 dark:text-purple-400">
+                    {formatDuration(synthesisDurationMs)}
+                  </span>
+                </div>
+              )}
             </div>
           </div>
         </CollapsibleContent>
@@ -189,6 +208,19 @@ export function ModelTimings({
               )}
             </div>
           ))}
+          {/* Synthesis row */}
+          {synthesized && synthesisDurationMs !== undefined && (
+            <div className="flex items-center justify-between rounded bg-purple-100 px-2 py-0.5 text-[10px] dark:bg-purple-950">
+              <span className="text-purple-700 dark:text-purple-300">
+                <span className="font-medium">Synthesis:</span>
+                {' '}
+                Feedback merged from all runs
+              </span>
+              <span className="ml-2 shrink-0 tabular-nums text-purple-600 dark:text-purple-400">
+                {formatDuration(synthesisDurationMs)}
+              </span>
+            </div>
+          )}
         </div>
       </CollapsibleContent>
     </Collapsible>
