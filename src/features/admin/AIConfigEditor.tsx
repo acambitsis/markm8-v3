@@ -181,33 +181,27 @@ function AIConfigEditorInner({
 
   // Update grading config
   const updateGrading = useCallback((updates: Partial<AiConfig['grading']>) => {
-    setLocalConfig((prev) => {
-      const newConfig = { ...prev, grading: { ...prev.grading, ...updates } };
-      onChange(newConfig);
-      return newConfig;
-    });
-  }, [onChange]);
+    const newConfig = { ...localConfig, grading: { ...localConfig.grading, ...updates } };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  }, [localConfig, onChange]);
 
   // Update title generation config
   const updateTitleGeneration = useCallback((updates: Partial<AiConfig['titleGeneration']>) => {
-    setLocalConfig((prev) => {
-      const newConfig = { ...prev, titleGeneration: { ...prev.titleGeneration, ...updates } };
-      onChange(newConfig);
-      return newConfig;
-    });
-  }, [onChange]);
+    const newConfig = { ...localConfig, titleGeneration: { ...localConfig.titleGeneration, ...updates } };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  }, [localConfig, onChange]);
 
   // Update synthesis config
   const updateSynthesis = useCallback((updates: Partial<SynthesisConfig>) => {
-    setLocalConfig((prev) => {
-      if (!prev.synthesis) {
-        return prev;
-      }
-      const newConfig = { ...prev, synthesis: { ...prev.synthesis, ...updates } };
-      onChange(newConfig);
-      return newConfig;
-    });
-  }, [onChange]);
+    if (!localConfig.synthesis) {
+      return;
+    }
+    const newConfig = { ...localConfig, synthesis: { ...localConfig.synthesis, ...updates } };
+    setLocalConfig(newConfig);
+    onChange(newConfig);
+  }, [localConfig, onChange]);
 
   // Get first grading model as default for new runs
   const firstGradingModel = gradingModels[0]?.slug ?? '';
