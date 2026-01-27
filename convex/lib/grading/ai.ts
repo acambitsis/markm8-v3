@@ -11,7 +11,7 @@ import type {
   ModelResult,
   PercentageRange,
 } from '../../schema';
-import { getGradingModel } from '../ai';
+import { extractOpenRouterCost, getGradingModel } from '../ai';
 import { type GradeOutput, gradeOutputSchema } from '../gradeSchema';
 import { buildGradingPrompt, GRADING_PROMPT_VERSION } from '../gradingPrompt';
 import { reportToSentry } from '../sentry';
@@ -269,15 +269,12 @@ export async function runAIGrading(
             system: 'You are an expert academic essay grader. Provide thorough, constructive feedback. Output only the requested structured data with no leading or trailing whitespace.',
           });
 
-          // Extract cost from OpenRouter provider metadata
-          const cost = (aiResult.providerMetadata as any)?.openrouter?.usage?.cost;
-
           return {
             model: run.model,
             index,
             result: aiResult.object,
             usage: aiResult.usage,
-            cost: typeof cost === 'number' ? cost : undefined,
+            cost: extractOpenRouterCost(aiResult.providerMetadata),
           };
         },
         retry.maxRetries,

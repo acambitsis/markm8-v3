@@ -6,7 +6,7 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 
 import type { GradeFeedback, SynthesisConfig } from '../../schema';
-import { getGradingModel } from '../ai';
+import { extractOpenRouterCost, getGradingModel } from '../ai';
 import {
   buildSynthesisPrompt,
   type RawGradingFeedback,
@@ -21,30 +21,6 @@ export { SYNTHESIS_PROMPT_VERSION } from '../synthesisPrompt';
 // =============================================================================
 // Types
 // =============================================================================
-
-/**
- * OpenRouter provider metadata structure (subset we care about)
- * Full docs: https://openrouter.ai/docs#responses
- */
-type OpenRouterProviderMetadata = {
-  openrouter?: {
-    usage?: {
-      cost?: number;
-    };
-  };
-};
-
-/**
- * Safely extract cost from OpenRouter provider metadata
- */
-function extractCostFromMetadata(metadata: unknown): number | undefined {
-  if (typeof metadata !== 'object' || metadata === null) {
-    return undefined;
-  }
-  const typed = metadata as OpenRouterProviderMetadata;
-  const cost = typed.openrouter?.usage?.cost;
-  return typeof cost === 'number' ? cost : undefined;
-}
 
 /**
  * Input for synthesis
@@ -142,7 +118,7 @@ export async function runSynthesis(
   const durationMs = Date.now() - startTime;
 
   // Extract cost from OpenRouter provider metadata
-  const cost = extractCostFromMetadata(result.providerMetadata);
+  const cost = extractOpenRouterCost(result.providerMetadata);
 
   // Convert schema output to GradeFeedback type (null → undefined for optional fields)
   const feedback: GradeFeedback = {

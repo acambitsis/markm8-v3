@@ -4,6 +4,52 @@
 
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
 
+// =============================================================================
+// OpenRouter Provider Metadata Types
+// =============================================================================
+
+/**
+ * OpenRouter provider metadata structure returned by AI SDK
+ * Full docs: https://openrouter.ai/docs#responses
+ *
+ * Note: This is a subset of the full response - only the fields we use.
+ * OpenRouter returns this in the `providerMetadata` field of AI SDK results.
+ */
+export type OpenRouterProviderMetadata = {
+  openrouter?: {
+    usage?: {
+      /** Cost in USD for this API call */
+      cost?: number;
+    };
+  };
+};
+
+/**
+ * Safely extracts the cost from OpenRouter provider metadata
+ *
+ * The AI SDK returns provider-specific metadata in the `providerMetadata` field,
+ * typed as `Record<string, unknown>`. This helper provides type-safe extraction
+ * of the cost value from OpenRouter's response format.
+ *
+ * @param metadata - The `providerMetadata` field from an AI SDK result
+ * @returns The cost in USD, or undefined if not available
+ *
+ * @example
+ * const result = await generateObject({ model, schema, prompt });
+ * const cost = extractOpenRouterCost(result.providerMetadata);
+ * if (cost !== undefined) {
+ *   console.log(`API cost: $${cost.toFixed(4)}`);
+ * }
+ */
+export function extractOpenRouterCost(metadata: unknown): number | undefined {
+  if (typeof metadata !== 'object' || metadata === null) {
+    return undefined;
+  }
+  const typed = metadata as OpenRouterProviderMetadata;
+  const cost = typed.openrouter?.usage?.cost;
+  return typeof cost === 'number' ? cost : undefined;
+}
+
 /**
  * Get OpenRouter provider configured for AI grading
  * Uses the official @openrouter/ai-sdk-provider for proper model support

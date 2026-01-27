@@ -25,7 +25,7 @@ import { z } from 'zod';
 
 import { internal } from '../_generated/api';
 import { internalAction } from '../_generated/server';
-import { getOpenRouterProvider } from '../lib/ai';
+import { extractOpenRouterCost, getOpenRouterProvider } from '../lib/ai';
 
 // Models to test (no reasoning effort - fast synthesis)
 const MODELS_TO_TEST = [
@@ -271,15 +271,13 @@ async function runSynthesisTest(
     });
 
     const durationMs = Date.now() - startTime;
-    // OpenRouter returns cost in providerMetadata.openrouter.usage.cost
-    const cost = (result.providerMetadata as any)?.openrouter?.usage?.cost;
 
     return {
       model,
       durationMs,
       success: true,
       totalTokens: result.usage?.totalTokens,
-      cost: typeof cost === 'number' ? cost : undefined,
+      cost: extractOpenRouterCost(result.providerMetadata),
     };
   } catch (error) {
     const durationMs = Date.now() - startTime;
